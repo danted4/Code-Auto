@@ -11,7 +11,7 @@ import * as path from 'path';
 async function globalSetup(config: FullConfig) {
   console.log('\n🧹 Cleaning up test data before e2e tests...');
 
-  const tasksDir = path.join(process.cwd(), '.auto-claude', 'tasks');
+  const tasksDir = path.join(process.cwd(), '.code-auto', 'tasks');
 
   // Ensure the directory exists
   if (!fs.existsSync(tasksDir)) {

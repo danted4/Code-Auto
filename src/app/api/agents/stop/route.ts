@@ -31,11 +31,12 @@ export async function POST(req: NextRequest) {
     // Stop agent
     await agentManager.stopAgent(threadId);
 
-    // Update task
+    // Update task - move back to planning phase when agent stopped
     const task = await taskPersistence.loadTask(session.taskId);
     if (task && task.assignedAgent === threadId) {
       task.assignedAgent = undefined;
       task.status = 'pending';
+      task.phase = 'planning';
       await taskPersistence.saveTask(task);
     }
 

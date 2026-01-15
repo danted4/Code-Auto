@@ -61,15 +61,15 @@ export function AgentTerminal({ threadId }: AgentTerminalProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'running':
-        return 'text-blue-400';
+        return 'var(--color-info)';
       case 'completed':
-        return 'text-green-400';
+        return 'var(--color-success)';
       case 'error':
-        return 'text-red-400';
+        return 'var(--color-error)';
       case 'stopped':
-        return 'text-yellow-400';
+        return 'var(--color-warning)';
       default:
-        return 'text-gray-400';
+        return 'var(--color-text-muted)';
     }
   };
 
@@ -78,11 +78,23 @@ export function AgentTerminal({ threadId }: AgentTerminalProps) {
   };
 
   return (
-    <Card className="bg-slate-950 text-green-400 font-mono text-xs overflow-hidden">
+    <Card
+      className="font-mono text-xs overflow-hidden"
+      style={{
+        background: 'var(--color-terminal-background)',
+        color: 'var(--color-terminal-text)',
+      }}
+    >
       {/* Header */}
-      <div className="border-b border-slate-800 px-4 py-2 flex items-center justify-between bg-slate-900">
-        <span className="text-slate-400">Thread: {threadId}</span>
-        <span className={getStatusColor(status)}>
+      <div
+        className="border-b px-4 py-2 flex items-center justify-between"
+        style={{
+          borderColor: 'var(--color-border)',
+          background: 'var(--color-surface)',
+        }}
+      >
+        <span style={{ color: 'var(--color-text-muted)' }}>Thread: {threadId}</span>
+        <span style={{ color: getStatusColor(status) }}>
           ● {status.toUpperCase()}
         </span>
       </div>
@@ -90,16 +102,16 @@ export function AgentTerminal({ threadId }: AgentTerminalProps) {
       {/* Logs */}
       <div className="p-4 max-h-96 overflow-y-auto">
         {logs.length === 0 && status === 'connecting' && (
-          <div className="text-slate-500">Connecting to agent...</div>
+          <div style={{ color: 'var(--color-text-muted)' }}>Connecting to agent...</div>
         )}
 
         {logs.map((log, i) => (
           <div key={i} className="mb-2">
-            <span className="text-slate-500">
+            <span style={{ color: 'var(--color-text-muted)' }}>
               [{formatTimestamp(log.timestamp)}]
             </span>{' '}
-            <span className="text-blue-400">{log.type}:</span>{' '}
-            <span className="text-green-400">
+            <span style={{ color: 'var(--color-info)' }}>{log.type}:</span>{' '}
+            <span style={{ color: 'var(--color-terminal-text)' }}>
               {typeof log.content === 'string'
                 ? log.content
                 : JSON.stringify(log.content, null, 2)}

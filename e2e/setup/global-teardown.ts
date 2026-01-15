@@ -11,7 +11,7 @@ import * as path from 'path';
 async function globalTeardown(config: FullConfig) {
   console.log('\n🧹 Cleaning up test data after e2e tests...');
 
-  const tasksDir = path.join(process.cwd(), '.auto-claude', 'tasks');
+  const tasksDir = path.join(process.cwd(), '.code-auto', 'tasks');
 
   if (fs.existsSync(tasksDir)) {
     const files = fs.readdirSync(tasksDir);

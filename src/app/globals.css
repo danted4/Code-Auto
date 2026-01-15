@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    /* Shadcn compatibility variables */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -21,5 +22,33 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
+
+    /* Custom theme variables (defaults - overridden by ThemeProvider) */
+    --color-background: #0f172a;
+    --color-foreground: #ffffff;
+    --color-surface: #1e293b;
+    --color-surface-hover: #334155;
+    --color-border: #334155;
+    --color-border-hover: #475569;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #cbd5e1;
+    --color-text-muted: #94a3b8;
+    --color-primary: #fbbf24;
+    --color-primary-hover: #f59e0b;
+    --color-primary-text: #000000;
+    --color-secondary: #475569;
+    --color-secondary-hover: #334155;
+    --color-secondary-text: #ffffff;
+    --color-destructive: #ef4444;
+    --color-destructive-hover: #dc2626;
+    --color-destructive-text: #ffffff;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
   }
 }

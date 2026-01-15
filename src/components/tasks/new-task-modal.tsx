@@ -166,7 +166,7 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
           <div key={field.name} className="space-y-2">
             <Label htmlFor={field.name}>{field.label}</Label>
             {field.description && (
-              <p className="text-xs text-slate-400">{field.description}</p>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{field.description}</p>
             )}
             <Select value={value} onValueChange={(v) => handleConfigChange(field.name, v)}>
               <SelectTrigger id={field.name}>
@@ -202,7 +202,7 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
           <div key={field.name} className="space-y-2">
             <Label htmlFor={field.name}>{field.label}</Label>
             {field.description && (
-              <p className="text-xs text-slate-400">{field.description}</p>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{field.description}</p>
             )}
             <Input
               id={field.name}
@@ -219,7 +219,7 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
           <div key={field.name} className="space-y-2">
             <Label htmlFor={field.name}>{field.label}</Label>
             {field.description && (
-              <p className="text-xs text-slate-400">{field.description}</p>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{field.description}</p>
             )}
             <Input
               id={field.name}
@@ -233,10 +233,10 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] bg-slate-900 text-white border-slate-700">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Create New Task</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription>
             Configure your task and select the CLI tool to use for implementation
           </DialogDescription>
         </DialogHeader>
@@ -250,7 +250,6 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
               placeholder="e.g., Implement user authentication"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="bg-slate-800 border-slate-700"
             />
           </div>
 
@@ -263,7 +262,6 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="bg-slate-800 border-slate-700"
             />
           </div>
 
@@ -271,13 +269,13 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
           <div className="space-y-2">
             <Label htmlFor="cli-tool">CLI Tool</Label>
             {isLoadingAdapters ? (
-              <div className="text-sm text-slate-400">Loading CLI tools...</div>
+              <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Loading CLI tools...</div>
             ) : (
               <Select value={cliTool} onValueChange={handleCliChange}>
-                <SelectTrigger id="cli-tool" className="bg-slate-800 border-slate-700">
+                <SelectTrigger id="cli-tool">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent>
                   {availableAdapters.map((adapter) => (
                     <SelectItem key={adapter.name} value={adapter.name}>
                       {adapter.displayName}
@@ -290,14 +288,14 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
 
           {/* Dynamic CLI Configuration */}
           {configSchema && configSchema.fields.length > 0 && (
-            <div className="space-y-4 pt-4 border-t border-slate-700">
+            <div className="space-y-4 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
               <h4 className="text-sm font-medium">CLI Configuration</h4>
               {configSchema.fields.map(renderConfigField)}
             </div>
           )}
 
           {/* Human Review Checkbox */}
-          <div className="flex items-start space-x-2 pt-4 border-t border-slate-700">
+          <div className="flex items-start space-x-2 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
             <Checkbox
               id="human-review"
               checked={requiresHumanReview}
@@ -307,7 +305,7 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
               <Label htmlFor="human-review" className="cursor-pointer font-medium">
                 Require human review for plan
               </Label>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                 Task will be locked until you approve the AI-generated plan
               </p>
             </div>
@@ -315,7 +313,7 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-slate-700">
+          <Button variant="destructive" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button

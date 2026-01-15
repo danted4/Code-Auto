@@ -21,29 +21,34 @@ export function KanbanColumn({ phase, tasks }: KanbanColumnProps) {
     id: phase,
   });
 
-  const phaseColors: Record<WorkflowPhase, string> = {
-    planning: 'border-t-blue-500',
-    in_progress: 'border-t-cyan-500',
-    ai_review: 'border-t-yellow-500',
-    human_review: 'border-t-purple-500',
-    done: 'border-t-green-500',
+  const getPhaseColor = (phase: WorkflowPhase): string => {
+    const colors: Record<WorkflowPhase, string> = {
+      planning: 'var(--color-phase-planning)',
+      in_progress: 'var(--color-status-in-progress)',
+      ai_review: 'var(--color-phase-validate)',
+      human_review: 'var(--color-phase-discovery)',
+      done: 'var(--color-status-completed)',
+    };
+    return colors[phase];
   };
 
   return (
     <div
       ref={setNodeRef}
       data-testid={`kanban-column-${phase}`}
-      className={cn(
-        "flex-shrink-0 w-80 bg-slate-900 rounded-lg border border-slate-700 border-t-4",
-        phaseColors[phase]
-      )}
+      className="flex-shrink-0 w-80 rounded-lg border border-t-4"
+      style={{
+        background: 'var(--color-surface)',
+        borderColor: 'var(--color-border)',
+        borderTopColor: getPhaseColor(phase),
+      }}
     >
       {/* Column Header */}
-      <div className="p-4 border-b border-slate-700">
-        <h3 className="font-semibold text-base text-white">
+      <div className="p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
+        <h3 className="font-semibold text-base" style={{ color: 'var(--color-text-primary)' }}>
           {getPhaseDisplayName(phase)}
         </h3>
-        <div data-testid={`task-count-${phase}`} className="mt-2 text-xs text-slate-400">
+        <div data-testid={`task-count-${phase}`} className="mt-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
           {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
         </div>
       </div>
@@ -54,7 +59,7 @@ export function KanbanColumn({ phase, tasks }: KanbanColumnProps) {
           <TaskCard key={task.id} task={task} />
         ))}
         {tasks.length === 0 && (
-          <div data-testid={`empty-state-${phase}`} className="text-center py-8 text-slate-500 text-sm">
+          <div data-testid={`empty-state-${phase}`} className="text-center py-8 text-sm" style={{ color: 'var(--color-text-muted)' }}>
             No tasks
           </div>
         )}

@@ -45,9 +45,10 @@ export async function POST(req: NextRequest) {
       // TODO: Add context from memory system
     });
 
-    // Update task with assigned agent
+    // Update task with assigned agent and move to in_progress phase
     task.assignedAgent = threadId;
     task.status = 'in_progress';
+    task.phase = 'in_progress';
     await taskPersistence.saveTask(task);
 
     return NextResponse.json({

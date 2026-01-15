@@ -8,10 +8,10 @@ import fs from 'fs/promises';
 import path from 'path';
 import { Task, WORKFLOW_PHASES } from './schema';
 
-const TASKS_DIR = path.join(process.cwd(), '.auto-claude', 'tasks');
+const TASKS_DIR = path.join(process.cwd(), '.code-auto', 'tasks');
 const IMPLEMENTATION_PLAN = path.join(
   process.cwd(),
-  '.auto-claude',
+  '.code-auto',
   'implementation_plan.json'
 );
 

@@ -48,7 +48,7 @@ Code-Auto/
 │   │   ├── agents/               # Agent terminals
 │   │   └── ui/                   # shadcn components
 │   └── store/                    # Zustand stores
-└── .auto-claude/                 # Data directory
+└── .code-auto/                 # Data directory
     ├── worktrees/tasks/          # Git worktrees
     ├── memory/                   # Patterns, gotchas, history
     ├── tasks/                    # Task JSON files
@@ -109,7 +109,7 @@ interface Task {
 }
 ```
 
-**Storage:** `.auto-claude/tasks/{task-id}.json` + `implementation_plan.json` (Auto-Claude compatibility)
+**Storage:** `.code-auto/tasks/{task-id}.json` + `implementation_plan.json` (Auto-Claude compatibility)
 
 **UI:** shadcn/ui cards with @dnd-kit for drag-and-drop between phases
 
@@ -168,7 +168,7 @@ interface AgentSession {
 ### 3. Git Worktree Isolation
 
 **Pattern** (from Auto-Claude):
-- Each task gets isolated worktree at `.auto-claude/worktrees/tasks/{task-name}/`
+- Each task gets isolated worktree at `.code-auto/worktrees/tasks/{task-name}/`
 - Branch naming: `auto-claude/{task-name}`
 - Protects main branch during experimental development
 - Enables parallel work on multiple tasks
@@ -199,9 +199,9 @@ class WorktreeManager {
 ### 4. Memory System (File-Based)
 
 **Storage:**
-- `.auto-claude/memory/patterns.json` - Learned successful approaches
-- `.auto-claude/memory/gotchas.json` - Common pitfalls
-- `.auto-claude/memory/history.json` - Task execution history
+- `.code-auto/memory/patterns.json` - Learned successful approaches
+- `.code-auto/memory/gotchas.json` - Common pitfalls
+- `.code-auto/memory/history.json` - Task execution history
 
 **Data Models:**
 ```typescript
@@ -355,7 +355,7 @@ Tasks:
 - Run `npm run dev` successfully
 - Mock adapter returns simulated responses (use this for most testing)
 - Execute ONE test prompt via real amp SDK to verify integration
-- Save/load task from `.auto-claude/tasks/`
+- Save/load task from `.code-auto/tasks/`
 
 ---
 
@@ -371,7 +371,7 @@ Tasks:
 6. Connect Zustand store for task state
 
 **Verification:**
-- Create task from UI → Saved to `.auto-claude/tasks/{id}.json`
+- Create task from UI → Saved to `.code-auto/tasks/{id}.json`
 - Drag task between phases → Status updates
 - View task details in dedicated page
 
@@ -408,7 +408,7 @@ Tasks:
 6. Build PR creation workflow
 
 **Verification:**
-- Create task → Worktree appears at `.auto-claude/worktrees/tasks/{task}/`
+- Create task → Worktree appears at `.code-auto/worktrees/tasks/{task}/`
 - Agent modifies files in worktree (not main branch)
 - Create PR from worktree → PR opens on GitHub
 
@@ -517,7 +517,7 @@ Tasks:
 **Challenge:** In-memory agent state lost on server restart
 
 **Solution:**
-- Save agent sessions to `.auto-claude/agents/{threadId}.json`
+- Save agent sessions to `.code-auto/agents/{threadId}.json`
 - On startup, restore active agents from disk
 - Resume threads using `continue: threadId` option
 
@@ -525,7 +525,7 @@ Tasks:
 - Store API keys in `.env.local` (never commit)
 - Lock API routes to same origin
 - Validate all git commands to prevent injection
-- Restrict worktree operations to `.auto-claude/` directory
+- Restrict worktree operations to `.code-auto/` directory
 
 ### Performance
 - Batch SSE messages (send every 100ms)

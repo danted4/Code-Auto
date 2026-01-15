@@ -30,11 +30,14 @@ export function TaskCard({ task }: TaskCardProps) {
     opacity: isDragging ? 0.3 : 1,
   };
 
-  const statusColors = {
-    pending: 'bg-gray-100 text-gray-800',
-    in_progress: 'bg-blue-100 text-blue-800',
-    completed: 'bg-green-100 text-green-800',
-    blocked: 'bg-red-100 text-red-800',
+  const getStatusColors = (status: Task['status']) => {
+    const colors = {
+      pending: { bg: 'var(--color-status-pending)', text: '#000000' },
+      in_progress: { bg: 'var(--color-status-in-progress)', text: '#ffffff' },
+      completed: { bg: 'var(--color-status-completed)', text: '#ffffff' },
+      blocked: { bg: 'var(--color-status-blocked)', text: '#ffffff' },
+    };
+    return colors[status];
   };
 
   const handleStartAgent = async (e: React.MouseEvent) => {
@@ -92,23 +95,40 @@ export function TaskCard({ task }: TaskCardProps) {
   return (
     <Card
       ref={setNodeRef}
-      style={style}
+      style={{
+        ...style,
+        background: 'var(--color-surface)',
+        borderColor: 'var(--color-border)',
+      }}
       {...listeners}
       {...attributes}
       data-testid={`task-card-${task.id}`}
-      className="cursor-grab active:cursor-grabbing hover:shadow-lg transition-shadow bg-slate-800 border-slate-700 hover:border-slate-600"
+      className="cursor-grab active:cursor-grabbing hover:shadow-lg transition-shadow"
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = 'var(--color-border-hover)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = 'var(--color-border)';
+      }}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle data-testid="task-title" className="text-sm font-medium line-clamp-2 text-white">
+          <CardTitle data-testid="task-title" className="text-sm font-medium line-clamp-2" style={{ color: 'var(--color-text-primary)' }}>
             {task.title}
           </CardTitle>
-          <Badge data-testid="task-status" className={statusColors[task.status]}>
+          <Badge
+            data-testid="task-status"
+            className="whitespace-nowrap shrink-0"
+            style={{
+              background: getStatusColors(task.status).bg,
+              color: getStatusColors(task.status).text,
+            }}
+          >
             {task.status.replace('_', ' ')}
           </Badge>
         </div>
         {task.description && (
-          <CardDescription data-testid="task-description" className="line-clamp-2 text-xs text-slate-400">
+          <CardDescription data-testid="task-description" className="line-clamp-2 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
             {task.description}
           </CardDescription>
         )}
@@ -118,8 +138,8 @@ export function TaskCard({ task }: TaskCardProps) {
         {task.subtasks.length > 0 && (
           <div data-testid="task-subtasks" className="space-y-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400">Progress</span>
-              <span className="text-slate-300 font-medium">
+              <span style={{ color: 'var(--color-text-muted)' }}>Progress</span>
+              <span style={{ color: 'var(--color-text-secondary)' }} className="font-medium">
                 {Math.round((task.subtasks.filter((s) => s.status === 'completed').length / task.subtasks.length) * 100)}%
               </span>
             </div>
@@ -128,13 +148,16 @@ export function TaskCard({ task }: TaskCardProps) {
               {task.subtasks.map((subtask, idx) => (
                 <div
                   key={subtask.id}
-                  className={`w-2 h-2 rounded-full ${
-                    subtask.status === 'completed'
-                      ? 'bg-green-500'
-                      : subtask.status === 'in_progress'
-                      ? 'bg-blue-500 animate-pulse'
-                      : 'bg-slate-600'
-                  }`}
+                  className="w-2 h-2 rounded-full"
+                  style={{
+                    background:
+                      subtask.status === 'completed'
+                        ? 'var(--color-success)'
+                        : subtask.status === 'in_progress'
+                        ? 'var(--color-info)'
+                        : 'var(--color-border)',
+                    animation: subtask.status === 'in_progress' ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : undefined,
+                  }}
                   title={subtask.content}
                 />
               ))}
@@ -144,7 +167,7 @@ export function TaskCard({ task }: TaskCardProps) {
 
         {task.assignedAgent ? (
           <div className="flex items-center gap-2">
-            <div data-testid="agent-status" className="text-xs text-cyan-400 flex-1">
+            <div data-testid="agent-status" className="text-xs flex-1" style={{ color: 'var(--color-agent-active)' }}>
               🤖 Agent working
             </div>
             <Button
@@ -153,7 +176,17 @@ export function TaskCard({ task }: TaskCardProps) {
               variant="secondary"
               onClick={handleStopAgent}
               disabled={isStopping}
-              className="text-xs bg-slate-600 hover:bg-slate-500"
+              className="text-xs"
+              style={{
+                background: 'var(--color-secondary)',
+                color: 'var(--color-secondary-text)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--color-secondary-hover)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'var(--color-secondary)';
+              }}
             >
               <Pause className="w-3 h-3" />
               {isStopping ? 'Pausing...' : 'Pause'}
@@ -166,7 +199,18 @@ export function TaskCard({ task }: TaskCardProps) {
             variant="outline"
             onClick={handleStartAgent}
             disabled={isStarting}
-            className="w-full text-xs bg-slate-700 hover:bg-slate-600 text-white border-slate-600"
+            className="w-full text-xs"
+            style={{
+              background: 'var(--color-surface-hover)',
+              color: 'var(--color-text-primary)',
+              borderColor: 'var(--color-border)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--color-background)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--color-surface-hover)';
+            }}
           >
             <Play className="w-3 h-3" />
             {isStarting ? 'Starting...' : 'Start Agent'}

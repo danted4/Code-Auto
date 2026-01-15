@@ -5,6 +5,7 @@
 /.pnp
 .pnp.js
 /.claude
+/.code-auto
 
 # testing
 /coverage

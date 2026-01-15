@@ -1,12 +1,12 @@
 /**
- * Seed Tasks API Route
+ * Seed Test Tasks API Route
  *
- * Creates sample tasks for testing the Kanban board
+ * Creates sample tasks for E2E testing (marked with isTestData flag)
  */
 
 import { NextResponse } from 'next/server';
 import { taskPersistence } from '@/lib/tasks/persistence';
-import { Task, WORKFLOW_PHASES } from '@/lib/tasks/schema';
+import { Task } from '@/lib/tasks/schema';
 
 export async function POST() {
   try {
@@ -17,7 +17,7 @@ export async function POST() {
         phase: 'planning',
         status: 'pending',
         subtasks: [],
-        metadata: { estimatedComplexity: 'high' },
+        metadata: { estimatedComplexity: 'high', isTestData: true },
       },
       {
         title: 'Design database schema',
@@ -25,7 +25,7 @@ export async function POST() {
         phase: 'planning',
         status: 'pending',
         subtasks: [],
-        metadata: { estimatedComplexity: 'medium' },
+        metadata: { estimatedComplexity: 'medium', isTestData: true },
       },
       {
         title: 'Build REST API endpoints',
@@ -37,7 +37,7 @@ export async function POST() {
           { id: '2', content: 'Update endpoint', status: 'in_progress' },
           { id: '3', content: 'List endpoint', status: 'pending' },
         ],
-        metadata: { estimatedComplexity: 'medium' },
+        metadata: { estimatedComplexity: 'medium', isTestData: true },
       },
       {
         title: 'Add error handling middleware',
@@ -45,7 +45,7 @@ export async function POST() {
         phase: 'ai_review',
         status: 'completed',
         subtasks: [],
-        metadata: { estimatedComplexity: 'low' },
+        metadata: { estimatedComplexity: 'low', isTestData: true },
       },
       {
         title: 'Implement real-time notifications',
@@ -56,7 +56,7 @@ export async function POST() {
           { id: '1', content: 'WebSocket server', status: 'completed', completedAt: Date.now() },
           { id: '2', content: 'Client integration', status: 'completed', completedAt: Date.now() },
         ],
-        metadata: { estimatedComplexity: 'high' },
+        metadata: { estimatedComplexity: 'high', isTestData: true },
       },
       {
         title: 'Set up CI/CD pipeline',
@@ -67,7 +67,7 @@ export async function POST() {
           { id: '1', content: 'GitHub Actions workflow', status: 'completed', completedAt: Date.now() },
           { id: '2', content: 'Deploy to production', status: 'completed', completedAt: Date.now() },
         ],
-        metadata: { estimatedComplexity: 'low' },
+        metadata: { estimatedComplexity: 'low', isTestData: true },
       },
     ];
 
@@ -92,7 +92,7 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: `Created ${createdTasks.length} sample tasks`,
+      message: `Created ${createdTasks.length} test tasks`,
       tasks: createdTasks,
     });
   } catch (error) {

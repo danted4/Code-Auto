@@ -23,11 +23,26 @@ export interface Task {
   phase: WorkflowPhase;
   status: TaskStatus;
   subtasks: Subtask[];
+
+  // CLI Configuration
+  cliTool?: string; // 'amp', 'aider', 'cursor', etc.
+  cliConfig?: Record<string, any>; // Dynamic CLI-specific config
+
+  // Workflow Control
+  requiresHumanReview?: boolean; // If true, task locked until plan approved
+  planApproved?: boolean; // Plan approval status
+  locked?: boolean; // Locked tasks can't be dragged
+
+  // Execution
   assignedAgent?: string; // Thread ID if agent is working on this
   worktreePath?: string;
   branchName?: string; // auto-claude/{task-name}
+
+  // Integrations
   githubIssue?: number;
   gitlabIssue?: number;
+
+  // Timestamps
   createdAt: number;
   updatedAt: number;
   metadata: TaskMetadata;
@@ -45,6 +60,7 @@ export interface TaskMetadata {
   estimatedComplexity?: 'low' | 'medium' | 'high';
   dependencies?: string[]; // Other task IDs
   tags?: string[];
+  isTestData?: boolean; // Flag to mark test data for e2e cleanup
 }
 
 /**

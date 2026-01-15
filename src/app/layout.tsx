@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Sidebar } from "@/components/layout/sidebar";
 
 export const metadata: Metadata = {
   title: "Code-Auto",
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased flex">
+        <Sidebar />
+        <main className="flex-1 overflow-hidden">{children}</main>
+      </body>
     </html>
   );
 }

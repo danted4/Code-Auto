@@ -12,7 +12,7 @@ import { Task } from '@/lib/tasks/schema';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Play, Square } from 'lucide-react';
+import { Play, Pause } from 'lucide-react';
 
 interface TaskCardProps {
   task: Task;
@@ -22,16 +22,13 @@ export function TaskCard({ task }: TaskCardProps) {
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
 
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
   });
 
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        opacity: isDragging ? 0.5 : 1,
-      }
-    : undefined;
+  const style = {
+    opacity: isDragging ? 0.3 : 1,
+  };
 
   const statusColors = {
     pending: 'bg-gray-100 text-gray-800',
@@ -98,19 +95,20 @@ export function TaskCard({ task }: TaskCardProps) {
       style={style}
       {...listeners}
       {...attributes}
-      className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+      data-testid={`task-card-${task.id}`}
+      className="cursor-grab active:cursor-grabbing hover:shadow-lg transition-shadow bg-slate-800 border-slate-700 hover:border-slate-600"
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base font-medium line-clamp-2">
+          <CardTitle data-testid="task-title" className="text-sm font-medium line-clamp-2 text-white">
             {task.title}
           </CardTitle>
-          <Badge className={statusColors[task.status]}>
+          <Badge data-testid="task-status" className={statusColors[task.status]}>
             {task.status.replace('_', ' ')}
           </Badge>
         </div>
         {task.description && (
-          <CardDescription className="line-clamp-2 text-sm">
+          <CardDescription data-testid="task-description" className="line-clamp-2 text-xs text-slate-400">
             {task.description}
           </CardDescription>
         )}
@@ -118,34 +116,57 @@ export function TaskCard({ task }: TaskCardProps) {
 
       <CardContent className="pt-0 space-y-2">
         {task.subtasks.length > 0 && (
-          <div className="text-xs text-gray-500">
-            {task.subtasks.filter((s) => s.status === 'completed').length} /{' '}
-            {task.subtasks.length} subtasks
+          <div data-testid="task-subtasks" className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">Progress</span>
+              <span className="text-slate-300 font-medium">
+                {Math.round((task.subtasks.filter((s) => s.status === 'completed').length / task.subtasks.length) * 100)}%
+              </span>
+            </div>
+            {/* Progress dots */}
+            <div className="flex gap-1">
+              {task.subtasks.map((subtask, idx) => (
+                <div
+                  key={subtask.id}
+                  className={`w-2 h-2 rounded-full ${
+                    subtask.status === 'completed'
+                      ? 'bg-green-500'
+                      : subtask.status === 'in_progress'
+                      ? 'bg-blue-500 animate-pulse'
+                      : 'bg-slate-600'
+                  }`}
+                  title={subtask.content}
+                />
+              ))}
+            </div>
           </div>
         )}
 
         {task.assignedAgent ? (
           <div className="flex items-center gap-2">
-            <div className="text-xs text-blue-600 flex-1">
+            <div data-testid="agent-status" className="text-xs text-cyan-400 flex-1">
               🤖 Agent working
             </div>
             <Button
+              data-testid="pause-agent-button"
               size="sm"
-              variant="destructive"
+              variant="secondary"
               onClick={handleStopAgent}
               disabled={isStopping}
+              className="text-xs bg-slate-600 hover:bg-slate-500"
             >
-              <Square className="w-3 h-3" />
-              {isStopping ? 'Stopping...' : 'Stop'}
+              <Pause className="w-3 h-3" />
+              {isStopping ? 'Pausing...' : 'Pause'}
             </Button>
           </div>
         ) : (
           <Button
+            data-testid="start-agent-button"
             size="sm"
             variant="outline"
             onClick={handleStartAgent}
             disabled={isStarting}
-            className="w-full"
+            className="w-full text-xs bg-slate-700 hover:bg-slate-600 text-white border-slate-600"
           >
             <Play className="w-3 h-3" />
             {isStarting ? 'Starting...' : 'Start Agent'}

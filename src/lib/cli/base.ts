@@ -7,6 +7,18 @@
 
 export interface CLIAdapter {
   /**
+   * Name and display information
+   */
+  name: string;
+  displayName: string;
+
+  /**
+   * Get configuration schema for this CLI
+   * Used to dynamically generate UI configuration fields
+   */
+  getConfigSchema(): CLIConfigSchema;
+
+  /**
    * Initialize the CLI adapter with configuration
    */
   initialize(config: CLIConfig): Promise<void>;
@@ -100,4 +112,21 @@ export interface HistoryEntry {
   success: boolean;
   duration: number;
   timestamp: number;
+}
+
+/**
+ * Configuration Schema - Defines UI fields for CLI configuration
+ * Allows dynamic form generation based on selected CLI tool
+ */
+export interface CLIConfigSchema {
+  fields: ConfigField[];
+}
+
+export interface ConfigField {
+  name: string;
+  label: string;
+  type: 'select' | 'number' | 'boolean' | 'text';
+  options?: { value: string; label: string }[];
+  default?: any;
+  description?: string;
 }

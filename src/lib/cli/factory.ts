@@ -46,4 +46,19 @@ export class CLIFactory {
   static isProviderAvailable(provider: string): provider is CLIProvider {
     return ['amp', 'mock'].includes(provider);
   }
+
+  /**
+   * Get available adapters with their metadata
+   * Used for displaying CLI options in UI
+   */
+  static getAvailableAdapters(): Array<{ name: string; displayName: string }> {
+    const providers = this.getAvailableProviders();
+    return providers.map(provider => {
+      const adapter = this.create(provider);
+      return {
+        name: adapter.name,
+        displayName: adapter.displayName,
+      };
+    });
+  }
 }

@@ -9,13 +9,42 @@ import {
   CLIAdapter,
   CLIConfig,
   CLICapabilities,
+  CLIConfigSchema,
   ExecuteRequest,
   StreamMessage,
 } from './base';
 
 export class MockCLIAdapter implements CLIAdapter {
+  name = 'mock';
+  displayName = 'Mock CLI (Testing)';
+
   private config: CLIConfig | null = null;
   private activeThreads = new Map<string, MockThreadSession>();
+
+  getConfigSchema(): CLIConfigSchema {
+    return {
+      fields: [
+        {
+          name: 'mode',
+          label: 'Simulation Mode',
+          type: 'select',
+          options: [
+            { value: 'smart', label: 'Smart (Detailed Simulation)' },
+            { value: 'rush', label: 'Rush (Quick Simulation)' },
+          ],
+          default: 'smart',
+          description: 'Controls the verbosity of simulated responses',
+        },
+        {
+          name: 'delay',
+          label: 'Response Delay (ms)',
+          type: 'number',
+          default: 500,
+          description: 'Artificial delay between simulated messages',
+        },
+      ],
+    };
+  }
 
   async initialize(config: CLIConfig): Promise<void> {
     this.config = config;

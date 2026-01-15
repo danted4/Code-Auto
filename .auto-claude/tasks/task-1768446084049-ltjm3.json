@@ -1,0 +1,27 @@
+{
+  "title": "Implement real-time notifications",
+  "description": "Add WebSocket support for live updates",
+  "phase": "human_review",
+  "status": "pending",
+  "subtasks": [
+    {
+      "id": "1",
+      "content": "WebSocket server",
+      "status": "completed",
+      "completedAt": 1768446083999
+    },
+    {
+      "id": "2",
+      "content": "Client integration",
+      "status": "completed",
+      "completedAt": 1768446083999
+    }
+  ],
+  "metadata": {
+    "estimatedComplexity": "high"
+  },
+  "id": "task-1768446084049-ltjm3",
+  "branchName": "auto-claude/task-1768446084049-ltjm3",
+  "createdAt": 1768446084049,
+  "updatedAt": 1768446084049
+}

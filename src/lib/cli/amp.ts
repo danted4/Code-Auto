@@ -10,14 +10,36 @@ import {
   CLIAdapter,
   CLIConfig,
   CLICapabilities,
+  CLIConfigSchema,
   ExecuteRequest,
   StreamMessage,
   ContextData,
 } from './base';
 
 export class AmpAdapter implements CLIAdapter {
+  name = 'amp';
+  displayName = 'Amp CLI';
+
   private config: CLIConfig | null = null;
   private activeThreads = new Map<string, AbortController>();
+
+  getConfigSchema(): CLIConfigSchema {
+    return {
+      fields: [
+        {
+          name: 'mode',
+          label: 'Mode',
+          type: 'select',
+          options: [
+            { value: 'smart', label: 'Smart Mode' },
+            { value: 'rush', label: 'Rush Mode' },
+          ],
+          default: 'smart',
+          description: 'Smart mode prioritizes quality. Rush mode prioritizes speed and lower cost.',
+        },
+      ],
+    };
+  }
 
   async initialize(config: CLIConfig): Promise<void> {
     if (!config.apiKey) {

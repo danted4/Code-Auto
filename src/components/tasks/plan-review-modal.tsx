@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CheckCircle, Play, Edit, Code, Eye, MessageSquare, Save, X } from 'lucide-react';
+import { CheckCircle, Play, Edit, Code, Eye, MessageSquare, Save, X, ArrowLeft, CornerUpLeft } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -27,7 +27,7 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
   const [modifyMethod, setModifyMethod] = useState<'inline' | 'feedback' | null>(null);
   const [editedPlan, setEditedPlan] = useState(planContent);
   const [feedbackText, setFeedbackText] = useState('');
-  const [showRawMarkdown, setShowRawMarkdown] = useState(false);
+  const [showRawMarkdown, setShowRawMarkdown] = useState(true); // Default to raw mode
   const [isSaving, setIsSaving] = useState(false);
 
   const handleApproveOnly = async () => {
@@ -90,12 +90,19 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
     setShowModifyMode(true);
   };
 
-  const handleCancelModify = () => {
+  const handleBackToSelection = () => {
+    setModifyMethod(null);
+    setEditedPlan(planContent);
+    setFeedbackText('');
+    setShowRawMarkdown(true); // Reset to raw mode
+  };
+
+  const handleBackToReview = () => {
     setShowModifyMode(false);
     setModifyMethod(null);
     setEditedPlan(planContent);
     setFeedbackText('');
-    setShowRawMarkdown(false);
+    setShowRawMarkdown(true); // Reset to raw mode
   };
 
   const handleSaveInlineEdit = async () => {
@@ -281,7 +288,8 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
                 onChange={(e) => setEditedPlan(e.target.value)}
                 className="flex-1 font-mono text-sm"
                 style={{
-                  minHeight: '400px',
+                  minHeight: '500px',
+                  maxHeight: '500px',
                   background: 'var(--color-background)',
                   color: 'var(--color-text-secondary)',
                   border: '1px solid var(--color-border)',
@@ -291,6 +299,8 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
               <div
                 className="flex-1 overflow-y-auto py-4 px-2"
                 style={{
+                  minHeight: '500px',
+                  maxHeight: '500px',
                   background: 'var(--color-surface)',
                   borderRadius: '8px',
                   border: '1px solid var(--color-border)',
@@ -434,7 +444,7 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
           {showModifyMode && modifyMethod ? (
             <>
               <button
-                onClick={handleCancelModify}
+                onClick={handleBackToReview}
                 className="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2"
                 style={{
                   background: 'var(--color-surface)',
@@ -449,8 +459,28 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
                   e.currentTarget.style.background = 'var(--color-surface)';
                 }}
               >
-                <X className="w-4 h-4" />
-                Cancel
+                <ArrowLeft className="w-4 h-4" />
+                Back to Review
+              </button>
+
+              <button
+                onClick={handleBackToSelection}
+                className="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2"
+                style={{
+                  background: 'var(--color-surface)',
+                  color: 'var(--color-text-primary)',
+                  border: '1px solid var(--color-border)',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--color-surface-hover)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--color-surface)';
+                }}
+              >
+                <CornerUpLeft className="w-4 h-4" />
+                Back to Selection
               </button>
 
               <button
@@ -489,7 +519,7 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
             </>
           ) : showModifyMode && !modifyMethod ? (
             <button
-              onClick={handleCancelModify}
+              onClick={handleBackToReview}
               className="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2"
               style={{
                 background: 'var(--color-surface)',
@@ -505,7 +535,7 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
               }}
             >
               <X className="w-4 h-4" />
-              Back
+              Back to Review
             </button>
           ) : (
             <>

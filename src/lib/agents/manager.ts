@@ -98,11 +98,11 @@ export class AgentManager {
 
       // Call completion callback with error
       if (options.onComplete) {
-        options.onComplete({
+        Promise.resolve(options.onComplete({
           success: false,
           output: '',
           error: error instanceof Error ? error.message : 'Unknown error',
-        }).catch(console.error);
+        })).catch(console.error);
       }
     });
 

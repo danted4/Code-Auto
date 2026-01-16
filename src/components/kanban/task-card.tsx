@@ -12,7 +12,7 @@ import { Task } from '@/lib/tasks/schema';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Play, Pause } from 'lucide-react';
+import { Play, PauseCircle } from 'lucide-react';
 import { QAStepperModal } from '@/components/tasks/qa-stepper-modal';
 import { PlanReviewModal } from '@/components/tasks/plan-review-modal';
 
@@ -252,7 +252,7 @@ export function TaskCard({ task }: TaskCardProps) {
                   e.currentTarget.style.background = 'var(--color-surface-hover)';
                 }}
               >
-                <Play className="w-3 h-3" />
+                <Play className="w-4 h-4" strokeWidth={2.5} />
                 {isStarting ? 'Starting...' : 'Start Planning'}
               </Button>
             ) : task.status === 'planning' && task.assignedAgent ? (
@@ -278,7 +278,7 @@ export function TaskCard({ task }: TaskCardProps) {
                     e.currentTarget.style.background = 'var(--color-secondary)';
                   }}
                 >
-                  <Pause className="w-3 h-3" />
+                  <PauseCircle className="w-4 h-4" />
                   {isStopping ? 'Pausing...' : 'Pause'}
                 </Button>
               </div>
@@ -344,7 +344,7 @@ export function TaskCard({ task }: TaskCardProps) {
                   e.currentTarget.style.background = 'var(--color-primary)';
                 }}
               >
-                <Play className="w-3 h-3" />
+                <Play className="w-4 h-4" strokeWidth={2.5} />
                 {isStarting ? 'Starting...' : 'Start Development'}
               </Button>
             ) : null}
@@ -375,7 +375,7 @@ export function TaskCard({ task }: TaskCardProps) {
                     e.currentTarget.style.background = 'var(--color-secondary)';
                   }}
                 >
-                  <Pause className="w-3 h-3" />
+                  <PauseCircle className="w-4 h-4" />
                   {isStopping ? 'Pausing...' : 'Pause'}
                 </Button>
               </div>
@@ -399,7 +399,7 @@ export function TaskCard({ task }: TaskCardProps) {
                   e.currentTarget.style.background = 'var(--color-surface-hover)';
                 }}
               >
-                <Play className="w-3 h-3" />
+                <Play className="w-4 h-4" strokeWidth={2.5} />
                 {isStarting ? 'Starting...' : 'Start Agent'}
               </Button>
             )}

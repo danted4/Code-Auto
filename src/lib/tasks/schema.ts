@@ -86,6 +86,7 @@ export interface Subtask {
   content: string;
   label: string; // Short label for UI display (e.g., "Create API endpoint")
   status: TaskStatus;
+  type: 'dev' | 'qa'; // Development or QA verification subtask
   activeForm?: string; // e.g., "Running tests" when in_progress
   completedAt?: number;
 }

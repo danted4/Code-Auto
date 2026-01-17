@@ -10,16 +10,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { agentManager } from '@/lib/agents/singleton';
 import { taskPersistence } from '@/lib/tasks/persistence';
+import { Subtask } from '@/lib/tasks/schema';
 import fs from 'fs/promises';
 import path from 'path';
-
-interface Subtask {
-  id: string;
-  content: string;
-  label: string;
-  status: 'pending' | 'in_progress' | 'completed';
-  activeForm?: string;
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -115,11 +108,32 @@ export async function POST(req: NextRequest) {
         const currentTask = await taskPersistence.loadTask(taskId);
         if (!currentTask) return;
 
-        currentTask.subtasks = subtasks.map(s => ({
-          ...s,
+        // Process subtasks from CLI - respect the type from the mock, default to 'dev'
+        const processedSubtasks = subtasks.map(s => {
+          const type: 'dev' | 'qa' = s.type === 'qa' ? 'qa' : 'dev';
+          return {
+            ...s,
+            type,
+            status: 'pending' as const,
+            activeForm: s.activeForm || `Working on ${s.label}`,
+          };
+        });
+
+        // Separate dev and QA subtasks
+        const devSubtasks = processedSubtasks.filter(s => s.type === 'dev');
+        const qaSubtasks = processedSubtasks.filter(s => s.type === 'qa');
+
+        // If no QA subtasks came from CLI, generate them (~60% of dev count)
+        const finalQASubtasks = qaSubtasks.length > 0 ? qaSubtasks : Array.from({ length: Math.floor(devSubtasks.length * 0.6) }, (_, i) => ({
+          id: `subtask-qa-${i + 1}`,
+          content: `[AUTO] Verify implementation step ${i + 1} - Validate the corresponding development work`,
+          label: `Verify Step ${i + 1}`,
+          type: 'qa' as const,
           status: 'pending' as const,
-          activeForm: s.activeForm || `Working on ${s.label}`,
+          activeForm: `Verifying Step ${i + 1}`,
         }));
+
+        currentTask.subtasks = [...devSubtasks, ...finalQASubtasks];
         currentTask.status = 'in_progress';
         currentTask.assignedAgent = undefined; // Clear agent after subtask generation
         await taskPersistence.saveTask(currentTask);
@@ -291,13 +305,19 @@ Please implement this subtask following best practices.`;
       if (currentTask) {
         currentTask.subtasks[i].status = 'completed';
 
-        // Check if all subtasks are completed
-        const allCompleted = currentTask.subtasks.every(s => s.status === 'completed');
-        if (allCompleted) {
-          currentTask.status = 'completed';
+        // Check if all DEV subtasks are completed
+        const allDevCompleted = currentTask.subtasks
+          .filter(s => s.type === 'dev')
+          .every(s => s.status === 'completed');
+          
+        if (allDevCompleted && currentTask.phase === 'in_progress') {
           currentTask.phase = 'ai_review'; // Move to AI review phase
           currentTask.assignedAgent = undefined; // Clear agent
-          await fs.appendFile(logsPath, `\n${'='.repeat(80)}\n[ALL SUBTASKS COMPLETED - Moving to AI Review]\n${'='.repeat(80)}\n`, 'utf-8');
+          await fs.appendFile(logsPath, `\n${'='.repeat(80)}\n[ALL DEV SUBTASKS COMPLETED - Moving to AI Review]\n${'='.repeat(80)}\n`, 'utf-8');
+          
+          // Automatically start AI review
+          await fs.appendFile(logsPath, `\n[AUTO] Initiating AI Review Phase...\n`, 'utf-8');
+          startAIReviewAutomatically(currentTask.id, logsPath);
         }
 
         await taskPersistence.saveTask(currentTask);
@@ -373,5 +393,202 @@ async function waitForSubtaskCompletion(taskId: string, subtaskIndex: number): P
         resolve();
       }
     }, 500); // Check every 500ms
+  });
+}
+
+/**
+ * Automatically start AI review phase after dev subtasks complete
+ * Triggers the review process via background job without waiting
+ */
+function startAIReviewAutomatically(taskId: string, devLogsPath: string): void {
+  // Fire and forget - don't await
+  // This allows the dev phase to finish while review starts in background
+  setTimeout(async () => {
+    try {
+      await fs.appendFile(devLogsPath, `[AUTO] Triggering AI Review Phase...\n`, 'utf-8');
+      
+      const task = await taskPersistence.loadTask(taskId);
+      if (!task || task.phase !== 'ai_review') {
+        await fs.appendFile(devLogsPath, `[AUTO] Cannot start review - task not in ai_review phase\n`, 'utf-8');
+        return;
+      }
+
+      // Create review logs path
+      const reviewLogsPath = `.code-auto/tasks/${taskId}/review-logs.txt`;
+      const logsDir = path.dirname(reviewLogsPath);
+      await fs.mkdir(logsDir, { recursive: true });
+
+      await fs.writeFile(
+        reviewLogsPath,
+        `AI Review auto-started for task: ${task.title}\n` +
+        `Task ID: ${taskId}\n` +
+        `Started at: ${new Date().toISOString()}\n` +
+        `${'='.repeat(80)}\n\n`,
+        'utf-8'
+      );
+
+      await fs.appendFile(reviewLogsPath, `[Starting Sequential QA Verification]\n${'='.repeat(80)}\n\n`, 'utf-8');
+
+      // Execute QA subtasks
+      await executeQASubtasksSequentially(taskId, task.subtasks, reviewLogsPath);
+      
+      await fs.appendFile(devLogsPath, `[AUTO] AI Review Phase initiated\n`, 'utf-8');
+    } catch (error) {
+      await fs.appendFile(
+        devLogsPath,
+        `[AUTO] Error initiating AI review: ${error instanceof Error ? error.message : 'Unknown'}\n`,
+        'utf-8'
+      );
+    }
+  }, 1000); // Give 1 second for phase transition to be saved
+}
+
+/**
+ * Execute QA subtasks sequentially (auto-triggered after dev completion)
+ */
+async function executeQASubtasksSequentially(taskId: string, allSubtasks: Subtask[], logsPath: string) {
+  // Filter to only QA subtasks and get their indices in the full array
+  const qaIndices = allSubtasks
+    .map((s, i) => s.type === 'qa' ? i : -1)
+    .filter(i => i !== -1);
+
+  for (let count = 0; count < qaIndices.length; count++) {
+    const subtaskIndex = qaIndices[count];
+    const subtask = allSubtasks[subtaskIndex];
+
+    // Load fresh task data to check current status
+    const task = await taskPersistence.loadTask(taskId);
+    if (!task) return;
+
+    // Check if this subtask was already completed (e.g., skipped by user)
+    if (task.subtasks[subtaskIndex].status === 'completed') {
+      await fs.appendFile(
+        logsPath,
+        `\n${'='.repeat(80)}\n[QA Subtask ${count + 1}/${qaIndices.length}] ${subtask.label} - SKIPPED (already completed)\n${'='.repeat(80)}\n\n`,
+        'utf-8'
+      );
+      continue;
+    }
+
+    await fs.appendFile(
+      logsPath,
+      `\n${'='.repeat(80)}\n[QA Subtask ${count + 1}/${qaIndices.length}] ${subtask.label}\n${'='.repeat(80)}\n\n`,
+      'utf-8'
+    );
+
+    // Update subtask to in_progress
+    task.subtasks[subtaskIndex].status = 'in_progress';
+    await taskPersistence.saveTask(task);
+
+    // Execute subtask
+    const prompt = `Execute the following QA verification subtask:
+
+**QA Subtask:** ${subtask.label}
+**Details:** ${subtask.content}
+
+Please verify and test this thoroughly following best practices.`;
+
+    // Create completion handler for this subtask
+    const onSubtaskComplete = async (result: { success: boolean; output: string; error?: string }) => {
+      await fs.appendFile(logsPath, `\n[QA Subtask ${count + 1} Completed] Success: ${result.success}\n`, 'utf-8');
+
+      if (!result.success) {
+        await fs.appendFile(logsPath, `[Error] ${result.error}\n`, 'utf-8');
+
+        const currentTask = await taskPersistence.loadTask(taskId);
+        if (currentTask) {
+          currentTask.subtasks[subtaskIndex].status = 'pending';
+          currentTask.status = 'blocked';
+          await taskPersistence.saveTask(currentTask);
+        }
+        return;
+      }
+
+      await fs.appendFile(logsPath, `[Output]\n${result.output}\n`, 'utf-8');
+
+      // Mark subtask as completed
+      const currentTask = await taskPersistence.loadTask(taskId);
+      if (currentTask) {
+        currentTask.subtasks[subtaskIndex].status = 'completed';
+
+        // Check if all QA subtasks are completed
+        const allQACompleted = currentTask.subtasks
+          .filter(s => s.type === 'qa')
+          .every(s => s.status === 'completed');
+
+        if (allQACompleted && currentTask.phase === 'ai_review') {
+          currentTask.phase = 'human_review';
+          currentTask.status = 'completed';
+          currentTask.assignedAgent = undefined;
+          await fs.appendFile(logsPath, `\n${'='.repeat(80)}\n[ALL QA SUBTASKS COMPLETED - Moving to Human Review]\n${'='.repeat(80)}\n`, 'utf-8');
+        }
+
+        await taskPersistence.saveTask(currentTask);
+      }
+    };
+
+    // Start agent for this QA subtask
+    const subtaskThreadId = await agentManager.startAgent(taskId, prompt, {
+      workingDir: task.worktreePath || process.cwd(),
+      onComplete: onSubtaskComplete,
+    });
+
+    await fs.appendFile(logsPath, `[Agent Started for QA Subtask] Thread ID: ${subtaskThreadId}\n`, 'utf-8');
+
+    // Store the thread ID in task for potential cancellation
+    const taskWithThread = await taskPersistence.loadTask(taskId);
+    if (taskWithThread) {
+      taskWithThread.assignedAgent = subtaskThreadId;
+      await taskPersistence.saveTask(taskWithThread);
+    }
+
+    // Wait for this subtask to complete before moving to next
+    await waitForQASubtaskCompletion(taskId, subtaskIndex);
+  }
+}
+
+/**
+ * Wait for QA subtask to complete
+ */
+async function waitForQASubtaskCompletion(taskId: string, subtaskIndex: number): Promise<void> {
+  return new Promise((resolve) => {
+    let elapsed = 0;
+    const maxWait = 60000; // 60 seconds max wait
+
+    const interval = setInterval(async () => {
+      elapsed += 500;
+
+      if (elapsed >= maxWait) {
+        clearInterval(interval);
+        console.error(`[waitForQASubtaskCompletion] Timeout waiting for QA subtask ${subtaskIndex}`);
+        resolve();
+        return;
+      }
+
+      const task = await taskPersistence.loadTask(taskId);
+      if (!task) {
+        clearInterval(interval);
+        resolve();
+        return;
+      }
+
+      if (task.status === 'blocked' || task.status === 'completed') {
+        clearInterval(interval);
+        resolve();
+        return;
+      }
+
+      const subtask = task.subtasks[subtaskIndex];
+      if (!subtask) {
+        clearInterval(interval);
+        resolve();
+        return;
+      }
+
+      if (subtask.status === 'completed') {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 500);
   });
 }

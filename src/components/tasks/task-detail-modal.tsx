@@ -323,16 +323,40 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
   };
 
   const canModifySubtask = (subtask: Subtask, index: number) => {
-    // Find the current in_progress subtask
-    const inProgressIndex = task.subtasks.findIndex(s => s.status === 'in_progress');
+    // In progress phase: can modify dev subtasks
+    if (task.phase === 'in_progress') {
+      if (subtask.type !== 'dev') return false;
 
-    // If there's an in_progress subtask, only allow modifying pending ones that come AFTER it
-    if (inProgressIndex !== -1) {
-      return subtask.status === 'pending' && index > inProgressIndex;
+      const inProgressIndex = task.subtasks
+        .filter(s => s.type === 'dev')
+        .findIndex(s => s.status === 'in_progress');
+
+      // If there's an in_progress subtask, only allow modifying pending ones that come AFTER it
+      if (inProgressIndex !== -1) {
+        const devSubtasks = task.subtasks.filter(s => s.type === 'dev');
+        return subtask.status === 'pending' && devSubtasks.indexOf(subtask) > inProgressIndex;
+      }
+
+      return subtask.status === 'pending';
     }
 
-    // If no in_progress subtask, allow modifying any pending subtask
-    return subtask.status === 'pending';
+    // AI review phase: can modify QA subtasks
+    if (task.phase === 'ai_review') {
+      if (subtask.type !== 'qa') return false;
+
+      const inProgressIndex = task.subtasks
+        .filter(s => s.type === 'qa')
+        .findIndex(s => s.status === 'in_progress');
+
+      if (inProgressIndex !== -1) {
+        const qaSubtasks = task.subtasks.filter(s => s.type === 'qa');
+        return subtask.status === 'pending' && qaSubtasks.indexOf(subtask) > inProgressIndex;
+      }
+
+      return subtask.status === 'pending';
+    }
+
+    return false;
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -382,6 +406,10 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        onDragStart={(e) => e.stopPropagation()}
+        onDrag={(e) => e.stopPropagation()}
       >
         <DialogHeader>
           <DialogTitle>{task.title || task.id}</DialogTitle>
@@ -391,9 +419,17 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
         </DialogHeader>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b" style={{ borderColor: 'var(--color-border)' }}>
+        <div 
+          className="flex gap-1 border-b" 
+          style={{ borderColor: 'var(--color-border)' }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
-            onClick={() => setActiveTab('subtasks')}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveTab('subtasks');
+            }}
             className="px-4 py-2 text-sm font-medium transition-all relative"
             style={{
               color: activeTab === 'subtasks' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
@@ -408,7 +444,10 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
             )}
           </button>
           <button
-            onClick={() => setActiveTab('logs')}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveTab('logs');
+            }}
             className="px-4 py-2 text-sm font-medium transition-all relative"
             style={{
               color: activeTab === 'logs' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
@@ -428,39 +467,261 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto py-4 px-2" style={{ minHeight: '500px', maxHeight: '500px' }}>
-          {activeTab === 'subtasks' ? (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={subtasks.map(s => s.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="space-y-3">
-                  {subtasks.map((subtask, index) => {
-                    const isDraggable = canModifySubtask(subtask, index);
-                    return (
-                      <SortableSubtaskItem
-                        key={subtask.id}
-                        subtask={subtask}
-                        index={index}
-                        isDraggable={isDraggable}
-                        getSubtaskIcon={getSubtaskIcon}
-                        canModifySubtask={canModifySubtask}
-                        handleSkipSubtask={handleSkipSubtask}
-                        handleDeleteSubtask={handleDeleteSubtask}
-                        isSkipping={isSkipping}
-                        isDeleting={isDeleting}
-                      />
-                    );
-                  })}
-                </div>
-              </SortableContext>
-            </DndContext>
-          ) : (
+         <div 
+           className="flex-1 overflow-y-auto py-4 px-2" 
+           style={{ minHeight: '500px', maxHeight: '500px' }}
+           onMouseDown={(e) => e.stopPropagation()}
+           onClick={(e) => e.stopPropagation()}
+           onDragStart={(e) => e.stopPropagation()}
+           onDrag={(e) => e.stopPropagation()}
+         >
+           {activeTab === 'subtasks' ? (
+             <>
+               {task.phase === 'in_progress' ? (
+                 <>
+                   {/* DEV SUBTASKS SECTION */}
+                   <div className="mb-6">
+                     <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>
+                       Development Tasks
+                     </h3>
+                     <DndContext
+                       sensors={sensors}
+                       collisionDetection={closestCenter}
+                       onDragEnd={handleDragEnd}
+                     >
+                       <SortableContext
+                         items={subtasks.filter(s => s.type === 'dev').map(s => s.id)}
+                         strategy={verticalListSortingStrategy}
+                       >
+                         <div className="space-y-3">
+                           {subtasks
+                             .filter(s => s.type === 'dev')
+                             .map((subtask, index) => {
+                               const isDraggable = canModifySubtask(subtask, index);
+                               return (
+                                 <SortableSubtaskItem
+                                   key={subtask.id}
+                                   subtask={subtask}
+                                   index={index}
+                                   isDraggable={isDraggable}
+                                   getSubtaskIcon={getSubtaskIcon}
+                                   canModifySubtask={canModifySubtask}
+                                   handleSkipSubtask={handleSkipSubtask}
+                                   handleDeleteSubtask={handleDeleteSubtask}
+                                   isSkipping={isSkipping}
+                                   isDeleting={isDeleting}
+                                 />
+                               );
+                             })}
+                         </div>
+                       </SortableContext>
+                     </DndContext>
+                   </div>
+
+                   {/* UPCOMING QA TASKS (Read-only) */}
+                   {task.phase === 'in_progress' && subtasks.some(s => s.type === 'qa') && (
+                     <div 
+                       className="border-t pt-4" 
+                       style={{ 
+                         borderColor: 'var(--color-border)',
+                       }}
+                       onMouseDown={(e) => {
+                         e.preventDefault();
+                         e.stopPropagation();
+                       }}
+                       onClick={(e) => {
+                         e.preventDefault();
+                         e.stopPropagation();
+                       }}
+                       onDragStart={(e) => {
+                         e.preventDefault();
+                         e.stopPropagation();
+                       }}
+                       onDrag={(e) => {
+                         e.preventDefault();
+                         e.stopPropagation();
+                       }}
+                       onPointerDown={(e) => {
+                         e.preventDefault();
+                         e.stopPropagation();
+                       }}
+                     >
+                       <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-secondary)' }}>
+                         📋 Upcoming QA Tasks
+                       </h3>
+                       <div className="space-y-3 opacity-60">
+                         {subtasks
+                           .filter(s => s.type === 'qa')
+                           .map((subtask, index) => (
+                             <div
+                               key={subtask.id}
+                               className="flex items-start gap-3 p-3 rounded-lg border"
+                               style={{
+                                 background: 'var(--color-surface)',
+                                 borderColor: 'var(--color-border)',
+                               }}
+                               onMouseDown={(e) => {
+                                 e.preventDefault();
+                                 e.stopPropagation();
+                               }}
+                               onClick={(e) => {
+                                 e.preventDefault();
+                                 e.stopPropagation();
+                               }}
+                               onPointerDown={(e) => {
+                                 e.preventDefault();
+                                 e.stopPropagation();
+                               }}
+                             >
+                               <div className="mt-0.5">
+                                 {getSubtaskIcon(subtask)}
+                               </div>
+                               <div className="flex-1 min-w-0">
+                                 <div className="flex items-start justify-between gap-2">
+                                   <div className="font-medium text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                                     {index + 1}. {subtask.label}
+                                   </div>
+                                   <div className="text-xs px-2 py-0.5 rounded" style={{
+                                     background: 'var(--color-surface-hover)',
+                                     color: 'var(--color-text-secondary)',
+                                   }}>
+                                     Pending QA
+                                   </div>
+                                 </div>
+                                 <div className="mt-1 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                                   {subtask.content}
+                                 </div>
+                               </div>
+                             </div>
+                           ))}
+                       </div>
+                     </div>
+                   )}
+                 </>
+               ) : task.phase === 'ai_review' ? (
+                 <>
+                   {/* QA SUBTASKS SECTION */}
+                   <div className="mb-6">
+                     <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>
+                       QA Verification Tasks
+                     </h3>
+                     <DndContext
+                       sensors={sensors}
+                       collisionDetection={closestCenter}
+                       onDragEnd={handleDragEnd}
+                     >
+                       <SortableContext
+                         items={subtasks.filter(s => s.type === 'qa').map(s => s.id)}
+                         strategy={verticalListSortingStrategy}
+                       >
+                         <div className="space-y-3">
+                           {subtasks
+                             .filter(s => s.type === 'qa')
+                             .map((subtask, index) => {
+                               const isDraggable = canModifySubtask(subtask, index);
+                               return (
+                                 <SortableSubtaskItem
+                                   key={subtask.id}
+                                   subtask={subtask}
+                                   index={index}
+                                   isDraggable={isDraggable}
+                                   getSubtaskIcon={getSubtaskIcon}
+                                   canModifySubtask={canModifySubtask}
+                                   handleSkipSubtask={handleSkipSubtask}
+                                   handleDeleteSubtask={handleDeleteSubtask}
+                                   isSkipping={isSkipping}
+                                   isDeleting={isDeleting}
+                                 />
+                               );
+                             })}
+                         </div>
+                       </SortableContext>
+                     </DndContext>
+                   </div>
+
+                   {/* WHAT WAS DEVELOPED (Read-only) */}
+                   {subtasks.some(s => s.type === 'dev') && (
+                     <div 
+                       className="border-t pt-4" 
+                       style={{ 
+                         borderColor: 'var(--color-border)',
+                       }}
+                       onMouseDown={(e) => {
+                         e.preventDefault();
+                         e.stopPropagation();
+                       }}
+                       onClick={(e) => {
+                         e.preventDefault();
+                         e.stopPropagation();
+                       }}
+                       onDragStart={(e) => {
+                         e.preventDefault();
+                         e.stopPropagation();
+                       }}
+                       onDrag={(e) => {
+                         e.preventDefault();
+                         e.stopPropagation();
+                       }}
+                       onPointerDown={(e) => {
+                         e.preventDefault();
+                         e.stopPropagation();
+                       }}
+                     >
+                       <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-secondary)' }}>
+                         ✅ What Was Developed
+                       </h3>
+                       <div className="space-y-3 opacity-60">
+                         {subtasks
+                           .filter(s => s.type === 'dev')
+                           .map((subtask, index) => (
+                             <div
+                               key={subtask.id}
+                               className="flex items-start gap-3 p-3 rounded-lg border"
+                               style={{
+                                 background: 'var(--color-surface)',
+                                 borderColor: 'var(--color-border)',
+                               }}
+                               onMouseDown={(e) => {
+                                 e.preventDefault();
+                                 e.stopPropagation();
+                               }}
+                               onClick={(e) => {
+                                 e.preventDefault();
+                                 e.stopPropagation();
+                               }}
+                               onPointerDown={(e) => {
+                                 e.preventDefault();
+                                 e.stopPropagation();
+                               }}
+                             >
+                               <div className="mt-0.5">
+                                 {getSubtaskIcon(subtask)}
+                               </div>
+                               <div className="flex-1 min-w-0">
+                                 <div className="flex items-start justify-between gap-2">
+                                   <div className="font-medium text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                                     {index + 1}. {subtask.label}
+                                   </div>
+                                   <div className="text-xs px-2 py-0.5 rounded" style={{
+                                     background: 'var(--color-surface-hover)',
+                                     color: 'var(--color-text-secondary)',
+                                   }}>
+                                     {subtask.status.replace('_', ' ')}
+                                   </div>
+                                 </div>
+                                 <div className="mt-1 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                                   {subtask.content}
+                                 </div>
+                               </div>
+                             </div>
+                           ))}
+                       </div>
+                     </div>
+                   )}
+                 </>
+                 ) : null}
+                 </>
+                 ) : (
             <div
               className="rounded-lg p-4 font-mono text-xs"
               style={{
@@ -497,10 +758,24 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
         <div className="pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
           <div className="flex items-center justify-between text-sm">
             <div style={{ color: 'var(--color-text-secondary)' }}>
-              Progress: {task.subtasks.filter(s => s.status === 'completed').length}/{task.subtasks.length} completed
+              Progress: {(() => {
+                const relevantSubtasks = task.phase === 'in_progress' 
+                  ? task.subtasks.filter(s => s.type === 'dev')
+                  : task.phase === 'ai_review'
+                  ? task.subtasks.filter(s => s.type === 'qa')
+                  : task.subtasks;
+                return `${relevantSubtasks.filter(s => s.status === 'completed').length}/${relevantSubtasks.length} completed`;
+              })()}
             </div>
             <div className="text-lg font-semibold" style={{ color: 'var(--color-info)' }}>
-              {Math.round((task.subtasks.filter(s => s.status === 'completed').length / task.subtasks.length) * 100)}%
+              {(() => {
+                const relevantSubtasks = task.phase === 'in_progress' 
+                  ? task.subtasks.filter(s => s.type === 'dev')
+                  : task.phase === 'ai_review'
+                  ? task.subtasks.filter(s => s.type === 'qa')
+                  : task.subtasks;
+                return Math.round((relevantSubtasks.filter(s => s.status === 'completed').length / (relevantSubtasks.length || 1)) * 100);
+              })()}%
             </div>
           </div>
         </div>

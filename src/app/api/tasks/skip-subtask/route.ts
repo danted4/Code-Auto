@@ -60,13 +60,15 @@ export async function POST(req: NextRequest) {
     // Mark as completed (skipped)
     task.subtasks[subtaskIndex].status = 'completed';
 
-    // Check if all subtasks are now completed
-    const allCompleted = task.subtasks.every(s => s.status === 'completed');
+    // Check if all DEV subtasks are now completed (for auto-transition to AI review)
+    const allDevCompleted = task.subtasks
+      .filter(s => s.type === 'dev')
+      .every(s => s.status === 'completed');
 
-    if (allCompleted) {
-      // All subtasks done - move to AI review
-      task.status = 'completed';
+    if (allDevCompleted && task.phase === 'in_progress') {
+      // All dev subtasks done - move to AI review phase
       task.phase = 'ai_review';
+      task.status = 'in_progress'; // Keep in_progress since QA phase is still WIP
       task.assignedAgent = undefined;
     }
 

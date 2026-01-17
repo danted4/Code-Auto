@@ -162,14 +162,39 @@ export function TaskCard({ task }: TaskCardProps) {
     }
   };
 
+  const handleStartReview = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsStarting(true);
+    try {
+      const response = await fetch('/api/agents/start-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to start review');
+      } else {
+        toast.success('AI Review started successfully');
+        await loadTasks();
+      }
+    } catch (error) {
+      toast.error('Failed to start review');
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
   const handleCardClick = (e: React.MouseEvent) => {
     // Prevent opening if modal is currently closing (prevents event propagation issues)
     if (isModalClosing) {
       return;
     }
 
-    // Only open detail modal if task has subtasks and is in progress
-    if (task.status === 'in_progress' && task.subtasks && task.subtasks.length > 0 && !showTaskDetailModal) {
+    // Open detail modal if task has subtasks and is in progress or ai_review phase
+    if (task.subtasks && task.subtasks.length > 0 && !showTaskDetailModal && 
+        (task.phase === 'in_progress' || task.phase === 'ai_review')) {
       setShowTaskDetailModal(true);
     }
   };
@@ -189,7 +214,8 @@ export function TaskCard({ task }: TaskCardProps) {
     }
   };
 
-  const isClickable = task.status === 'in_progress' && task.subtasks && task.subtasks.length > 0;
+  const isClickable = task.subtasks && task.subtasks.length > 0 && 
+                      (task.phase === 'in_progress' || task.phase === 'ai_review');
 
   return (
     <Card
@@ -237,31 +263,53 @@ export function TaskCard({ task }: TaskCardProps) {
 
       <CardContent className="pt-0 space-y-2">
         {task.subtasks.length > 0 && (
-          <div data-testid="task-subtasks" className="space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <span style={{ color: 'var(--color-text-muted)' }}>Progress</span>
-              <span style={{ color: 'var(--color-text-secondary)' }} className="font-medium">
-                {Math.round((task.subtasks.filter((s) => s.status === 'completed').length / task.subtasks.length) * 100)}%
-              </span>
-            </div>
-            {/* Progress dots */}
+           <div data-testid="task-subtasks" className="space-y-1">
+             <div className="flex items-center justify-between text-xs">
+               <span style={{ color: 'var(--color-text-muted)' }}>
+                 {task.phase === 'ai_review' ? 'QA Progress' : 'Progress'}
+               </span>
+               <span style={{ color: 'var(--color-text-secondary)' }} className="font-medium">
+                 {(() => {
+                   const relevantSubtasks = task.phase === 'in_progress' 
+                     ? task.subtasks.filter(s => s.type === 'dev')
+                     : task.phase === 'ai_review'
+                     ? task.subtasks.filter(s => s.type === 'qa')
+                     : task.subtasks;
+                   return Math.round((relevantSubtasks.filter((s) => s.status === 'completed').length / (relevantSubtasks.length || 1)) * 100);
+                 })()}%
+               </span>
+             </div>
+            {/* Progress dots - filtered by phase */}
             <div className="flex gap-1">
-              {task.subtasks.map((subtask, idx) => (
-                <div
-                  key={subtask.id}
-                  className="w-2 h-2 rounded-full"
-                  style={{
-                    background:
-                      subtask.status === 'completed'
-                        ? 'var(--color-success)'
-                        : subtask.status === 'in_progress'
-                        ? 'var(--color-info)'
-                        : 'var(--color-border)',
-                    animation: subtask.status === 'in_progress' ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : undefined,
-                  }}
-                  title={subtask.content}
-                />
-              ))}
+              {task.subtasks
+                .filter((subtask) => {
+                  // In progress phase: show only dev subtasks
+                  // AI review phase: show only QA subtasks
+                  if (task.phase === 'in_progress') {
+                    return subtask.type === 'dev';
+                  } else if (task.phase === 'ai_review') {
+                    return subtask.type === 'qa';
+                  }
+                  return false;
+                })
+                .map((subtask, idx) => (
+                  <div
+                    key={subtask.id}
+                    className="w-2 h-2 rounded-full"
+                    style={{
+                      background:
+                        subtask.status === 'completed'
+                          ? subtask.type === 'qa'
+                            ? '#a78bfa' // Purple for QA completions
+                            : 'var(--color-success)' // Green for dev completions
+                          : subtask.status === 'in_progress'
+                          ? 'var(--color-info)'
+                          : 'var(--color-border)',
+                      animation: subtask.status === 'in_progress' ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : undefined,
+                    }}
+                    title={subtask.content}
+                  />
+                ))}
             </div>
           </div>
         )}
@@ -385,6 +433,61 @@ export function TaskCard({ task }: TaskCardProps) {
                 {isStarting ? 'Starting...' : 'Start Development'}
               </Button>
             ) : null}
+          </>
+        ) : task.phase === 'ai_review' ? (
+          /* AI Review Phase - QA Subtasks */
+          <>
+            {task.assignedAgent ? (
+              <div className="flex items-center gap-2">
+                <div data-testid="review-status" className="text-xs flex-1" style={{ color: 'var(--color-agent-active)' }}>
+                  🤖 QA review in progress
+                </div>
+                <Button
+                  data-testid="pause-review-button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleStopAgent}
+                  disabled={isStopping}
+                  className="text-xs"
+                  style={{
+                    background: 'var(--color-secondary)',
+                    color: 'var(--color-secondary-text)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--color-secondary-hover)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'var(--color-secondary)';
+                  }}
+                >
+                  <PauseCircle className="w-4 h-4" />
+                  {isStopping ? 'Pausing...' : 'Pause'}
+                </Button>
+              </div>
+            ) : (
+              <Button
+                data-testid="start-review-button"
+                size="sm"
+                variant="outline"
+                onClick={handleStartReview}
+                disabled={isStarting}
+                className="w-full text-xs"
+                style={{
+                  background: 'var(--color-primary)',
+                  color: 'var(--color-primary-text)',
+                  borderColor: 'var(--color-primary)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--color-primary-hover)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--color-primary)';
+                }}
+              >
+                <Play className="w-4 h-4" strokeWidth={2.5} />
+                {isStarting ? 'Starting...' : 'Start Review'}
+              </Button>
+            )}
           </>
         ) : (
           /* In Progress / Other Phases - Original Agent Buttons */

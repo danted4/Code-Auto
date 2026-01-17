@@ -60,18 +60,16 @@ export async function POST(req: NextRequest) {
     // Remove subtask from array
     task.subtasks.splice(subtaskIndex, 1);
 
-    // Check if all remaining subtasks are completed
-    const allCompleted = task.subtasks.length > 0 && task.subtasks.every(s => s.status === 'completed');
+    // Check if all remaining DEV subtasks are completed (for auto-transition to AI review)
+    const allDevCompleted = task.subtasks
+      .filter(s => s.type === 'dev')
+      .every(s => s.status === 'completed');
+    const hasDevSubtasks = task.subtasks.some(s => s.type === 'dev');
 
-    if (allCompleted) {
-      // All subtasks done - move to AI review
-      task.status = 'completed';
+    if (task.phase === 'in_progress' && (!hasDevSubtasks || allDevCompleted)) {
+      // All dev subtasks done or no dev subtasks left - move to AI review phase
       task.phase = 'ai_review';
-      task.assignedAgent = undefined;
-    } else if (task.subtasks.length === 0) {
-      // No subtasks left - mark as completed
-      task.status = 'completed';
-      task.phase = 'ai_review';
+      task.status = 'in_progress'; // Keep in_progress since QA phase is still WIP
       task.assignedAgent = undefined;
     }
 

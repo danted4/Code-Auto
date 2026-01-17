@@ -119,6 +119,7 @@ export async function POST(req: NextRequest) {
 
           currentTask.planContent = parsedOutput.plan;
           currentTask.planningStatus = 'plan_ready';
+          currentTask.phase = 'planning'; // Keep phase as 'planning' (not 'pending')
           currentTask.status = 'pending';
           currentTask.assignedAgent = undefined;
 
@@ -128,6 +129,7 @@ export async function POST(req: NextRequest) {
 
             currentTask.planApproved = true;
             currentTask.planningStatus = 'plan_approved';
+            currentTask.phase = 'planning'; // Still in planning phase until dev starts
 
             // IMPORTANT: Save task BEFORE starting development so planApproved flag is persisted
             await taskPersistence.saveTask(currentTask);

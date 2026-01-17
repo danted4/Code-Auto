@@ -10,12 +10,12 @@
  * - Opening in VS Code or file explorer
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { GitBranch, Eye, Code2, Folder, AlertCircle } from 'lucide-react';
+import { GitBranch, Eye, Code2, Folder, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Task, Subtask } from '@/lib/tasks/schema';
 
 interface HumanReviewModalProps {
@@ -26,6 +26,11 @@ interface HumanReviewModalProps {
 
 export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [gitStatus, setGitStatus] = useState<{
+    hasChanges: boolean;
+    status: string;
+    clean: boolean;
+  } | null>(null);
 
   // Separate dev and QA subtasks
   const devSubtasks = task.subtasks.filter(s => s.type === 'dev');
@@ -33,6 +38,16 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
 
   // Check if git is enabled (for now, mock check based on branchName)
   const isGitEnabled = !!task.branchName;
+
+  // Fetch git status when modal opens
+  useEffect(() => {
+    if (open && task.branchName) {
+      fetch(`/api/git/status?taskId=${task.id}`)
+        .then(res => res.json())
+        .then(data => setGitStatus(data))
+        .catch(err => console.error('Failed to fetch git status:', err));
+    }
+  }, [open, task.id, task.branchName]);
 
   const handleCreateMR = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -124,6 +139,41 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
           <DialogDescription>
             All development and QA tasks are complete. Review the changes and approve for merge.
           </DialogDescription>
+          {task.branchName && (
+            <div className="flex items-center gap-2 pt-2">
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded" style={{ background: 'var(--color-surface-hover)' }}>
+                <GitBranch className="w-3.5 h-3.5" style={{ color: 'var(--color-info)' }} />
+                <span className="text-xs font-mono" style={{ color: 'var(--color-text-primary)' }}>
+                  {task.branchName}
+                </span>
+              </div>
+              {gitStatus && (
+                <div
+                  className="flex items-center gap-1 px-2 py-1 rounded border"
+                  style={{
+                    borderColor: gitStatus.clean ? 'var(--color-success)' : 'var(--color-warning)',
+                    background: 'transparent'
+                  }}
+                >
+                  {gitStatus.clean ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" style={{ color: 'var(--color-success)' }} />
+                      <span className="text-xs font-medium" style={{ color: 'var(--color-success)' }}>
+                        Clean
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="w-3.5 h-3.5" style={{ color: 'var(--color-warning)' }} />
+                      <span className="text-xs font-medium" style={{ color: 'var(--color-warning)' }}>
+                        Changes
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </DialogHeader>
 
         <div 
@@ -407,10 +457,7 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
           </div>
 
           {/* Task Info */}
-          <div className="pt-2 space-y-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
-            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-              <span className="font-medium">Branch:</span> {task.branchName || 'Not set'}
-            </p>
+          <div className="pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
             <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
               <span className="font-medium">Task ID:</span> {task.id}
             </p>

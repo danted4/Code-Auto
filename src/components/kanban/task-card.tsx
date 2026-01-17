@@ -12,7 +12,7 @@ import { Task } from '@/lib/tasks/schema';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Play, PauseCircle } from 'lucide-react';
+import { Play, PauseCircle, GitBranch } from 'lucide-react';
 import { QAStepperModal } from '@/components/tasks/qa-stepper-modal';
 import { PlanReviewModal } from '@/components/tasks/plan-review-modal';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
@@ -244,6 +244,14 @@ export function TaskCard({ task }: TaskCardProps) {
           <CardDescription data-testid="task-description" className="line-clamp-2 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
             {task.description}
           </CardDescription>
+        )}
+        {task.branchName && (
+          <div className="flex items-center gap-1 mt-2">
+            <GitBranch className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} />
+            <span className="text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>
+              {task.branchName}
+            </span>
+          </div>
         )}
       </CardHeader>
 

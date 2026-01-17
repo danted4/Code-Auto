@@ -7,7 +7,7 @@
  */
 
 import { useDraggable } from '@dnd-kit/core';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Task } from '@/lib/tasks/schema';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,7 @@ export function TaskCard({ task }: TaskCardProps) {
   const [showQAModal, setShowQAModal] = useState(false);
   const [showPlanReviewModal, setShowPlanReviewModal] = useState(false);
   const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
+  const [isModalClosing, setIsModalClosing] = useState(false);
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
@@ -155,9 +156,29 @@ export function TaskCard({ task }: TaskCardProps) {
     }
   };
 
-  const handleCardClick = () => {
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent opening if modal is currently closing (prevents event propagation issues)
+    if (isModalClosing) {
+      return;
+    }
+
     // Only open detail modal if task has subtasks and is in progress
-    if (task.status === 'in_progress' && task.subtasks && task.subtasks.length > 0) {
+    if (task.status === 'in_progress' && task.subtasks && task.subtasks.length > 0 && !showTaskDetailModal) {
+      setShowTaskDetailModal(true);
+    }
+  };
+
+  const handleTaskDetailModalClose = (open: boolean) => {
+    if (!open) {
+      // Set closing flag to prevent immediate reopening from event propagation
+      setIsModalClosing(true);
+      setShowTaskDetailModal(false);
+
+      // Clear the flag after a short delay
+      setTimeout(() => {
+        setIsModalClosing(false);
+      }, 300);
+    } else {
       setShowTaskDetailModal(true);
     }
   };
@@ -442,7 +463,7 @@ export function TaskCard({ task }: TaskCardProps) {
       {task.subtasks && task.subtasks.length > 0 && (
         <TaskDetailModal
           open={showTaskDetailModal}
-          onOpenChange={setShowTaskDetailModal}
+          onOpenChange={handleTaskDetailModalClose}
           task={task}
         />
       )}

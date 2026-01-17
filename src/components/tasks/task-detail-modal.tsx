@@ -9,7 +9,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Task, Subtask } from '@/lib/tasks/schema';
-import { CheckCircle2, Circle, Loader2, Trash2, SkipForward } from 'lucide-react';
+import { CheckCircle2, Circle, Loader2, Trash2, SkipForward, X } from 'lucide-react';
 
 interface TaskDetailModalProps {
   open: boolean;
@@ -114,7 +114,9 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent
+        className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col"
+      >
         <DialogHeader>
           <DialogTitle>{task.title || task.id}</DialogTitle>
           <DialogDescription>
@@ -160,10 +162,9 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-hidden" style={{ minHeight: '500px', maxHeight: '500px' }}>
+        <div className="flex-1 overflow-y-auto py-4 px-2" style={{ minHeight: '500px', maxHeight: '500px' }}>
           {activeTab === 'subtasks' ? (
-            <div className="h-full overflow-y-auto py-4 px-2">
-              <div className="space-y-3">
+            <div className="space-y-3">
                 {task.subtasks.map((subtask, index) => (
                   <div
                     key={subtask.id}
@@ -258,17 +259,15 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
                   </div>
                 ))}
               </div>
-            </div>
           ) : (
-            <div className="h-full overflow-y-auto py-4 px-2">
-              <div
-                className="rounded-lg p-4 font-mono text-xs"
-                style={{
-                  background: 'var(--color-terminal-background)',
-                  color: 'var(--color-terminal-text)',
-                  minHeight: '100%',
-                }}
-              >
+            <div
+              className="rounded-lg p-4 font-mono text-xs"
+              style={{
+                background: 'var(--color-terminal-background)',
+                color: 'var(--color-terminal-text)',
+                minHeight: '100%',
+              }}
+            >
                 {currentSubtask ? (
                   <div>
                     <div className="mb-2 pb-2 border-b" style={{ borderColor: 'var(--color-border)' }}>
@@ -290,7 +289,6 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
                   </div>
                 )}
               </div>
-            </div>
           )}
         </div>
 

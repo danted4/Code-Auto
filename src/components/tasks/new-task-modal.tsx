@@ -135,7 +135,6 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
         cliConfig,
         requiresHumanReview,
         planApproved: false,
-        locked: requiresHumanReview, // Lock if human review required
         planningStatus: 'not_started',
         planningLogsPath: `.code-auto/tasks/{task-id}/planning-logs.txt`, // Will be updated with actual ID
         metadata: {
@@ -152,19 +151,17 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
 
       onOpenChange(false);
 
-      // If no human review required, start planning immediately
-      if (!requiresHumanReview) {
-        try {
-          await fetch('/api/agents/start-planning', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              taskId: task.id,
-            }),
-          });
-        } catch (error) {
-          console.error('Failed to start planning:', error);
-        }
+      // Always start planning immediately, regardless of human review requirement
+      try {
+        await fetch('/api/agents/start-planning', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            taskId: task.id,
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to start planning:', error);
       }
     } catch (error) {
       alert('Failed to create task');
@@ -177,9 +174,9 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
   // Determine button text based on state
   const getButtonText = () => {
     if (isCreating) {
-      return !requiresHumanReview ? 'Starting...' : 'Creating...';
+      return 'Starting...';
     }
-    return !requiresHumanReview ? 'Start Task' : 'Create Task';
+    return 'Start Task';
   };
 
   const renderConfigField = (field: any) => {
@@ -333,8 +330,8 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
               </Label>
               <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                 {requiresHumanReview
-                  ? 'Task will be locked until you approve the AI-generated plan'
-                  : 'Planning will start immediately after task creation'}
+                  ? 'Plan generation will ask clarifying questions that you can answer before development'
+                  : 'Planning will proceed with auto-approval straight to development'}
               </p>
             </div>
           </div>

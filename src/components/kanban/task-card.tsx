@@ -104,29 +104,7 @@ export function TaskCard({ task }: TaskCardProps) {
     }
   };
 
-  const handleStartPlanning = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsStarting(true);
-    try {
-      const response = await fetch('/api/agents/start-planning', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taskId: task.id }),
-      });
 
-      if (!response.ok) {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to start planning');
-      } else {
-        toast.success('Planning started successfully');
-        await loadTasks();
-      }
-    } catch (error) {
-      toast.error('Failed to start planning');
-    } finally {
-      setIsStarting(false);
-    }
-  };
 
   const handleAnswerQuestions = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -317,30 +295,7 @@ export function TaskCard({ task }: TaskCardProps) {
         {/* Planning Phase Buttons */}
         {task.phase === 'planning' ? (
           <>
-            {task.planningStatus === 'not_started' && !task.assignedAgent ? (
-              <Button
-                data-testid="start-planning-button"
-                size="sm"
-                variant="outline"
-                onClick={handleStartPlanning}
-                disabled={isStarting}
-                className="w-full text-xs"
-                style={{
-                  background: 'var(--color-surface-hover)',
-                  color: 'var(--color-text-primary)',
-                  borderColor: 'var(--color-border)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--color-background)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'var(--color-surface-hover)';
-                }}
-              >
-                <Play className="w-4 h-4" strokeWidth={2.5} />
-                {isStarting ? 'Starting...' : 'Start Planning'}
-              </Button>
-            ) : task.status === 'planning' && task.assignedAgent ? (
+            {task.status === 'planning' && task.assignedAgent ? (
               <div className="flex items-center gap-2">
                 <div data-testid="planning-status" className="text-xs flex-1" style={{ color: 'var(--color-info)' }}>
                   🤖 Planning in progress

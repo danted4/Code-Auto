@@ -65,10 +65,14 @@ export interface ExecuteRequest {
   threadId?: string; // Optional: resume existing thread
   context?: ContextData; // Optional: injected memory context
   permissions?: PermissionRule[];
+  
+  // Phase detection fields
+  isSubtaskGeneration?: boolean;
+  isQuestionGeneration?: boolean;
 }
 
 export interface StreamMessage {
-  type: 'system' | 'assistant' | 'tool' | 'result' | 'error';
+  type: 'system' | 'assistant' | 'tool' | 'result' | 'error' | 'validation' | 'feedback';
   timestamp: number;
   data: unknown;
   threadId: string;

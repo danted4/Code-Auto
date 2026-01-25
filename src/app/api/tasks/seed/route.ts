@@ -17,6 +17,11 @@ export async function POST() {
         phase: 'planning',
         status: 'pending',
         subtasks: [],
+        cliTool: 'amp',
+        cliConfig: { mode: 'rush' },
+        requiresHumanReview: false,
+        planApproved: false,
+        planningStatus: 'not_started',
         metadata: { estimatedComplexity: 'high' },
       },
       {
@@ -25,6 +30,11 @@ export async function POST() {
         phase: 'planning',
         status: 'pending',
         subtasks: [],
+        cliTool: 'amp',
+        cliConfig: { mode: 'rush' },
+        requiresHumanReview: false,
+        planApproved: false,
+        planningStatus: 'not_started',
         metadata: { estimatedComplexity: 'medium' },
       },
       {
@@ -38,6 +48,9 @@ export async function POST() {
           { id: '3', content: 'List endpoint', label: 'List endpoint', type: 'dev', status: 'pending' },
           { id: '4', content: 'Verify endpoints work correctly', label: 'Verify endpoints', type: 'qa', status: 'pending' },
         ],
+        cliTool: 'amp',
+        cliConfig: { mode: 'rush' },
+        requiresHumanReview: false,
         metadata: { estimatedComplexity: 'medium' },
       },
       {
@@ -46,6 +59,9 @@ export async function POST() {
         phase: 'ai_review',
         status: 'completed',
         subtasks: [],
+        cliTool: 'amp',
+        cliConfig: { mode: 'rush' },
+        requiresHumanReview: false,
         metadata: { estimatedComplexity: 'low' },
       },
       {
@@ -57,6 +73,9 @@ export async function POST() {
           { id: '1', content: 'WebSocket server', label: 'WebSocket server', type: 'qa', status: 'completed', completedAt: Date.now() },
           { id: '2', content: 'Client integration', label: 'Client integration', type: 'qa', status: 'completed', completedAt: Date.now() },
         ],
+        cliTool: 'amp',
+        cliConfig: { mode: 'rush' },
+        requiresHumanReview: false,
         metadata: { estimatedComplexity: 'high' },
       },
       {
@@ -68,6 +87,9 @@ export async function POST() {
           { id: '1', content: 'GitHub Actions workflow', label: 'GitHub Actions workflow', type: 'dev', status: 'completed', completedAt: Date.now() },
           { id: '2', content: 'Deploy to production', label: 'Deploy to production', type: 'dev', status: 'completed', completedAt: Date.now() },
         ],
+        cliTool: 'amp',
+        cliConfig: { mode: 'rush' },
+        requiresHumanReview: false,
         metadata: { estimatedComplexity: 'low' },
       },
     ];

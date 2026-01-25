@@ -16,6 +16,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { useTaskStore } from '@/store/task-store';
 
+type AmpPreflightResult = {
+  ampCliPath: string | null;
+  authSource: 'cli_login' | 'env' | 'missing';
+  canRunAmp: boolean;
+  instructions: string[];
+};
+
 interface CLIConfigSchema {
   fields: ConfigField[];
 }
@@ -51,6 +58,8 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [availableAdapters, setAvailableAdapters] = useState<CLIAdapter[]>([]);
   const [isLoadingAdapters, setIsLoadingAdapters] = useState(true);
+  const [ampPreflight, setAmpPreflight] = useState<AmpPreflightResult | null>(null);
+  const [isCheckingAmp, setIsCheckingAmp] = useState(false);
 
   // Fetch available CLI adapters from API
   useEffect(() => {
@@ -85,6 +94,42 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
       fetchAdapters();
     }
   }, [open]);
+
+  // Amp readiness (local dev preflight)
+  useEffect(() => {
+    async function checkAmp() {
+      setIsCheckingAmp(true);
+      try {
+        const res = await fetch('/api/amp/preflight');
+        const data = await res.json();
+        if (res.ok) {
+          setAmpPreflight(data);
+        } else {
+          setAmpPreflight({
+            ampCliPath: null,
+            authSource: 'missing',
+            canRunAmp: false,
+            instructions: [data?.error || 'Amp preflight failed'],
+          });
+        }
+      } catch (e) {
+        setAmpPreflight({
+          ampCliPath: null,
+          authSource: 'missing',
+          canRunAmp: false,
+          instructions: [e instanceof Error ? e.message : 'Amp preflight failed'],
+        });
+      } finally {
+        setIsCheckingAmp(false);
+      }
+    }
+
+    if (open && cliTool === 'amp') {
+      checkAmp();
+    } else if (open) {
+      setAmpPreflight(null);
+    }
+  }, [open, cliTool]);
 
   // Get config schema for selected CLI
   const currentAdapter = availableAdapters.find(a => a.name === cliTool);
@@ -308,6 +353,36 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
             )}
           </div>
 
+          {/* Amp readiness panel */}
+          {cliTool === 'amp' && (
+            <div className="space-y-2 rounded-md border p-3 text-sm" style={{ borderColor: 'var(--color-border)' }}>
+              <div className="flex items-center justify-between">
+                <div className="font-medium">Amp readiness</div>
+                <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  {isCheckingAmp ? 'Checking…' : ampPreflight?.canRunAmp ? 'Ready' : 'Not ready'}
+                </div>
+              </div>
+
+              {ampPreflight && (
+                <div className="space-y-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  <div>CLI: {ampPreflight.ampCliPath ? ampPreflight.ampCliPath : 'not found'}</div>
+                  <div>Auth: {ampPreflight.authSource}</div>
+                </div>
+              )}
+
+              {ampPreflight && !ampPreflight.canRunAmp && ampPreflight.instructions.length > 0 && (
+                <div className="space-y-1 text-xs">
+                  <div className="font-medium">Fix steps</div>
+                  <ul className="list-disc pl-5" style={{ color: 'var(--color-text-muted)' }}>
+                    {ampPreflight.instructions.map((s, i) => (
+                      <li key={i}>{s}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Dynamic CLI Configuration */}
           {configSchema && configSchema.fields.length > 0 && (
             <div className="space-y-4 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
@@ -343,7 +418,11 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
           </Button>
           <Button
             onClick={handleCreate}
-            disabled={isCreating || !description.trim()}
+            disabled={
+              isCreating ||
+              !description.trim() ||
+              (cliTool === 'amp' && (isCheckingAmp || !ampPreflight || !ampPreflight.canRunAmp))
+            }
             className="font-medium"
             style={{
               background: 'var(--color-primary)',

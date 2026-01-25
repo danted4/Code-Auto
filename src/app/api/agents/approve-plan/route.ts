@@ -6,7 +6,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { taskPersistence } from '@/lib/tasks/persistence';
-import { agentManager } from '@/lib/agents/singleton';
 import fs from 'fs/promises';
 
 export async function POST(req: NextRequest) {

@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { agentManager } from '@/lib/agents/singleton';
+import { getAgentSessionByThreadId, stopAgentByThreadId } from '@/lib/agents/registry';
 import { taskPersistence } from '@/lib/tasks/persistence';
 
 export async function POST(req: NextRequest) {
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get agent session
-    const session = agentManager.getAgentStatus(threadId);
+    const session = getAgentSessionByThreadId(threadId);
     if (!session) {
       return NextResponse.json(
         { error: 'Agent not found' },
@@ -29,10 +29,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Stop agent
-    await agentManager.stopAgent(threadId);
+    const stopped = await stopAgentByThreadId(threadId);
+    if (!stopped) {
+      return NextResponse.json(
+        { error: 'Agent not found' },
+        { status: 404 }
+      );
+    }
 
     // Update task - move back to planning phase when agent stopped
-    const task = await taskPersistence.loadTask(session.taskId);
+    const task = await taskPersistence.loadTask(stopped.taskId);
     if (task && task.assignedAgent === threadId) {
       task.assignedAgent = undefined;
       task.status = 'pending';

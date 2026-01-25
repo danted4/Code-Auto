@@ -17,6 +17,7 @@ import { QAStepperModal } from '@/components/tasks/qa-stepper-modal';
 import { PlanReviewModal } from '@/components/tasks/plan-review-modal';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { HumanReviewModal } from '@/components/tasks/human-review-modal';
+import { PlanningLogsModal } from '@/components/tasks/planning-logs-modal';
 import { toast } from 'sonner';
 import { useTaskStore } from '@/store/task-store';
 
@@ -31,6 +32,7 @@ export function TaskCard({ task }: TaskCardProps) {
   const [showPlanReviewModal, setShowPlanReviewModal] = useState(false);
   const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
   const [showHumanReviewModal, setShowHumanReviewModal] = useState(false);
+  const [showPlanningLogsModal, setShowPlanningLogsModal] = useState(false);
   const [isModalClosing, setIsModalClosing] = useState(false);
   const { loadTasks } = useTaskStore();
 
@@ -172,6 +174,12 @@ export function TaskCard({ task }: TaskCardProps) {
       return;
     }
 
+    // Planning mode: open live planning logs when an agent is running
+    if (task.phase === 'planning' && task.status === 'planning' && task.assignedAgent) {
+      setShowPlanningLogsModal(true);
+      return;
+    }
+
     // Open human review modal if task is in human_review phase
     if (task.phase === 'human_review' && task.subtasks && task.subtasks.length > 0) {
       setShowHumanReviewModal(true);
@@ -200,8 +208,10 @@ export function TaskCard({ task }: TaskCardProps) {
     }
   };
 
-  const isClickable = task.subtasks && task.subtasks.length > 0 && 
-                       (task.phase === 'in_progress' || task.phase === 'ai_review' || task.phase === 'human_review');
+  const isClickable =
+    (task.phase === 'planning' && task.status === 'planning' && !!task.assignedAgent) ||
+    (task.subtasks && task.subtasks.length > 0 &&
+      (task.phase === 'in_progress' || task.phase === 'ai_review' || task.phase === 'human_review'));
 
   return (
     <Card
@@ -566,6 +576,16 @@ export function TaskCard({ task }: TaskCardProps) {
           open={showHumanReviewModal}
           onOpenChange={setShowHumanReviewModal}
           task={task}
+        />
+      )}
+
+      {/* Planning Logs Modal */}
+      {task.phase === 'planning' && task.status === 'planning' && task.assignedAgent && (
+        <PlanningLogsModal
+          open={showPlanningLogsModal}
+          onOpenChange={setShowPlanningLogsModal}
+          taskTitle={task.title}
+          threadId={task.assignedAgent}
         />
       )}
       </Card>

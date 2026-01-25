@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { taskPersistence } from '@/lib/tasks/persistence';
-import { agentManager } from '@/lib/agents/singleton';
+import { startAgentForTask } from '@/lib/agents/registry';
 import fs from 'fs/promises';
 
 export async function POST(req: NextRequest) {
@@ -126,7 +126,9 @@ export async function POST(req: NextRequest) {
     // Start plan generation agent
     await fs.appendFile(logsPath, `[Starting Plan Generation]\n`, 'utf-8');
 
-    const threadId = await agentManager.startAgent(taskId, prompt, {
+    const { threadId } = await startAgentForTask({
+      task,
+      prompt,
       workingDir: task.worktreePath || process.cwd(),
       onComplete,
     });

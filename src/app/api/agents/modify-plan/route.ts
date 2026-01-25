@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { taskPersistence } from '@/lib/tasks/persistence';
-import { agentManager } from '@/lib/agents/singleton';
+import { startAgentForTask } from '@/lib/agents/registry';
 import fs from 'fs/promises';
 
 export async function POST(req: NextRequest) {
@@ -156,7 +156,9 @@ IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting around
       // Start regeneration agent
       await fs.appendFile(logsPath, `[Starting Plan Regeneration Agent]\n`, 'utf-8');
 
-      const threadId = await agentManager.startAgent(taskId, prompt, {
+      const { threadId } = await startAgentForTask({
+        task,
+        prompt,
         workingDir: task.worktreePath || process.cwd(),
         onComplete,
       });

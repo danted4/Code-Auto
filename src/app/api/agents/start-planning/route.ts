@@ -7,12 +7,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { agentManager } from '@/lib/agents/singleton';
 import { taskPersistence } from '@/lib/tasks/persistence';
+import { getAgentManagerForTask, startAgentForTask } from '@/lib/agents/registry';
+import { extractAndValidateJSON } from '@/lib/validation/subtask-validator';
+import { generatePlanValidationFeedback, validatePlanMarkdown } from '@/lib/validation/plan-validator';
 import fs from 'fs/promises';
 import path from 'path';
 
 const MAX_RETRIES = 10;
+const MAX_PLAN_FORMAT_ATTEMPTS = 3;
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,7 +39,8 @@ export async function POST(req: NextRequest) {
 
     // Check if task already has an agent assigned
     if (task.assignedAgent) {
-      const existingSession = agentManager.getAgentStatus(task.assignedAgent);
+      const mgr = await getAgentManagerForTask(task);
+      const existingSession = mgr.getAgentStatus(task.assignedAgent);
       if (existingSession && existingSession.status === 'running') {
         return NextResponse.json(
           { error: 'Task already has an agent running' },
@@ -63,6 +67,7 @@ export async function POST(req: NextRequest) {
 
     // Build planning prompt
     const prompt = buildPlanningPrompt(task);
+    let planFormatAttempts = 0;
 
     // Create completion handler
     const onComplete = async (result: { success: boolean; output: string; error?: string }) => {
@@ -85,12 +90,8 @@ export async function POST(req: NextRequest) {
 
       // Parse JSON output
       try {
-        const jsonMatch = result.output.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          throw new Error('No JSON found in output');
-        }
-
-        const parsedOutput = JSON.parse(jsonMatch[0]);
+        const { data: parsedOutput, error: jsonError } = extractAndValidateJSON(result.output);
+        if (jsonError) throw new Error(jsonError);
         await appendToLog(logsPath, `[Parsed JSON successfully]\n`);
 
         // Load current task
@@ -117,14 +118,77 @@ export async function POST(req: NextRequest) {
           // Plan generated directly
           await appendToLog(logsPath, `[Plan Generated]\n`);
 
-          currentTask.planContent = parsedOutput.plan;
+          const planText = parsedOutput.plan;
+          const validation = validatePlanMarkdown(planText);
+
+          await appendToLog(
+            logsPath,
+            `[Plan Validation] valid=${validation.valid} errors=${validation.errors.length} warnings=${validation.warnings.length}\n`
+          );
+          if (validation.errors.length > 0) {
+            await appendToLog(
+              logsPath,
+              `[Plan Validation Errors]\n${validation.errors.map((e) => `- ${e.field}: ${e.issue}`).join('\n')}\n`
+            );
+          }
+          if (validation.warnings.length > 0) {
+            await appendToLog(
+              logsPath,
+              `[Plan Validation Warnings]\n${validation.warnings.map((w) => `- ${w}`).join('\n')}\n`
+            );
+          }
+
+          // Always persist the latest plan text for visibility/debugging
+          currentTask.planContent = planText;
+
+          if (!validation.valid && !currentTask.requiresHumanReview) {
+            planFormatAttempts += 1;
+
+            if (planFormatAttempts < MAX_PLAN_FORMAT_ATTEMPTS) {
+              const feedback = generatePlanValidationFeedback(validation);
+
+              await appendToLog(
+                logsPath,
+                `\n[Plan Validation Failed] Attempt ${planFormatAttempts}/${MAX_PLAN_FORMAT_ATTEMPTS - 1}. Re-generating with feedback...\n`
+              );
+
+              const correctionPrompt = buildPlanCorrectionPrompt(currentTask, planText, feedback);
+
+              const { threadId: retryThreadId } = await startAgentForTask({
+                task: currentTask,
+                prompt: correctionPrompt,
+                workingDir: currentTask.worktreePath || process.cwd(),
+                onComplete,
+              });
+
+              currentTask.assignedAgent = retryThreadId;
+              currentTask.status = 'planning';
+              currentTask.planningStatus = 'generating_plan';
+              await taskPersistence.saveTask(currentTask);
+              await appendToLog(logsPath, `[Plan Retry Started] Thread ID: ${retryThreadId}\n`);
+              return;
+            }
+
+            await appendToLog(
+              logsPath,
+              `\n[Plan Validation Failed] Exhausted retries. Stopping before execution.\n`
+            );
+            currentTask.planningStatus = 'plan_ready';
+            currentTask.phase = 'planning';
+            currentTask.status = 'blocked';
+            currentTask.assignedAgent = undefined;
+            await taskPersistence.saveTask(currentTask);
+            return;
+          }
+
+          // Plan is valid (or human review flow): persist plan ready state
           currentTask.planningStatus = 'plan_ready';
           currentTask.phase = 'planning'; // Keep phase as 'planning' (not 'pending')
           currentTask.status = 'pending';
           currentTask.assignedAgent = undefined;
 
           // If no human review required, auto-approve and start development
-          if (!currentTask.requiresHumanReview) {
+          if (!currentTask.requiresHumanReview && validation.valid) {
             await appendToLog(logsPath, `[Auto-approving plan (no human review required)]\n`);
 
             currentTask.planApproved = true;
@@ -176,13 +240,54 @@ export async function POST(req: NextRequest) {
           `[Parse Error] Failed to parse JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}\n`
         );
 
-        // Update task to blocked
         const currentTask = await taskPersistence.loadTask(taskId);
-        if (currentTask) {
-          currentTask.status = 'blocked';
-          currentTask.assignedAgent = undefined;
-          await taskPersistence.saveTask(currentTask);
+        if (!currentTask) return;
+
+        // If no human review required, attempt to re-prompt for strict JSON output
+        if (!currentTask.requiresHumanReview) {
+          planFormatAttempts += 1;
+          if (planFormatAttempts < MAX_PLAN_FORMAT_ATTEMPTS) {
+            await appendToLog(
+              logsPath,
+              `\n[Plan Parse Retry] Attempt ${planFormatAttempts}/${MAX_PLAN_FORMAT_ATTEMPTS - 1}\n`
+            );
+
+            const correctionPrompt = `Your previous response could not be parsed as JSON.
+
+Return ONLY valid JSON (no markdown fences, no extra text) with this exact shape:
+{
+  "plan": "<markdown string>"
+}
+
+Markdown must include required headings:
+- ## Overview
+- ## Technical Approach
+- ## Implementation Steps (numbered list)
+- ## Files to Modify (bullet list of file paths)
+- ## Testing Strategy
+- ## Potential Issues
+- ## Success Criteria`;
+
+            const { threadId: retryThreadId } = await startAgentForTask({
+              task: currentTask,
+              prompt: correctionPrompt,
+              workingDir: currentTask.worktreePath || process.cwd(),
+              onComplete,
+            });
+
+            currentTask.assignedAgent = retryThreadId;
+            currentTask.status = 'planning';
+            currentTask.planningStatus = 'generating_plan';
+            await taskPersistence.saveTask(currentTask);
+            await appendToLog(logsPath, `[Plan Retry Started] Thread ID: ${retryThreadId}\n`);
+            return;
+          }
         }
+
+        // Update task to blocked
+        currentTask.status = 'blocked';
+        currentTask.assignedAgent = undefined;
+        await taskPersistence.saveTask(currentTask);
       }
     };
 
@@ -194,10 +299,13 @@ export async function POST(req: NextRequest) {
       try {
         await appendToLog(logsPath, `\n[Attempt ${attempt}/${MAX_RETRIES}] Starting planning agent...\n`);
 
-        threadId = await agentManager.startAgent(taskId, prompt, {
+        const res = await startAgentForTask({
+          task,
+          prompt,
           workingDir: task.worktreePath || process.cwd(),
           onComplete,
         });
+        threadId = res.threadId;
 
         await appendToLog(logsPath, `[Success] Agent started with thread ID: ${threadId}\n`);
         break; // Success, exit retry loop
@@ -317,14 +425,14 @@ IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or add
 
 Your goal is to create a comprehensive implementation plan for this task.
 
-Create a detailed plan that includes:
-1. **Overview**: Brief summary of what needs to be done
-2. **Technical Approach**: Architecture and technology decisions
-3. **Implementation Steps**: Numbered, actionable steps
-4. **Files to Modify**: List of files that need to be created or changed
-5. **Testing Strategy**: How to verify the implementation works
-6. **Potential Issues**: Known gotchas and how to handle them
-7. **Success Criteria**: How to know when the task is complete
+Create a detailed plan in EXACTLY this structure (required headings):
+- ## Overview
+- ## Technical Approach
+- ## Implementation Steps (numbered list)
+- ## Files to Modify (bullet list of file paths)
+- ## Testing Strategy
+- ## Potential Issues
+- ## Success Criteria
 
 Format your plan in Markdown with clear headings and bullet points.
 
@@ -335,6 +443,24 @@ Return your plan in the following JSON format:
 
 IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting around the JSON.`;
   }
+}
+
+function buildPlanCorrectionPrompt(task: any, previousPlan: string, feedback: string): string {
+  return `You previously generated an implementation plan, but it failed validation against the required format.
+
+Task: ${task.title}
+Description: ${task.description}
+
+Here is your previous plan:
+${previousPlan}
+
+${feedback}
+
+Regenerate the plan so it passes validation.
+
+IMPORTANT:
+- Return ONLY valid JSON, no markdown fences, no extra text.
+- Output shape must be: { "plan": "<markdown>" }`;
 }
 
 /**

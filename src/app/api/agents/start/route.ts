@@ -5,8 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { agentManager } from '@/lib/agents/singleton';
 import { taskPersistence } from '@/lib/tasks/persistence';
+import { getAgentManagerForTask, startAgentForTask } from '@/lib/agents/registry';
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
 
     // Check if task already has an agent assigned
     if (task.assignedAgent) {
-      const existingSession = agentManager.getAgentStatus(task.assignedAgent);
+      const mgr = await getAgentManagerForTask(task);
+      const existingSession = mgr.getAgentStatus(task.assignedAgent);
       if (existingSession && existingSession.status === 'running') {
         return NextResponse.json(
           { error: 'Task already has an agent running' },
@@ -40,7 +41,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Start agent
-    const threadId = await agentManager.startAgent(taskId, prompt, {
+    const { threadId } = await startAgentForTask({
+      task,
+      prompt,
       workingDir: task.worktreePath || process.cwd(),
       // TODO: Add context from memory system
     });

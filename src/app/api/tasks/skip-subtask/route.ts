@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { taskPersistence } from '@/lib/tasks/persistence';
-import { agentManager } from '@/lib/agents/singleton';
+import { stopAgentByThreadId } from '@/lib/agents/registry';
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     // If this subtask is currently being executed by an agent, stop it
     if (subtask.status === 'in_progress' && task.assignedAgent) {
       try {
-        await agentManager.stopAgent(task.assignedAgent);
+        await stopAgentByThreadId(task.assignedAgent);
       } catch (error) {
         // Agent might already be stopped, continue anyway
         console.log('Failed to stop agent, but continuing:', error);

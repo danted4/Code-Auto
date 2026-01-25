@@ -234,6 +234,7 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
     if (currentSubtask && activeTab === 'subtasks') {
       // Don't auto-switch if user explicitly selected subtasks tab
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSubtask]);
 
   const handleDeleteSubtask = async (subtaskId: string) => {

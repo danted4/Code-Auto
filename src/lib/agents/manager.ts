@@ -8,6 +8,8 @@
 import { CLIAdapter } from '@/lib/cli/base';
 import { CLIFactory, CLIProvider } from '@/lib/cli/factory';
 import { ContextData } from '@/lib/cli/base';
+import { appendAgentStreamLog } from '@/lib/agents/stream-log';
+import { setThreadTaskId } from '@/lib/agents/thread-index';
 
 export interface AgentSession {
   taskId: string;
@@ -78,6 +80,12 @@ export class AgentManager {
 
     // Create thread
     const threadId = await this.cli.createThread(options.workingDir);
+    // Persist thread→task mapping for streaming and diagnostics
+    try {
+      await setThreadTaskId(threadId, taskId);
+    } catch {
+      // ignore
+    }
 
     // Initialize session
     const session: AgentSession = {
@@ -89,6 +97,12 @@ export class AgentManager {
     };
 
     this.activeAgents.set(threadId, session);
+    // Best-effort: create/append an initial log entry so `/api/agents/stream` can attach quickly
+    appendAgentStreamLog(taskId, threadId, {
+      timestamp: Date.now(),
+      type: 'system',
+      content: { message: 'Agent session started' },
+    }).catch(() => {});
 
     // Start execution in background (don't await)
     this.executeAgent(threadId, prompt, options.context, options.onComplete).catch((error) => {
@@ -125,6 +139,10 @@ export class AgentManager {
 
     // Remove from active agents to free up slot
     this.activeAgents.delete(threadId);
+    appendAgentStreamLog(session.taskId, threadId, {
+      type: 'status',
+      status: 'stopped',
+    }).catch(() => {});
   }
 
   /**
@@ -172,16 +190,28 @@ export class AgentManager {
         context,
       })) {
         // Store log
-        session.logs.push({
+        const log = {
           timestamp: message.timestamp,
           type: message.type,
           content: message.data,
-        });
+        };
+        session.logs.push(log);
+        // Persist for SSE streaming (best-effort)
+        appendAgentStreamLog(session.taskId, threadId, log).catch(() => {});
 
         // Collect output from assistant messages
         if (message.type === 'assistant' && message.data && typeof message.data === 'object') {
           const data = message.data as Record<string, unknown>;
           if (data.message && typeof data.message === 'string') {
+            output += data.message + '\n';
+          }
+        }
+        // Also collect output from result messages (Amp often returns final text here)
+        if (message.type === 'result' && message.data && typeof message.data === 'object') {
+          const data = message.data as Record<string, unknown>;
+          if (data.output && typeof data.output === 'string') {
+            output += data.output + '\n';
+          } else if (data.message && typeof data.message === 'string') {
             output += data.message + '\n';
           }
         }
@@ -193,6 +223,10 @@ export class AgentManager {
 
           // Remove from active agents to free up slot
           this.activeAgents.delete(threadId);
+          appendAgentStreamLog(session.taskId, threadId, {
+            type: 'status',
+            status: 'completed',
+          }).catch(() => {});
 
           // Call completion callback
           if (onComplete) {
@@ -213,6 +247,11 @@ export class AgentManager {
 
           // Remove from active agents to free up slot
           this.activeAgents.delete(threadId);
+          appendAgentStreamLog(session.taskId, threadId, {
+            type: 'status',
+            status: 'error',
+            error: session.error,
+          }).catch(() => {});
 
           // Call completion callback with error
           if (onComplete) {
@@ -232,6 +271,11 @@ export class AgentManager {
 
       // Remove from active agents to free up slot
       this.activeAgents.delete(threadId);
+      appendAgentStreamLog(session.taskId, threadId, {
+        type: 'status',
+        status: 'error',
+        error: session.error,
+      }).catch(() => {});
 
       // Call completion callback with error
       if (onComplete) {

@@ -51,7 +51,8 @@ Code-Auto uses a **pluggable adapter pattern** to abstract CLI tool interactions
 | Adapter | Provider | Description | Use Case |
 |---------|----------|-------------|----------|
 | **MockCLIAdapter** | `mock` | Simulated responses with configurable delays | Testing, UI development, E2E tests |
-| **AmpAdapter** | `amp` | Sourcegraph Amp SDK integration | Production AI execution |
+| **AmpAdapter** | `amp` | Sourcegraph Amp SDK integration | Production AI execution with Amp |
+| **CursorAdapter** | `cursor` | Cursor Agent CLI integration | Production AI execution with Cursor |
 
 **Key Capabilities:**
 - **Dynamic provider selection** — Each task can specify its own CLI provider via `task.cliTool`

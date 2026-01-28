@@ -14,6 +14,7 @@ import { AgentManager } from '@/lib/agents/manager';
 import { CLIFactory, CLIProvider } from '@/lib/cli/factory';
 import type { Task } from '@/lib/tasks/schema';
 import { ampPreflight } from '@/lib/amp/preflight';
+import { cursorPreflight } from '@/lib/cursor/preflight';
 
 type ManagerEntry = {
   taskId: string;
@@ -67,7 +68,13 @@ async function createAndInitializeManager(task: Task): Promise<ManagerEntry> {
 
   const initialized = (async () => {
     const apiKey = await resolveApiKeyForProvider(provider);
-    await manager.initialize({ apiKey, cwd, mode });
+    // Pass through task cliConfig for provider-specific settings (e.g., Cursor model)
+    await manager.initialize({ 
+      apiKey, 
+      cwd, 
+      mode,
+      ...(task.cliConfig || {}),
+    });
   })();
 
   return {

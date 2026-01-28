@@ -2,16 +2,16 @@
  * CLI Factory
  *
  * Factory pattern to create CLI adapters.
- * Makes it easy to swap between amp and other CLIs in the future.
+ * Makes it easy to swap between amp, Cursor, and other CLIs in the future.
  */
 
+import { spawnSync } from 'child_process';
 import { CLIAdapter } from './base';
 import { AmpAdapter } from './amp';
 import { MockCLIAdapter } from './mock';
+import { CursorAdapter } from './cursor';
 
-export type CLIProvider = 'amp' | 'mock';
-// Future providers can be added here:
-// export type CLIProvider = 'amp' | 'mock' | 'aider' | 'cursor' | ...;
+export type CLIProvider = 'amp' | 'mock' | 'cursor';
 
 export class CLIFactory {
   /**
@@ -23,11 +23,8 @@ export class CLIFactory {
         return new AmpAdapter();
       case 'mock':
         return new MockCLIAdapter();
-      // Future implementations:
-      // case 'aider':
-      //   return new AiderAdapter();
-      // case 'cursor':
-      //   return new CursorAdapter();
+      case 'cursor':
+        return new CursorAdapter();
       default:
         throw new Error(`Unknown CLI provider: ${provider}`);
     }
@@ -37,14 +34,19 @@ export class CLIFactory {
    * Get available providers
    */
   static getAvailableProviders(): CLIProvider[] {
-    return ['amp', 'mock'];
+    return ['amp', 'mock', 'cursor'];
   }
 
   /**
    * Check if a provider is available
+   * 
+   * Note: Returns true if provider is recognized, actual availability 
+   * (CLI installed, authenticated) is checked via preflight during execution
    */
   static isProviderAvailable(provider: string): provider is CLIProvider {
-    return ['amp', 'mock'].includes(provider);
+    // All known providers are considered "available"
+    // Actual runtime checks (binary exists, auth OK) happen in preflight
+    return ['amp', 'mock', 'cursor'].includes(provider as CLIProvider);
   }
 
   /**
@@ -53,7 +55,7 @@ export class CLIFactory {
    */
   static getAvailableAdapters(): Array<{ name: string; displayName: string }> {
     const providers = this.getAvailableProviders();
-    return providers.map(provider => {
+    return providers.map((provider) => {
       const adapter = this.create(provider);
       return {
         name: adapter.name,

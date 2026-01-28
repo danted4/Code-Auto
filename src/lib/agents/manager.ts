@@ -55,12 +55,10 @@ export class AgentManager {
     apiKey: string;
     cwd: string;
     mode?: 'smart' | 'rush';
+    [key: string]: any; // Allow additional CLI-specific config (e.g., model)
   }): Promise<void> {
-    await this.cli.initialize({
-      apiKey: config.apiKey,
-      cwd: config.cwd,
-      mode: config.mode || 'smart',
-    });
+    // Pass through full config to adapter (includes model, etc.)
+    await this.cli.initialize(config);
   }
 
   /**

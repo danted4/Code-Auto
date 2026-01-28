@@ -17,6 +17,7 @@ Code-Auto is a Next.js app that turns a “task” into an Code-Auto style workf
 - **Kanban UI + workflow plumbing**: task cards, phase transitions, modals (`src/components/**`)
 - **Task persistence**: file-based JSON in `.code-auto/tasks/` (`src/lib/tasks/persistence.ts`)
 - **Worktrees**: created on task create (best-effort), branch naming `code-auto/{taskId}` (`src/lib/git/worktree.ts`, `src/app/api/tasks/create/route.ts`)
+- **CLI adapters**: Amp (SDK), Cursor (CLI), and Mock providers with preflight checks and JSON validation (`src/lib/cli/*`, `src/lib/amp/preflight.ts`, `src/lib/cursor/preflight.ts`)
 - **Git status UI + API**: `/api/git/status` (`src/app/api/git/status/route.ts`)
 - **SSE agent log streaming**: `/api/agents/stream` + UI terminal (`src/app/api/agents/stream/route.ts`, `src/components/agents/terminal.tsx`)
 - **Auto-plan route** (no human review): generates a plan + subtasks (`src/app/api/agents/auto-plan/route.ts`)
@@ -60,7 +61,9 @@ Code-Auto is a Next.js app that turns a “task” into an Code-Auto style workf
 - Providers today:
   - `MockCLIAdapter` (`src/lib/cli/mock.ts`) — testing/simulation, respects per-thread working directory
   - `AmpAdapter` (`src/lib/cli/amp.ts`) — uses `@sourcegraph/amp-sdk` (`execute()`), includes subtask validation feedback loop
+  - `CursorAdapter` (`src/lib/cli/cursor.ts`) — uses Cursor Agent CLI with `--print --output-format stream-json`, supports `--mode plan` for read-only planning, includes subtask validation feedback loop
   - **Amp preflight** (`src/lib/amp/preflight.ts`, `GET /api/amp/preflight`) — local-dev checks for `which amp` + login/API key readiness; UI blocks Amp runs until ready
+  - **Cursor preflight** (`src/lib/cursor/preflight.ts`, `GET /api/cursor/preflight`) — local-dev checks for `which agent` + `agent status` auth readiness; UI blocks Cursor runs until ready
 
 ### UI state
 - Zustand task store: `src/store/task-store.ts`

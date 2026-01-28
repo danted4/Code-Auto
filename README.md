@@ -27,7 +27,7 @@ Code-Auto automates AI-driven coding tasks by managing them through a Kanban-sty
 
 - **5-Phase Workflow**: Tasks progress through `planning → in_progress → ai_review → human_review → done`
 - **Git Isolation**: Per-task worktrees in `.code-auto/worktrees/{taskId}/` with branch `code-auto/{taskId}`
-- **Pluggable Execution**: CLIAdapter layer supporting multiple AI backends (Mock, Amp SDK)
+- **Pluggable Execution**: CLIAdapter layer supporting multiple AI backends (Mock, Amp SDK, Cursor Agent CLI)
 - **Live Streaming**: Agent output streamed to the UI via Server-Sent Events (SSE)
 - **File-Based Storage**: Tasks persisted as JSON in `.code-auto/tasks/`
 
@@ -77,7 +77,7 @@ flowchart TB
 ```
 
 **Core Modules:**
-- **lib/cli** — Pluggable CLI adapters for AI execution (Mock, Amp SDK)
+- **lib/cli** — Pluggable CLI adapters for AI execution (Mock, Amp SDK, Cursor CLI)
 - **lib/git** — WorktreeManager for per-task branch isolation
 - **lib/agents** — Orchestrates agent sessions across workflow phases
 - **lib/tasks** — Task schema, validation, and JSON file persistence
@@ -142,25 +142,39 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to access th
 | `yarn test:e2e:ui` | Run tests with Playwright UI |
 | `yarn test:e2e:headed` | Run tests in headed browser mode |
 
-### Using Amp (Optional)
+### Configuring AI Agents (Optional)
 
-This project includes an Amp SDK adapter (`@sourcegraph/amp-sdk`) for real AI-powered task execution.
+Code-Auto supports multiple AI agent backends. Choose one or use Mock for testing:
 
-**Option 1: Environment variable**
+#### Option 1: Amp SDK
 
+```bash
+amp login         # Authenticate
+yarn dev          # Start server
+```
+
+Or use an environment variable:
 ```bash
 export AMP_API_KEY=your_key_here
 yarn dev
 ```
 
-**Option 2: CLI authentication**
+#### Option 2: Cursor Agent CLI
 
 ```bash
-amp login
+agent login       # Authenticate
+yarn dev          # Start server
+```
+
+Or use an environment variable:
+```bash
+export CURSOR_API_KEY=your_key_here
 yarn dev
 ```
 
-Without Amp configured, the system uses the `MockCLIAdapter` for simulated responses.
+#### Option 3: Mock Adapter (Testing)
+
+Without Amp or Cursor configured, the system uses the `MockCLIAdapter` for simulated responses (no API costs).
 
 ## API Overview
 
@@ -179,7 +193,10 @@ Code-Auto uses a pluggable adapter system for AI execution:
 | Adapter | Description | Status |
 |---------|-------------|--------|
 | `MockCLIAdapter` | Simulated responses for testing | ✅ Available |
-| `AmpCLIAdapter` | Sourcegraph Amp SDK integration | ✅ Available |
+| `AmpAdapter` | Sourcegraph Amp SDK integration | ✅ Available |
+| `CursorAdapter` | Cursor Agent CLI integration | ✅ Available |
+
+See [docs/CURSOR_INTEGRATION.md](docs/CURSOR_INTEGRATION.md) for detailed Cursor setup and usage.
 
 ## Workflow
 
@@ -217,6 +234,7 @@ src/
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — System architecture, module structure, and design patterns
 - [docs/API_ROUTES.md](docs/API_ROUTES.md) — Complete API reference for all endpoints
 - [docs/CLI_ADAPTERS.md](docs/CLI_ADAPTERS.md) — Pluggable CLI adapter architecture and implementation guide
+- [docs/CURSOR_INTEGRATION.md](docs/CURSOR_INTEGRATION.md) — Cursor Agent CLI integration guide
 - [docs/COMPONENTS.md](docs/COMPONENTS.md) — UI component hierarchy and React component documentation
 - [docs/DATA_FLOW.md](docs/DATA_FLOW.md) — Data flow patterns, Zustand stores, and state management
 - [docs/TYPE_REFERENCE.md](docs/TYPE_REFERENCE.md) — TypeScript interfaces and type definitions

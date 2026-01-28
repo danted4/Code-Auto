@@ -418,7 +418,21 @@ Return your questions in the following JSON format:
   ]
 }
 
-IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or additional text.`;
+====================
+CRITICAL FINAL INSTRUCTION:
+====================
+After you analyze the task and formulate your questions, you MUST output a final response containing ONLY the JSON object above.
+
+Your LAST message must be the raw JSON with NO:
+- Markdown code fences (\`\`\`json)
+- Explanatory text before or after
+- Comments or additional formatting
+
+Just the pure JSON object starting with { and ending with }.
+
+Example of what your final output should look like:
+{"questions":[{"id":"q1","question":"...","options":[...],"required":true,"order":1}]}
+====================`;
   } else {
     // Generate plan directly
     return basePrompt + `# PLANNING PHASE: Direct Plan Generation
@@ -441,7 +455,26 @@ Return your plan in the following JSON format:
   "plan": "# Implementation Plan\\n\\n## Overview\\n...full markdown plan here..."
 }
 
-IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting around the JSON.`;
+====================
+CRITICAL FINAL INSTRUCTION:
+====================
+After you finish reading files and analyzing the codebase, you MUST provide a FINAL TEXT RESPONSE containing the JSON object.
+
+DO NOT just stop after your analysis. You MUST output a final message.
+
+Your final response must be ONLY the raw JSON with NO:
+- Markdown code fences (\`\`\`json)
+- Explanatory text before or after  
+- Comments or additional formatting
+- Just thinking - you must OUTPUT TEXT
+
+The JSON must be a complete, valid object starting with { and ending with }.
+
+Example of what your FINAL OUTPUT should look like:
+{"plan":"# Implementation Plan\\n\\n## Overview\\nThis task requires adding a delete icon...\\n\\n## Technical Approach\\n..."}
+
+IMPORTANT: After your analysis, RESPOND with the JSON. Do not just stop thinking.
+====================`;
   }
 }
 

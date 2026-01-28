@@ -5,7 +5,7 @@ This document describes the pluggable CLI adapter architecture used in Code-Auto
 ## Overview
 
 Code-Auto uses a **pluggable adapter pattern** to abstract CLI tool interactions. This allows the system to:
-- Swap between different AI coding CLIs (amp, aider, cursor, etc.)
+- Swap between different AI coding CLIs (Amp SDK, Cursor Agent CLI, etc.)
 - Use a mock adapter for testing without API costs
 - Dynamically configure adapters via the UI
 
@@ -46,6 +46,14 @@ classDiagram
         -generateThreadId()
     }
 
+    class CursorAdapter {
+        +name: "cursor"
+        +displayName: "Cursor Agent (CLI)"
+        -config: CLIConfig
+        -threadWorkingDirs: Map
+        -processes: Map
+    }
+
     class CLIFactory {
         +create(provider: CLIProvider)$ CLIAdapter
         +getAvailableProviders()$ CLIProvider[]
@@ -55,9 +63,11 @@ classDiagram
 
     CLIAdapter <|.. AmpAdapter : implements
     CLIAdapter <|.. MockCLIAdapter : implements
+    CLIAdapter <|.. CursorAdapter : implements
     CLIFactory ..> CLIAdapter : creates
     CLIFactory ..> AmpAdapter : instantiates
     CLIFactory ..> MockCLIAdapter : instantiates
+    CLIFactory ..> CursorAdapter : instantiates
 ```
 
 ## Components
@@ -120,6 +130,25 @@ Testing adapter that simulates CLI responses without API calls:
 - E2E testing of the task orchestration pipeline
 - Debugging workflow logic
 
+### Cursor Adapter ([src/lib/cli/cursor.ts](../src/lib/cli/cursor.ts))
+
+Production adapter that shells out to the Cursor Agent CLI:
+
+- Uses the `agent` binary discovered via `which agent` (or `CURSOR_AGENT_CMD` override).
+- Spawns a process in the task’s worktree directory and streams STDOUT back as `assistant` messages.
+- Treats each Code-Auto `threadId` as a single Cursor agent run; there is no cross-run resume yet.
+
+**How it works:**
+1. **Planning prompts** → Uses `--mode plan` to prevent file writes, returns JSON
+2. **Subtask generation** → Validates JSON structure, provides feedback for corrections (up to 3 attempts)
+3. **Subtask execution** → Full write access in worktree directory
+4. **Streaming** → Parses `stream-json` format and maps to standard `StreamMessage` types
+
+**Notes:**
+- Authentication via `agent login` (preferred) or `CURSOR_API_KEY` env var
+- Preflight check ensures CLI is installed and authenticated before tasks start
+- Use this adapter when you want to run Code-Auto tasks through Cursor instead of Amp
+
 ### Factory ([src/lib/cli/factory.ts](../src/lib/cli/factory.ts))
 
 Creates adapter instances using the factory pattern:
@@ -147,7 +176,7 @@ import { CLIFactory } from '@/lib/cli/factory';
 import { CLIConfig, ExecuteRequest } from '@/lib/cli/base';
 
 // Create adapter (mock for testing, amp for production)
-const adapter = CLIFactory.create(process.env.NODE_ENV === 'test' ? 'mock' : 'amp');
+   const adapter = CLIFactory.create(process.env.NODE_ENV === 'test' ? 'mock' : 'amp');
 
 // Initialize with config
 const config: CLIConfig = {

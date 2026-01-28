@@ -23,6 +23,13 @@ type AmpPreflightResult = {
   instructions: string[];
 };
 
+type CursorPreflightResult = {
+  agentCliPath: string | null;
+  authSource: 'cli_login' | 'env' | 'missing';
+  canRunCursor: boolean;
+  instructions: string[];
+};
+
 interface CLIConfigSchema {
   fields: ConfigField[];
 }
@@ -60,6 +67,8 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
   const [isLoadingAdapters, setIsLoadingAdapters] = useState(true);
   const [ampPreflight, setAmpPreflight] = useState<AmpPreflightResult | null>(null);
   const [isCheckingAmp, setIsCheckingAmp] = useState(false);
+  const [cursorPreflight, setCursorPreflight] = useState<CursorPreflightResult | null>(null);
+  const [isCheckingCursor, setIsCheckingCursor] = useState(false);
 
   // Fetch available CLI adapters from API
   useEffect(() => {
@@ -128,6 +137,42 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
       checkAmp();
     } else if (open) {
       setAmpPreflight(null);
+    }
+  }, [open, cliTool]);
+
+  // Cursor readiness (local dev preflight)
+  useEffect(() => {
+    async function checkCursor() {
+      setIsCheckingCursor(true);
+      try {
+        const res = await fetch('/api/cursor/preflight');
+        const data = await res.json();
+        if (res.ok) {
+          setCursorPreflight(data);
+        } else {
+          setCursorPreflight({
+            agentCliPath: null,
+            authSource: 'missing',
+            canRunCursor: false,
+            instructions: [data?.error || 'Cursor preflight failed'],
+          });
+        }
+      } catch (e) {
+        setCursorPreflight({
+          agentCliPath: null,
+          authSource: 'missing',
+          canRunCursor: false,
+          instructions: [e instanceof Error ? e.message : 'Cursor preflight failed'],
+        });
+      } finally {
+        setIsCheckingCursor(false);
+      }
+    }
+
+    if (open && cliTool === 'cursor') {
+      checkCursor();
+    } else if (open) {
+      setCursorPreflight(null);
     }
   }, [open, cliTool]);
 
@@ -383,6 +428,36 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
             </div>
           )}
 
+          {/* Cursor readiness panel */}
+          {cliTool === 'cursor' && (
+            <div className="space-y-2 rounded-md border p-3 text-sm" style={{ borderColor: 'var(--color-border)' }}>
+              <div className="flex items-center justify-between">
+                <div className="font-medium">Cursor readiness</div>
+                <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  {isCheckingCursor ? 'Checking…' : cursorPreflight?.canRunCursor ? 'Ready' : 'Not ready'}
+                </div>
+              </div>
+
+              {cursorPreflight && (
+                <div className="space-y-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  <div>CLI: {cursorPreflight.agentCliPath ? cursorPreflight.agentCliPath : 'not found'}</div>
+                  <div>Auth: {cursorPreflight.authSource}</div>
+                </div>
+              )}
+
+              {cursorPreflight && !cursorPreflight.canRunCursor && cursorPreflight.instructions.length > 0 && (
+                <div className="space-y-1 text-xs">
+                  <div className="font-medium">Fix steps</div>
+                  <ul className="list-disc pl-5" style={{ color: 'var(--color-text-muted)' }}>
+                    {cursorPreflight.instructions.map((s, i) => (
+                      <li key={i}>{s}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Dynamic CLI Configuration */}
           {configSchema && configSchema.fields.length > 0 && (
             <div className="space-y-4 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
@@ -421,7 +496,8 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
             disabled={
               isCreating ||
               !description.trim() ||
-              (cliTool === 'amp' && (isCheckingAmp || !ampPreflight || !ampPreflight.canRunAmp))
+              (cliTool === 'amp' && (isCheckingAmp || !ampPreflight || !ampPreflight.canRunAmp)) ||
+              (cliTool === 'cursor' && (isCheckingCursor || !cursorPreflight || !cursorPreflight.canRunCursor))
             }
             className="font-medium"
             style={{

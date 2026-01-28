@@ -247,7 +247,21 @@ Return your subtasks in the following JSON format:
   ]
 }
 
-IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or additional text.`;
+====================
+CRITICAL FINAL INSTRUCTION:
+====================
+After you analyze the plan and formulate your subtasks, you MUST output a final response containing ONLY the JSON object above.
+
+Your LAST message must be the raw JSON with NO:
+- Markdown code fences (\`\`\`json)
+- Explanatory text before or after
+- Comments or additional formatting
+
+Just the pure JSON object starting with { and ending with }.
+
+Example of what your final output should look like:
+{"subtasks":[{"id":"subtask-1","content":"...","label":"...","activeForm":"...","type":"dev"}]}
+====================`;
 }
 
 function inferSubtaskType(subtask: Partial<Subtask>): 'dev' | 'qa' {

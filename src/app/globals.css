@@ -61,7 +61,7 @@
     --color-agent-active: #06b6d4;
     --color-terminal-background: #0f172a;
     --color-terminal-text: #e2e8f0;
-    --color-sidebar-shadow: rgba(0, 0, 0, 0.35);
+    --color-sidebar-shadow: rgba(0, 0, 0, 0.5);
   }
 
   * {

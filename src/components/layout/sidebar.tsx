@@ -49,11 +49,12 @@ export function Sidebar() {
     <>
       <aside
         data-testid="sidebar"
-        className="w-64 flex flex-col h-screen shrink-0 relative z-10"
+        className="fixed left-0 top-0 bottom-0 w-64 flex flex-col h-screen z-20"
         style={{
           background: 'var(--color-surface)',
           color: 'var(--color-foreground)',
-          boxShadow: '4px 0 20px var(--color-sidebar-shadow)',
+          boxShadow:
+            '8px 0 32px -4px var(--color-sidebar-shadow), 4px 0 12px -2px var(--color-sidebar-shadow)',
         }}
       >
         {/* Header */}

@@ -1,7 +1,7 @@
-# Code-Auto
+# Code-Auto 🔁
 
 <p align="center">
-  <img src="./public/code-auto-dark.png" width="220" alt="Code-Auto logo" />
+  <img src="./public/c_auto.png" alt="Code-Auto logo" />
 </p>
 
 A Next.js application for orchestrating AI coding tasks through a structured 5-phase Kanban workflow, with isolated git worktrees per task.

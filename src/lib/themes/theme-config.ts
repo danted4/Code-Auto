@@ -123,7 +123,7 @@ export const themes: Record<ThemeName, Theme> = {
       terminalBackground: '#0f172a',
       terminalText: '#e2e8f0',
 
-      sidebarShadow: 'rgba(0, 0, 0, 0.35)',
+      sidebarShadow: 'rgba(0, 0, 0, 0.5)',
     },
   },
 

@@ -27,7 +27,7 @@ export default function RootLayout({
         <ThemeProvider>
           <OpenProjectGate>
             <Sidebar />
-            <main className="flex-1 overflow-hidden">{children}</main>
+            <main className="flex-1 min-w-0 overflow-hidden pl-64">{children}</main>
             <Toaster />
           </OpenProjectGate>
         </ThemeProvider>

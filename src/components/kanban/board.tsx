@@ -109,7 +109,8 @@ export function KanbanBoard() {
   return (
     <>
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 p-4 overflow-x-auto h-full">
+        {/* Extends under fixed sidebar so columns slide under when scrolling horizontally */}
+        <div className="flex gap-4 p-4 pl-[272px] overflow-x-auto h-full -ml-64 w-[calc(100%+16rem)]">
           {WORKFLOW_PHASES.map((phase) => (
             <KanbanColumn
               key={phase}

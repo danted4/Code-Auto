@@ -23,6 +23,7 @@ Routes for managing AI agent lifecycle and execution.
 Starts an AI agent on a task.
 
 **Request Body:**
+
 ```json
 {
   "taskId": "task-1234567890-abc12",
@@ -31,6 +32,7 @@ Starts an AI agent on a task.
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -40,6 +42,7 @@ Starts an AI agent on a task.
 ```
 
 **Error Responses:**
+
 - `400` - Missing `taskId` or `prompt`
 - `404` - Task not found
 - `409` - Task already has an agent running
@@ -50,10 +53,12 @@ Starts an AI agent on a task.
 ### POST `/api/agents/start-planning`
 
 Starts an AI agent to plan a task. Behavior depends on `requiresHumanReview` flag:
+
 - If `true`: Generates clarifying questions first
 - If `false`: Generates plan directly and auto-starts development
 
 **Request Body:**
+
 ```json
 {
   "taskId": "task-1234567890-abc12"
@@ -61,6 +66,7 @@ Starts an AI agent to plan a task. Behavior depends on `requiresHumanReview` fla
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -71,6 +77,7 @@ Starts an AI agent to plan a task. Behavior depends on `requiresHumanReview` fla
 ```
 
 **Error Responses:**
+
 - `400` - Missing `taskId`
 - `404` - Task not found
 - `409` - Task already has an agent running
@@ -83,6 +90,7 @@ Starts an AI agent to plan a task. Behavior depends on `requiresHumanReview` fla
 Starts the development phase after plan approval. Generates subtasks from the approved plan and executes them sequentially.
 
 **Request Body:**
+
 ```json
 {
   "taskId": "task-1234567890-abc12"
@@ -90,6 +98,7 @@ Starts the development phase after plan approval. Generates subtasks from the ap
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -99,6 +108,7 @@ Starts the development phase after plan approval. Generates subtasks from the ap
 ```
 
 **Error Responses:**
+
 - `400` - Missing `taskId` or task doesn't have approved plan
 - `404` - Task not found
 - `500` - Server error
@@ -110,6 +120,7 @@ Starts the development phase after plan approval. Generates subtasks from the ap
 Starts the AI review phase. Executes QA subtasks sequentially.
 
 **Request Body:**
+
 ```json
 {
   "taskId": "task-1234567890-abc12"
@@ -117,6 +128,7 @@ Starts the AI review phase. Executes QA subtasks sequentially.
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -125,6 +137,7 @@ Starts the AI review phase. Executes QA subtasks sequentially.
 ```
 
 **Error Responses:**
+
 - `400` - Missing `taskId`, task not in `ai_review` phase, or no QA subtasks
 - `404` - Task not found
 - `500` - Server error
@@ -136,6 +149,7 @@ Starts the AI review phase. Executes QA subtasks sequentially.
 Stops a running AI agent.
 
 **Request Body:**
+
 ```json
 {
   "threadId": "thread-uuid-here"
@@ -143,6 +157,7 @@ Stops a running AI agent.
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -151,6 +166,7 @@ Stops a running AI agent.
 ```
 
 **Error Responses:**
+
 - `400` - Missing `threadId`
 - `404` - Agent not found
 - `500` - Server error
@@ -162,6 +178,7 @@ Stops a running AI agent.
 Server-Sent Events (SSE) endpoint for streaming agent logs in real-time.
 
 **Query Parameters:**
+
 - `threadId` (required) - The agent thread ID
 
 **SSE Message Types:**
@@ -178,6 +195,7 @@ Server-Sent Events (SSE) endpoint for streaming agent logs in real-time.
 ```
 
 **Error Responses:**
+
 - `400` - Missing `threadId`
 - `404` - Agent not found
 
@@ -188,14 +206,16 @@ Server-Sent Events (SSE) endpoint for streaming agent logs in real-time.
 Approves a plan and optionally starts development.
 
 **Request Body:**
+
 ```json
 {
   "taskId": "task-1234567890-abc12",
-  "startDevelopment": true  // optional, default: false
+  "startDevelopment": true // optional, default: false
 }
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -205,6 +225,7 @@ Approves a plan and optionally starts development.
 ```
 
 **Error Responses:**
+
 - `400` - Missing `taskId`
 - `404` - Task not found
 - `500` - Server error
@@ -216,6 +237,7 @@ Approves a plan and optionally starts development.
 Modifies an existing plan via inline edit or AI feedback regeneration.
 
 **Request Body (Inline Edit):**
+
 ```json
 {
   "taskId": "task-1234567890-abc12",
@@ -225,6 +247,7 @@ Modifies an existing plan via inline edit or AI feedback regeneration.
 ```
 
 **Request Body (Feedback Regeneration):**
+
 ```json
 {
   "taskId": "task-1234567890-abc12",
@@ -234,6 +257,7 @@ Modifies an existing plan via inline edit or AI feedback regeneration.
 ```
 
 **Response (200 - Inline):**
+
 ```json
 {
   "success": true,
@@ -242,6 +266,7 @@ Modifies an existing plan via inline edit or AI feedback regeneration.
 ```
 
 **Response (200 - Feedback):**
+
 ```json
 {
   "success": true,
@@ -251,6 +276,7 @@ Modifies an existing plan via inline edit or AI feedback regeneration.
 ```
 
 **Error Responses:**
+
 - `400` - Missing required fields or invalid method
 - `404` - Task not found
 - `500` - Server error
@@ -262,6 +288,7 @@ Modifies an existing plan via inline edit or AI feedback regeneration.
 Submits answers to planning questions and triggers plan generation.
 
 **Request Body:**
+
 ```json
 {
   "taskId": "task-1234567890-abc12",
@@ -279,6 +306,7 @@ Submits answers to planning questions and triggers plan generation.
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -288,6 +316,7 @@ Submits answers to planning questions and triggers plan generation.
 ```
 
 **Error Responses:**
+
 - `400` - Missing `taskId` or `answers`
 - `404` - Task not found
 - `500` - Server error
@@ -303,6 +332,7 @@ Routes for CLI adapter management.
 Returns available CLI adapters and their configuration schemas.
 
 **Response (200):**
+
 ```json
 [
   {
@@ -316,12 +346,15 @@ Returns available CLI adapters and their configuration schemas.
   {
     "name": "mock",
     "displayName": "Mock Adapter",
-    "configSchema": { /* ... */ }
+    "configSchema": {
+      /* ... */
+    }
   }
 ]
 ```
 
 **Error Responses:**
+
 - `500` - Failed to load CLI adapters
 
 ---
@@ -335,9 +368,11 @@ Routes for git operations and worktree management.
 Check git status for a task's worktree.
 
 **Query Parameters:**
+
 - `taskId` (required) - The task ID
 
 **Response (200):**
+
 ```json
 {
   "hasChanges": true,
@@ -348,6 +383,7 @@ Check git status for a task's worktree.
 ```
 
 **Error Responses:**
+
 - `400` - Missing `taskId`
 - `404` - Task not found
 - `500` - Server error
@@ -359,6 +395,7 @@ Check git status for a task's worktree.
 Manages git worktrees (create, delete, cleanup).
 
 **Request Body (Create):**
+
 ```json
 {
   "action": "create",
@@ -367,6 +404,7 @@ Manages git worktrees (create, delete, cleanup).
 ```
 
 **Response (200 - Create):**
+
 ```json
 {
   "success": true,
@@ -379,15 +417,17 @@ Manages git worktrees (create, delete, cleanup).
 ```
 
 **Request Body (Delete):**
+
 ```json
 {
   "action": "delete",
   "taskId": "task-1234567890-abc12",
-  "force": false  // optional
+  "force": false // optional
 }
 ```
 
 **Response (200 - Delete):**
+
 ```json
 {
   "success": true,
@@ -396,14 +436,16 @@ Manages git worktrees (create, delete, cleanup).
 ```
 
 **Request Body (Cleanup All):**
+
 ```json
 {
   "action": "cleanup-all",
-  "force": false  // optional
+  "force": false // optional
 }
 ```
 
 **Response (200 - Cleanup):**
+
 ```json
 {
   "success": true,
@@ -412,6 +454,7 @@ Manages git worktrees (create, delete, cleanup).
 ```
 
 **Error Responses:**
+
 - `400` - Missing `taskId` or unknown action
 - `500` - Server error
 - `503` - Git not available or not in a git repository
@@ -423,10 +466,12 @@ Manages git worktrees (create, delete, cleanup).
 Query worktree status and information.
 
 **Query Parameters:**
+
 - `taskId` - Required for `status` and `info` actions
 - `action` - One of: `status` (default), `list`, `info`
 
 **Response (200 - Status):**
+
 ```json
 {
   "status": {
@@ -437,6 +482,7 @@ Query worktree status and information.
 ```
 
 **Response (200 - List):**
+
 ```json
 {
   "worktrees": [
@@ -448,6 +494,7 @@ Query worktree status and information.
 ```
 
 **Response (200 - Info):**
+
 ```json
 {
   "taskId": "task-xxx",
@@ -459,6 +506,7 @@ Query worktree status and information.
 ```
 
 **Error Responses:**
+
 - `400` - Missing required parameters or unknown action
 - `500` - Server error
 - `503` - Git not available
@@ -474,20 +522,22 @@ Routes for task CRUD operations and subtask management.
 Creates a new task with automatic git worktree setup.
 
 **Request Body:**
+
 ```json
 {
   "title": "Implement authentication",
   "description": "Add JWT-based authentication system",
-  "phase": "planning",  // optional, default: "planning"
-  "status": "pending",  // optional, default: "pending"
-  "cliTool": "amp",     // optional
-  "cliConfig": {},      // optional
-  "requiresHumanReview": true,  // optional, default: false
-  "metadata": {}        // optional
+  "phase": "planning", // optional, default: "planning"
+  "status": "pending", // optional, default: "pending"
+  "cliTool": "amp", // optional
+  "cliConfig": {}, // optional
+  "requiresHumanReview": true, // optional, default: false
+  "metadata": {} // optional
 }
 ```
 
 **Response (200):**
+
 ```json
 {
   "id": "task-1234567890-abc12",
@@ -499,12 +549,13 @@ Creates a new task with automatic git worktree setup.
   "worktreePath": "/path/to/.code-auto/worktrees/task-xxx",
   "branchName": "code-auto/task-xxx",
   "createdAt": 1234567890,
-  "updatedAt": 1234567890,
+  "updatedAt": 1234567890
   /* ... other fields */
 }
 ```
 
 **Error Responses:**
+
 - `500` - Server error
 
 ---
@@ -514,24 +565,26 @@ Creates a new task with automatic git worktree setup.
 Lists all tasks.
 
 **Response (200):**
+
 ```json
 [
   {
     "id": "task-xxx",
     "title": "Task 1",
-    "phase": "planning",
+    "phase": "planning"
     /* ... */
   },
   {
     "id": "task-yyy",
     "title": "Task 2",
-    "phase": "in_progress",
+    "phase": "in_progress"
     /* ... */
   }
 ]
 ```
 
 **Error Responses:**
+
 - `500` - Server error
 
 ---
@@ -541,6 +594,7 @@ Lists all tasks.
 Updates a task's properties.
 
 **Request Body:**
+
 ```json
 {
   "taskId": "task-1234567890-abc12",
@@ -552,17 +606,19 @@ Updates a task's properties.
 ```
 
 **Response (200):**
+
 ```json
 {
   "id": "task-xxx",
   "title": "Updated title",
   "phase": "in_progress",
-  "updatedAt": 1234567890,
+  "updatedAt": 1234567890
   /* ... updated task object */
 }
 ```
 
 **Error Responses:**
+
 - `400` - Missing `taskId`
 - `404` - Task not found
 - `500` - Server error
@@ -574,6 +630,7 @@ Updates a task's properties.
 Reorders subtasks within a task.
 
 **Request Body:**
+
 ```json
 {
   "taskId": "task-1234567890-abc12",
@@ -582,6 +639,7 @@ Reorders subtasks within a task.
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true
@@ -589,6 +647,7 @@ Reorders subtasks within a task.
 ```
 
 **Error Responses:**
+
 - `400` - Missing/invalid `taskId` or `subtaskIds`, or IDs don't match existing subtasks
 - `404` - Task not found
 - `500` - Server error
@@ -600,6 +659,7 @@ Reorders subtasks within a task.
 Marks a subtask as completed (skips it). Stops any running agent on the subtask.
 
 **Request Body:**
+
 ```json
 {
   "taskId": "task-1234567890-abc12",
@@ -608,6 +668,7 @@ Marks a subtask as completed (skips it). Stops any running agent on the subtask.
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -616,9 +677,11 @@ Marks a subtask as completed (skips it). Stops any running agent on the subtask.
 ```
 
 **Notes:**
+
 - Automatically transitions task to `ai_review` phase if all dev subtasks are completed
 
 **Error Responses:**
+
 - `400` - Missing required fields or subtask already completed
 - `404` - Task or subtask not found
 - `500` - Server error
@@ -630,6 +693,7 @@ Marks a subtask as completed (skips it). Stops any running agent on the subtask.
 Removes a subtask from the task. Stops any running agent on the subtask.
 
 **Request Body:**
+
 ```json
 {
   "taskId": "task-1234567890-abc12",
@@ -638,6 +702,7 @@ Removes a subtask from the task. Stops any running agent on the subtask.
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -646,10 +711,12 @@ Removes a subtask from the task. Stops any running agent on the subtask.
 ```
 
 **Notes:**
+
 - Cannot delete completed subtasks
 - Automatically transitions task to `ai_review` phase if all remaining dev subtasks are completed
 
 **Error Responses:**
+
 - `400` - Missing required fields or subtask already completed
 - `404` - Task or subtask not found
 - `500` - Server error
@@ -663,15 +730,19 @@ Creates sample tasks for testing the Kanban board.
 **Request Body:** None required
 
 **Response (200):**
+
 ```json
 {
   "success": true,
   "message": "Created 6 sample tasks",
-  "tasks": [ /* array of created tasks */ ]
+  "tasks": [
+    /* array of created tasks */
+  ]
 }
 ```
 
 **Error Responses:**
+
 - `500` - Server error
 
 ---
@@ -683,15 +754,19 @@ Creates sample tasks for E2E testing (marked with `isTestData` flag in metadata)
 **Request Body:** None required
 
 **Response (200):**
+
 ```json
 {
   "success": true,
   "message": "Created 6 test tasks",
-  "tasks": [ /* array of created tasks with isTestData: true */ ]
+  "tasks": [
+    /* array of created tasks with isTestData: true */
+  ]
 }
 ```
 
 **Error Responses:**
+
 - `500` - Server error
 
 ---
@@ -705,6 +780,7 @@ Routes for testing and development.
 Tests the Mock CLI adapter without using any API credits.
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -713,12 +789,15 @@ Tests the Mock CLI adapter without using any API credits.
     "streaming": true,
     "tools": true
   },
-  "messages": [ /* array of mock messages */ ],
+  "messages": [
+    /* array of mock messages */
+  ],
   "totalMessages": 5
 }
 ```
 
 **Error Responses:**
+
 - `500` - Server error with details
 
 ---
@@ -735,13 +814,13 @@ All API routes follow a consistent error response format:
 
 ### Common HTTP Status Codes
 
-| Code | Meaning |
-|------|---------|
-| `200` | Success |
-| `400` | Bad Request - Missing or invalid parameters |
-| `404` | Not Found - Resource doesn't exist |
-| `409` | Conflict - Resource state conflict (e.g., agent already running) |
-| `500` | Internal Server Error |
+| Code  | Meaning                                                             |
+| ----- | ------------------------------------------------------------------- |
+| `200` | Success                                                             |
+| `400` | Bad Request - Missing or invalid parameters                         |
+| `404` | Not Found - Resource doesn't exist                                  |
+| `409` | Conflict - Resource state conflict (e.g., agent already running)    |
+| `500` | Internal Server Error                                               |
 | `503` | Service Unavailable - External dependency not available (e.g., Git) |
 
 ### Error Handling Pattern
@@ -768,6 +847,7 @@ try {
 Currently, the API routes do not implement authentication. All endpoints are accessible without authorization.
 
 **Future Considerations:**
+
 - Add API key authentication for external access
 - Implement session-based auth for web UI
 - Add rate limiting for agent operations
@@ -778,34 +858,34 @@ Currently, the API routes do not implement authentication. All endpoints are acc
 
 Tasks move through the following phases:
 
-| Phase | Description |
-|-------|-------------|
-| `planning` | Task is being planned (questions/plan generation) |
-| `in_progress` | Development subtasks being executed |
-| `ai_review` | QA subtasks being executed |
-| `human_review` | Awaiting human review |
-| `done` | Task completed |
+| Phase          | Description                                       |
+| -------------- | ------------------------------------------------- |
+| `planning`     | Task is being planned (questions/plan generation) |
+| `in_progress`  | Development subtasks being executed               |
+| `ai_review`    | QA subtasks being executed                        |
+| `human_review` | Awaiting human review                             |
+| `done`         | Task completed                                    |
 
 ### Planning Status Values
 
-| Status | Description |
-|--------|-------------|
-| `not_started` | Planning not yet initiated |
-| `generating_questions` | AI generating clarifying questions |
-| `waiting_for_answers` | Waiting for user to answer questions |
-| `generating_plan` | AI generating implementation plan |
-| `plan_ready` | Plan generated, awaiting approval |
-| `plan_approved` | Plan approved, ready for development |
+| Status                 | Description                          |
+| ---------------------- | ------------------------------------ |
+| `not_started`          | Planning not yet initiated           |
+| `generating_questions` | AI generating clarifying questions   |
+| `waiting_for_answers`  | Waiting for user to answer questions |
+| `generating_plan`      | AI generating implementation plan    |
+| `plan_ready`           | Plan generated, awaiting approval    |
+| `plan_approved`        | Plan approved, ready for development |
 
 ### Task Status Values
 
-| Status | Description |
-|--------|-------------|
-| `pending` | Waiting for action |
-| `planning` | Currently in planning phase |
-| `in_progress` | Actively being worked on |
-| `blocked` | Blocked due to error |
-| `completed` | Successfully completed |
+| Status        | Description                 |
+| ------------- | --------------------------- |
+| `pending`     | Waiting for action          |
+| `planning`    | Currently in planning phase |
+| `in_progress` | Actively being worked on    |
+| `blocked`     | Blocked due to error        |
+| `completed`   | Successfully completed      |
 
 ---
 
@@ -813,12 +893,12 @@ Tasks move through the following phases:
 
 ```typescript
 interface Subtask {
-  id: string;           // Unique identifier
-  content: string;      // Detailed description
-  label: string;        // Short label for UI
-  type: 'dev' | 'qa';   // Development or QA verification
+  id: string; // Unique identifier
+  content: string; // Detailed description
+  label: string; // Short label for UI
+  type: 'dev' | 'qa'; // Development or QA verification
   status: 'pending' | 'in_progress' | 'completed';
-  activeForm?: string;  // Present continuous form for progress display
+  activeForm?: string; // Present continuous form for progress display
   completedAt?: number; // Timestamp when completed
 }
 ```

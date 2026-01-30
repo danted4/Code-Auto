@@ -5,27 +5,26 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { taskPersistence } from '@/lib/tasks/persistence';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
+import { getProjectDir } from '@/lib/project-dir';
 import fs from 'fs/promises';
+import path from 'path';
 
 export async function POST(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
+
     const { taskId, startDevelopment } = await req.json();
 
     if (!taskId) {
-      return NextResponse.json(
-        { error: 'taskId required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'taskId required' }, { status: 400 });
     }
 
     // Load task
     const task = await taskPersistence.loadTask(taskId);
     if (!task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
     // Update task status
@@ -35,13 +34,17 @@ export async function POST(req: NextRequest) {
     task.status = 'pending';
 
     // Log to planning logs
-    const logsPath = task.planningLogsPath || `.code-auto/tasks/${taskId}/planning-logs.txt`;
+    const logsPath = task.planningLogsPath
+      ? path.isAbsolute(task.planningLogsPath)
+        ? task.planningLogsPath
+        : path.join(projectDir, task.planningLogsPath)
+      : path.join(projectDir, '.code-auto', 'tasks', taskId, 'planning-logs.txt');
     await fs.appendFile(
       logsPath,
       `\n${'='.repeat(80)}\n` +
-      `[Plan Approved] ${new Date().toISOString()}\n` +
-      `Start Development: ${startDevelopment ? 'Yes' : 'No'}\n` +
-      `${'='.repeat(80)}\n\n`,
+        `[Plan Approved] ${new Date().toISOString()}\n` +
+        `Start Development: ${startDevelopment ? 'Yes' : 'No'}\n` +
+        `${'='.repeat(80)}\n\n`,
       'utf-8'
     );
 
@@ -53,11 +56,17 @@ export async function POST(req: NextRequest) {
       await fs.appendFile(logsPath, `[Starting Development - Generating Subtasks]\n`, 'utf-8');
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/agents/start-development`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ taskId }),
-        });
+        const projectPath = req.headers.get('X-Project-Path');
+        const fetchHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (projectPath) fetchHeaders['X-Project-Path'] = projectPath;
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/agents/start-development`,
+          {
+            method: 'POST',
+            headers: fetchHeaders,
+            body: JSON.stringify({ taskId }),
+          }
+        );
 
         if (!response.ok) {
           const error = await response.json();
@@ -65,7 +74,11 @@ export async function POST(req: NextRequest) {
         }
 
         const result = await response.json();
-        await fs.appendFile(logsPath, `[Development Started] Thread ID: ${result.threadId}\n`, 'utf-8');
+        await fs.appendFile(
+          logsPath,
+          `[Development Started] Thread ID: ${result.threadId}\n`,
+          'utf-8'
+        );
 
         // Don't update task here - the start-development endpoint will handle it
       } catch (error) {

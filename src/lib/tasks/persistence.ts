@@ -8,19 +8,22 @@ import fs from 'fs/promises';
 import path from 'path';
 import { Task, WORKFLOW_PHASES } from './schema';
 
-const TASKS_DIR = path.join(process.cwd(), '.code-auto', 'tasks');
-const IMPLEMENTATION_PLAN = path.join(
-  process.cwd(),
-  '.code-auto',
-  'implementation_plan.json'
-);
-
 export class TaskPersistence {
+  private readonly projectDir: string;
+  private readonly tasksDir: string;
+  private readonly implementationPlanPath: string;
+
+  constructor(projectDir: string = process.cwd()) {
+    this.projectDir = projectDir;
+    this.tasksDir = path.join(projectDir, '.code-auto', 'tasks');
+    this.implementationPlanPath = path.join(projectDir, '.code-auto', 'implementation_plan.json');
+  }
+
   /**
    * Ensure tasks directory exists
    */
   private async ensureDir(): Promise<void> {
-    await fs.mkdir(TASKS_DIR, { recursive: true });
+    await fs.mkdir(this.tasksDir, { recursive: true });
   }
 
   /**
@@ -28,7 +31,7 @@ export class TaskPersistence {
    */
   async saveTask(task: Task): Promise<void> {
     await this.ensureDir();
-    const filePath = path.join(TASKS_DIR, `${task.id}.json`);
+    const filePath = path.join(this.tasksDir, `${task.id}.json`);
     await fs.writeFile(filePath, JSON.stringify(task, null, 2));
 
     // Also update implementation_plan.json for Code-Auto compatibility
@@ -39,7 +42,7 @@ export class TaskPersistence {
    * Load a task from disk
    */
   async loadTask(taskId: string): Promise<Task | null> {
-    const filePath = path.join(TASKS_DIR, `${taskId}.json`);
+    const filePath = path.join(this.tasksDir, `${taskId}.json`);
     try {
       const data = await fs.readFile(filePath, 'utf-8');
       return JSON.parse(data) as Task;
@@ -57,7 +60,7 @@ export class TaskPersistence {
   async listTasks(): Promise<Task[]> {
     await this.ensureDir();
     try {
-      const files = await fs.readdir(TASKS_DIR);
+      const files = await fs.readdir(this.tasksDir);
       const taskFiles = files.filter((f) => f.endsWith('.json'));
 
       const tasks = await Promise.all(
@@ -68,10 +71,8 @@ export class TaskPersistence {
       );
 
       // Filter out nulls and sort by creation date
-      return tasks
-        .filter((t): t is Task => t !== null)
-        .sort((a, b) => b.createdAt - a.createdAt);
-    } catch (error) {
+      return tasks.filter((t): t is Task => t !== null).sort((a, b) => b.createdAt - a.createdAt);
+    } catch (_error) {
       return [];
     }
   }
@@ -80,7 +81,7 @@ export class TaskPersistence {
    * Delete a task
    */
   async deleteTask(taskId: string): Promise<void> {
-    const filePath = path.join(TASKS_DIR, `${taskId}.json`);
+    const filePath = path.join(this.tasksDir, `${taskId}.json`);
     try {
       await fs.unlink(filePath);
       await this.updateImplementationPlan();
@@ -127,23 +128,40 @@ export class TaskPersistence {
       totalTasks: tasks.length,
       phases: WORKFLOW_PHASES.map((phase) => ({
         name: phase,
-        tasks: tasks.filter((t) => t.phase === phase).map((t) => ({
-          id: t.id,
-          title: t.title,
-          status: t.status,
-          subtasks: t.subtasks.length,
-          assignedAgent: t.assignedAgent,
-        })),
+        tasks: tasks
+          .filter((t) => t.phase === phase)
+          .map((t) => ({
+            id: t.id,
+            title: t.title,
+            status: t.status,
+            subtasks: t.subtasks.length,
+            assignedAgent: t.assignedAgent,
+          })),
       })),
     };
 
     try {
-      await fs.writeFile(IMPLEMENTATION_PLAN, JSON.stringify(plan, null, 2));
+      await fs.writeFile(this.implementationPlanPath, JSON.stringify(plan, null, 2));
     } catch (error) {
       console.error('Failed to update implementation plan:', error);
     }
   }
 }
 
-// Export singleton instance
+const persistenceCache = new Map<string, TaskPersistence>();
+
+/**
+ * Get TaskPersistence instance for the given project directory.
+ * Caches instances by projectDir for efficiency.
+ */
+export function getTaskPersistence(projectDir: string): TaskPersistence {
+  let instance = persistenceCache.get(projectDir);
+  if (!instance) {
+    instance = new TaskPersistence(projectDir);
+    persistenceCache.set(projectDir, instance);
+  }
+  return instance;
+}
+
+// Legacy export for backward compatibility - uses process.cwd()
 export const taskPersistence = new TaskPersistence();

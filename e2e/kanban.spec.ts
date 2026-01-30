@@ -170,7 +170,7 @@ test.describe('Kanban Board', () => {
 
       // Take screenshot
       await taskWithSubtasks.locator('..').screenshot({
-        path: 'e2e/screenshots/07-task-with-subtasks.png'
+        path: 'e2e/screenshots/07-task-with-subtasks.png',
       });
     }
   });

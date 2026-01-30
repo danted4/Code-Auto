@@ -14,6 +14,7 @@ import { setThreadTaskId } from '@/lib/agents/thread-index';
 export interface AgentSession {
   taskId: string;
   threadId: string;
+  projectDir: string;
   status: 'running' | 'completed' | 'error' | 'stopped';
   startedAt: number;
   completedAt?: number;
@@ -29,6 +30,7 @@ export interface AgentLog {
 
 export interface AgentOptions {
   workingDir: string;
+  projectDir?: string;
   context?: ContextData;
   onComplete?: (result: AgentResult) => void | Promise<void>;
 }
@@ -55,7 +57,7 @@ export class AgentManager {
     apiKey: string;
     cwd: string;
     mode?: 'smart' | 'rush';
-    [key: string]: any; // Allow additional CLI-specific config (e.g., model)
+    [key: string]: unknown; // Allow additional CLI-specific config (e.g., model)
   }): Promise<void> {
     // Pass through full config to adapter (includes model, etc.)
     await this.cli.initialize(config);
@@ -64,23 +66,18 @@ export class AgentManager {
   /**
    * Start a new agent on a task
    */
-  async startAgent(
-    taskId: string,
-    prompt: string,
-    options: AgentOptions
-  ): Promise<string> {
+  async startAgent(taskId: string, prompt: string, options: AgentOptions): Promise<string> {
     // Check concurrent limit
     if (this.activeAgents.size >= this.maxConcurrent) {
-      throw new Error(
-        `Maximum ${this.maxConcurrent} concurrent agents reached`
-      );
+      throw new Error(`Maximum ${this.maxConcurrent} concurrent agents reached`);
     }
 
     // Create thread
     const threadId = await this.cli.createThread(options.workingDir);
+    const projectDir = options.projectDir || process.cwd();
     // Persist thread→task mapping for streaming and diagnostics
     try {
-      await setThreadTaskId(threadId, taskId);
+      await setThreadTaskId(threadId, taskId, projectDir);
     } catch {
       // ignore
     }
@@ -89,6 +86,7 @@ export class AgentManager {
     const session: AgentSession = {
       taskId,
       threadId,
+      projectDir,
       status: 'running',
       startedAt: Date.now(),
       logs: [],
@@ -96,11 +94,16 @@ export class AgentManager {
 
     this.activeAgents.set(threadId, session);
     // Best-effort: create/append an initial log entry so `/api/agents/stream` can attach quickly
-    appendAgentStreamLog(taskId, threadId, {
-      timestamp: Date.now(),
-      type: 'system',
-      content: { message: 'Agent session started' },
-    }).catch(() => {});
+    appendAgentStreamLog(
+      taskId,
+      threadId,
+      {
+        timestamp: Date.now(),
+        type: 'system',
+        content: { message: 'Agent session started' },
+      },
+      projectDir
+    ).catch(() => {});
 
     // Start execution in background (don't await)
     this.executeAgent(threadId, prompt, options.context, options.onComplete).catch((error) => {
@@ -110,11 +113,13 @@ export class AgentManager {
 
       // Call completion callback with error
       if (options.onComplete) {
-        Promise.resolve(options.onComplete({
-          success: false,
-          output: '',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        })).catch(console.error);
+        Promise.resolve(
+          options.onComplete({
+            success: false,
+            output: '',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          })
+        ).catch(console.error);
       }
     });
 
@@ -137,10 +142,15 @@ export class AgentManager {
 
     // Remove from active agents to free up slot
     this.activeAgents.delete(threadId);
-    appendAgentStreamLog(session.taskId, threadId, {
-      type: 'status',
-      status: 'stopped',
-    }).catch(() => {});
+    appendAgentStreamLog(
+      session.taskId,
+      threadId,
+      {
+        type: 'status',
+        status: 'stopped',
+      },
+      session.projectDir
+    ).catch(() => {});
   }
 
   /**
@@ -161,9 +171,7 @@ export class AgentManager {
    * Get agents for a specific task
    */
   getAgentsForTask(taskId: string): AgentSession[] {
-    return Array.from(this.activeAgents.values()).filter(
-      (session) => session.taskId === taskId
-    );
+    return Array.from(this.activeAgents.values()).filter((session) => session.taskId === taskId);
   }
 
   /**
@@ -195,7 +203,7 @@ export class AgentManager {
         };
         session.logs.push(log);
         // Persist for SSE streaming (best-effort)
-        appendAgentStreamLog(session.taskId, threadId, log).catch(() => {});
+        appendAgentStreamLog(session.taskId, threadId, log, session.projectDir).catch(() => {});
 
         // Collect output from assistant messages
         if (message.type === 'assistant' && message.data && typeof message.data === 'object') {
@@ -221,10 +229,15 @@ export class AgentManager {
 
           // Remove from active agents to free up slot
           this.activeAgents.delete(threadId);
-          appendAgentStreamLog(session.taskId, threadId, {
-            type: 'status',
-            status: 'completed',
-          }).catch(() => {});
+          appendAgentStreamLog(
+            session.taskId,
+            threadId,
+            {
+              type: 'status',
+              status: 'completed',
+            },
+            session.projectDir
+          ).catch(() => {});
 
           // Call completion callback
           if (onComplete) {
@@ -245,11 +258,16 @@ export class AgentManager {
 
           // Remove from active agents to free up slot
           this.activeAgents.delete(threadId);
-          appendAgentStreamLog(session.taskId, threadId, {
-            type: 'status',
-            status: 'error',
-            error: session.error,
-          }).catch(() => {});
+          appendAgentStreamLog(
+            session.taskId,
+            threadId,
+            {
+              type: 'status',
+              status: 'error',
+              error: session.error,
+            },
+            session.projectDir
+          ).catch(() => {});
 
           // Call completion callback with error
           if (onComplete) {
@@ -269,11 +287,16 @@ export class AgentManager {
 
       // Remove from active agents to free up slot
       this.activeAgents.delete(threadId);
-      appendAgentStreamLog(session.taskId, threadId, {
-        type: 'status',
-        status: 'error',
-        error: session.error,
-      }).catch(() => {});
+      appendAgentStreamLog(
+        session.taskId,
+        threadId,
+        {
+          type: 'status',
+          status: 'error',
+          error: session.error,
+        },
+        session.projectDir
+      ).catch(() => {});
 
       // Call completion callback with error
       if (onComplete) {

@@ -7,8 +7,26 @@
  */
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CheckCircle, Play, Edit, Code, Eye, MessageSquare, Save, X, ArrowLeft, CornerUpLeft } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  CheckCircle,
+  Play,
+  Edit,
+  Code,
+  Eye,
+  MessageSquare,
+  Save,
+  X,
+  ArrowLeft,
+  CornerUpLeft,
+} from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -21,7 +39,13 @@ interface PlanReviewModalProps {
   taskTitle: string;
 }
 
-export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskTitle }: PlanReviewModalProps) {
+export function PlanReviewModal({
+  open,
+  onOpenChange,
+  taskId,
+  planContent,
+  taskTitle,
+}: PlanReviewModalProps) {
   const [isApproving, setIsApproving] = useState(false);
   const [showModifyMode, setShowModifyMode] = useState(false);
   const [modifyMethod, setModifyMethod] = useState<'inline' | 'feedback' | null>(null);
@@ -178,8 +202,7 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
           <DialogDescription>
             {showModifyMode
               ? 'Choose how you want to modify the plan'
-              : `Review the AI-generated plan for: ${taskTitle}`
-            }
+              : `Review the AI-generated plan for: ${taskTitle}`}
           </DialogDescription>
         </DialogHeader>
 
@@ -209,7 +232,8 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
                     Edit Plan Directly
                   </h3>
                   <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                    Manually edit the plan in markdown. Use the visual/raw toggle to switch between modes.
+                    Manually edit the plan in markdown. Use the visual/raw toggle to switch between
+                    modes.
                   </p>
                 </div>
               </div>
@@ -238,7 +262,8 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
                     Provide Feedback
                   </h3>
                   <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                    Describe what changes you want, and the AI will regenerate the plan based on your feedback.
+                    Describe what changes you want, and the AI will regenerate the plan based on
+                    your feedback.
                   </p>
                 </div>
               </div>
@@ -306,10 +331,11 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
                   border: '1px solid var(--color-border)',
                 }}
               >
-                <div className="prose prose-sm max-w-none" style={{ color: 'var(--color-text-primary)' }}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {editedPlan}
-                  </ReactMarkdown>
+                <div
+                  className="prose prose-sm max-w-none"
+                  style={{ color: 'var(--color-text-primary)' }}
+                >
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{editedPlan}</ReactMarkdown>
                 </div>
               </div>
             )}
@@ -335,108 +361,155 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
               }}
             />
             <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              The AI will regenerate the plan based on your feedback while keeping the original structure.
+              The AI will regenerate the plan based on your feedback while keeping the original
+              structure.
             </div>
           </div>
         )}
 
         {/* Plan Content - Scrollable (only when not in modify mode) */}
         {!showModifyMode && (
-        <div
-          className="flex-1 overflow-y-auto py-4 px-2"
-          style={{
-            background: 'var(--color-surface)',
-            borderRadius: '8px',
-            border: '1px solid var(--color-border)',
-          }}
-        >
           <div
-            className="prose prose-sm max-w-none"
+            className="flex-1 overflow-y-auto py-4 px-2"
             style={{
-              color: 'var(--color-text-primary)',
+              background: 'var(--color-surface)',
+              borderRadius: '8px',
+              border: '1px solid var(--color-border)',
             }}
           >
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                h1: ({ children }) => (
-                  <h1 style={{ color: 'var(--color-text-primary)', fontSize: '1.5rem', fontWeight: 'bold', marginTop: '1rem', marginBottom: '0.5rem' }}>
-                    {children}
-                  </h1>
-                ),
-                h2: ({ children }) => (
-                  <h2 style={{ color: 'var(--color-text-primary)', fontSize: '1.25rem', fontWeight: 'bold', marginTop: '1rem', marginBottom: '0.5rem' }}>
-                    {children}
-                  </h2>
-                ),
-                h3: ({ children }) => (
-                  <h3 style={{ color: 'var(--color-text-primary)', fontSize: '1.1rem', fontWeight: 'bold', marginTop: '0.75rem', marginBottom: '0.5rem' }}>
-                    {children}
-                  </h3>
-                ),
-                p: ({ children }) => (
-                  <p style={{ color: 'var(--color-text-secondary)', marginBottom: '0.75rem', lineHeight: '1.6' }}>
-                    {children}
-                  </p>
-                ),
-                ul: ({ children }) => (
-                  <ul style={{ color: 'var(--color-text-secondary)', marginLeft: '1.5rem', marginBottom: '0.75rem', listStyleType: 'disc' }}>
-                    {children}
-                  </ul>
-                ),
-                ol: ({ children }) => (
-                  <ol style={{ color: 'var(--color-text-secondary)', marginLeft: '1.5rem', marginBottom: '0.75rem', listStyleType: 'decimal' }}>
-                    {children}
-                  </ol>
-                ),
-                li: ({ children }) => (
-                  <li style={{ marginBottom: '0.25rem' }}>
-                    {children}
-                  </li>
-                ),
-                code: ({ children, className }) => {
-                  const isInline = !className;
-                  return isInline ? (
-                    <code style={{
-                      background: 'var(--color-background)',
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      fontSize: '0.9em',
-                      color: 'var(--color-info)',
-                    }}>
-                      {children}
-                    </code>
-                  ) : (
-                    <code style={{
-                      display: 'block',
-                      background: 'var(--color-background)',
-                      padding: '1rem',
-                      borderRadius: '6px',
-                      overflowX: 'auto',
-                      fontSize: '0.9em',
-                      color: 'var(--color-text-secondary)',
-                    }}>
-                      {children}
-                    </code>
-                  );
-                },
-                blockquote: ({ children }) => (
-                  <blockquote style={{
-                    borderLeft: '4px solid var(--color-info)',
-                    paddingLeft: '1rem',
-                    marginLeft: '0',
-                    fontStyle: 'italic',
-                    color: 'var(--color-text-muted)',
-                  }}>
-                    {children}
-                  </blockquote>
-                ),
+            <div
+              className="prose prose-sm max-w-none"
+              style={{
+                color: 'var(--color-text-primary)',
               }}
             >
-              {planContent}
-            </ReactMarkdown>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  h1: ({ children }) => (
+                    <h1
+                      style={{
+                        color: 'var(--color-text-primary)',
+                        fontSize: '1.5rem',
+                        fontWeight: 'bold',
+                        marginTop: '1rem',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      {children}
+                    </h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2
+                      style={{
+                        color: 'var(--color-text-primary)',
+                        fontSize: '1.25rem',
+                        fontWeight: 'bold',
+                        marginTop: '1rem',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3
+                      style={{
+                        color: 'var(--color-text-primary)',
+                        fontSize: '1.1rem',
+                        fontWeight: 'bold',
+                        marginTop: '0.75rem',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      {children}
+                    </h3>
+                  ),
+                  p: ({ children }) => (
+                    <p
+                      style={{
+                        color: 'var(--color-text-secondary)',
+                        marginBottom: '0.75rem',
+                        lineHeight: '1.6',
+                      }}
+                    >
+                      {children}
+                    </p>
+                  ),
+                  ul: ({ children }) => (
+                    <ul
+                      style={{
+                        color: 'var(--color-text-secondary)',
+                        marginLeft: '1.5rem',
+                        marginBottom: '0.75rem',
+                        listStyleType: 'disc',
+                      }}
+                    >
+                      {children}
+                    </ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol
+                      style={{
+                        color: 'var(--color-text-secondary)',
+                        marginLeft: '1.5rem',
+                        marginBottom: '0.75rem',
+                        listStyleType: 'decimal',
+                      }}
+                    >
+                      {children}
+                    </ol>
+                  ),
+                  li: ({ children }) => <li style={{ marginBottom: '0.25rem' }}>{children}</li>,
+                  code: ({ children, className }) => {
+                    const isInline = !className;
+                    return isInline ? (
+                      <code
+                        style={{
+                          background: 'var(--color-background)',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontSize: '0.9em',
+                          color: 'var(--color-info)',
+                        }}
+                      >
+                        {children}
+                      </code>
+                    ) : (
+                      <code
+                        style={{
+                          display: 'block',
+                          background: 'var(--color-background)',
+                          padding: '1rem',
+                          borderRadius: '6px',
+                          overflowX: 'auto',
+                          fontSize: '0.9em',
+                          color: 'var(--color-text-secondary)',
+                        }}
+                      >
+                        {children}
+                      </code>
+                    );
+                  },
+                  blockquote: ({ children }) => (
+                    <blockquote
+                      style={{
+                        borderLeft: '4px solid var(--color-info)',
+                        paddingLeft: '1rem',
+                        marginLeft: '0',
+                        fontStyle: 'italic',
+                        color: 'var(--color-text-muted)',
+                      }}
+                    >
+                      {children}
+                    </blockquote>
+                  ),
+                }}
+              >
+                {planContent}
+              </ReactMarkdown>
+            </div>
           </div>
-        </div>
         )}
 
         {/* Action Buttons */}
@@ -488,15 +561,21 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
                 disabled={isSaving || (modifyMethod === 'feedback' && !feedbackText.trim())}
                 className="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2"
                 style={{
-                  background: isSaving || (modifyMethod === 'feedback' && !feedbackText.trim())
-                    ? 'var(--color-surface)'
-                    : 'var(--color-info)',
-                  color: isSaving || (modifyMethod === 'feedback' && !feedbackText.trim())
-                    ? 'var(--color-text-muted)'
-                    : '#ffffff',
+                  background:
+                    isSaving || (modifyMethod === 'feedback' && !feedbackText.trim())
+                      ? 'var(--color-surface)'
+                      : 'var(--color-info)',
+                  color:
+                    isSaving || (modifyMethod === 'feedback' && !feedbackText.trim())
+                      ? 'var(--color-text-muted)'
+                      : '#ffffff',
                   border: `1px solid ${isSaving || (modifyMethod === 'feedback' && !feedbackText.trim()) ? 'var(--color-border)' : 'var(--color-info)'}`,
-                  cursor: isSaving || (modifyMethod === 'feedback' && !feedbackText.trim()) ? 'not-allowed' : 'pointer',
-                  opacity: isSaving || (modifyMethod === 'feedback' && !feedbackText.trim()) ? 0.6 : 1,
+                  cursor:
+                    isSaving || (modifyMethod === 'feedback' && !feedbackText.trim())
+                      ? 'not-allowed'
+                      : 'pointer',
+                  opacity:
+                    isSaving || (modifyMethod === 'feedback' && !feedbackText.trim()) ? 0.6 : 1,
                 }}
                 onMouseEnter={(e) => {
                   if (!isSaving && !(modifyMethod === 'feedback' && !feedbackText.trim())) {
@@ -513,8 +592,8 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
                 {isSaving
                   ? 'Saving...'
                   : modifyMethod === 'inline'
-                  ? 'Save Changes'
-                  : 'Submit Feedback'}
+                    ? 'Save Changes'
+                    : 'Submit Feedback'}
               </button>
             </>
           ) : showModifyMode && !modifyMethod ? (
@@ -539,77 +618,77 @@ export function PlanReviewModal({ open, onOpenChange, taskId, planContent, taskT
             </button>
           ) : (
             <>
-          <button
-            onClick={handleModifyPlan}
-            className="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2"
-            style={{
-              background: 'var(--color-secondary)',
-              color: 'var(--color-secondary-text)',
-              border: '1px solid var(--color-secondary)',
-              cursor: 'pointer',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--color-secondary-hover)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--color-secondary)';
-            }}
-          >
-            <Edit className="w-4 h-4" />
-            Modify Plan
-          </button>
+              <button
+                onClick={handleModifyPlan}
+                className="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2"
+                style={{
+                  background: 'var(--color-secondary)',
+                  color: 'var(--color-secondary-text)',
+                  border: '1px solid var(--color-secondary)',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--color-secondary-hover)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--color-secondary)';
+                }}
+              >
+                <Edit className="w-4 h-4" />
+                Modify Plan
+              </button>
 
-          <button
-            onClick={handleApproveOnly}
-            disabled={isApproving}
-            className="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2"
-            style={{
-              background: 'var(--color-success)',
-              color: '#ffffff',
-              border: '1px solid var(--color-success)',
-              cursor: isApproving ? 'not-allowed' : 'pointer',
-              opacity: isApproving ? 0.7 : 1,
-            }}
-            onMouseEnter={(e) => {
-              if (!isApproving) {
-                e.currentTarget.style.opacity = '0.9';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isApproving) {
-                e.currentTarget.style.opacity = '1';
-              }
-            }}
-          >
-            <CheckCircle className="w-4 h-4" />
-            {isApproving ? 'Approving...' : 'Only Approve'}
-          </button>
+              <button
+                onClick={handleApproveOnly}
+                disabled={isApproving}
+                className="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2"
+                style={{
+                  background: 'var(--color-success)',
+                  color: '#ffffff',
+                  border: '1px solid var(--color-success)',
+                  cursor: isApproving ? 'not-allowed' : 'pointer',
+                  opacity: isApproving ? 0.7 : 1,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isApproving) {
+                    e.currentTarget.style.opacity = '0.9';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isApproving) {
+                    e.currentTarget.style.opacity = '1';
+                  }
+                }}
+              >
+                <CheckCircle className="w-4 h-4" />
+                {isApproving ? 'Approving...' : 'Only Approve'}
+              </button>
 
-          <button
-            onClick={handleApproveAndStart}
-            disabled={isApproving}
-            className="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2"
-            style={{
-              background: 'var(--color-info)',
-              color: '#ffffff',
-              border: '1px solid var(--color-info)',
-              cursor: isApproving ? 'not-allowed' : 'pointer',
-              opacity: isApproving ? 0.7 : 1,
-            }}
-            onMouseEnter={(e) => {
-              if (!isApproving) {
-                e.currentTarget.style.opacity = '0.9';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isApproving) {
-                e.currentTarget.style.opacity = '1';
-              }
-            }}
-          >
-            <Play className="w-4 h-4" />
-            {isApproving ? 'Starting...' : 'Approve & Start'}
-          </button>
+              <button
+                onClick={handleApproveAndStart}
+                disabled={isApproving}
+                className="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2"
+                style={{
+                  background: 'var(--color-info)',
+                  color: '#ffffff',
+                  border: '1px solid var(--color-info)',
+                  cursor: isApproving ? 'not-allowed' : 'pointer',
+                  opacity: isApproving ? 0.7 : 1,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isApproving) {
+                    e.currentTarget.style.opacity = '0.9';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isApproving) {
+                    e.currentTarget.style.opacity = '1';
+                  }
+                }}
+              >
+                <Play className="w-4 h-4" />
+                {isApproving ? 'Starting...' : 'Approve & Start'}
+              </button>
             </>
           )}
         </DialogFooter>

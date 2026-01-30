@@ -5,10 +5,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { taskPersistence } from '@/lib/tasks/persistence';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
+import { getProjectDir } from '@/lib/project-dir';
 
 export async function POST(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
     const { taskId, subtaskIds } = await req.json();
 
     if (!taskId || !subtaskIds || !Array.isArray(subtaskIds)) {
@@ -21,27 +24,19 @@ export async function POST(req: NextRequest) {
     // Load task
     const task = await taskPersistence.loadTask(taskId);
     if (!task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
     // Validate that all subtaskIds exist in the task
-    const existingIds = new Set(task.subtasks.map(s => s.id));
-    const allIdsValid = subtaskIds.every(id => existingIds.has(id));
+    const existingIds = new Set(task.subtasks.map((s) => s.id));
+    const allIdsValid = subtaskIds.every((id) => existingIds.has(id));
 
     if (!allIdsValid || subtaskIds.length !== task.subtasks.length) {
-      return NextResponse.json(
-        { error: 'Invalid subtask IDs' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid subtask IDs' }, { status: 400 });
     }
 
     // Reorder subtasks based on the new order
-    const reorderedSubtasks = subtaskIds.map(id =>
-      task.subtasks.find(s => s.id === id)!
-    );
+    const reorderedSubtasks = subtaskIds.map((id) => task.subtasks.find((s) => s.id === id)!);
 
     // Update task with new subtask order
     task.subtasks = reorderedSubtasks;

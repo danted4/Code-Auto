@@ -14,7 +14,6 @@ import { AgentManager } from '@/lib/agents/manager';
 import { CLIFactory, CLIProvider } from '@/lib/cli/factory';
 import type { Task } from '@/lib/tasks/schema';
 import { ampPreflight } from '@/lib/amp/preflight';
-import { cursorPreflight } from '@/lib/cursor/preflight';
 
 type ManagerEntry = {
   taskId: string;
@@ -50,9 +49,7 @@ async function resolveApiKeyForProvider(provider: CLIProvider): Promise<string> 
   const preflight = await ampPreflight();
   if (!preflight.canRunAmp) {
     // Throw a clear error; API routes should surface this verbatim to the UI.
-    throw new Error(
-      `Amp not ready.\n\n${preflight.instructions.map((s) => `- ${s}`).join('\n')}`
-    );
+    throw new Error(`Amp not ready.\n\n${preflight.instructions.map((s) => `- ${s}`).join('\n')}`);
   }
 
   // Amp SDK typically reads AMP_API_KEY from env; if we hydrated it, it’ll be present now.
@@ -69,9 +66,9 @@ async function createAndInitializeManager(task: Task): Promise<ManagerEntry> {
   const initialized = (async () => {
     const apiKey = await resolveApiKeyForProvider(provider);
     // Pass through task cliConfig for provider-specific settings (e.g., Cursor model)
-    await manager.initialize({ 
-      apiKey, 
-      cwd, 
+    await manager.initialize({
+      apiKey,
+      cwd,
       mode,
       ...(task.cliConfig || {}),
     });
@@ -116,11 +113,17 @@ export async function startAgentForTask(args: {
   task: Task;
   prompt: string;
   workingDir: string;
-  onComplete?: (result: { success: boolean; output: string; error?: string }) => void | Promise<void>;
+  projectDir?: string;
+  onComplete?: (result: {
+    success: boolean;
+    output: string;
+    error?: string;
+  }) => void | Promise<void>;
 }): Promise<{ threadId: string }> {
   const mgr = await getAgentManagerForTask(args.task);
   const threadId = await mgr.startAgent(args.task.id, args.prompt, {
     workingDir: args.workingDir,
+    projectDir: args.projectDir,
     onComplete: args.onComplete,
   });
   threads.set(threadId, { taskId: args.task.id, manager: mgr });
@@ -139,4 +142,3 @@ export async function stopAgentByThreadId(threadId: string): Promise<{ taskId: s
   await entry.manager.stopAgent(threadId);
   return { taskId: entry.taskId };
 }
-

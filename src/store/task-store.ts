@@ -6,6 +6,7 @@
 
 import { create } from 'zustand';
 import { Task, WorkflowPhase } from '@/lib/tasks/schema';
+import { apiFetch } from '@/lib/api-client';
 
 interface TaskState {
   tasks: Task[];
@@ -20,32 +21,42 @@ interface TaskState {
   deleteTask: (taskId: string) => Promise<void>;
 }
 
-export const useTaskStore = create<TaskState>((set, get) => ({
+export const useTaskStore = create<TaskState>((set, _get) => ({
   tasks: [],
   isLoading: false,
   error: null,
 
   loadTasks: async () => {
     set({ isLoading: true, error: null });
-    try {
-      const response = await fetch('/api/tasks/list');
-      if (!response.ok) {
-        throw new Error('Failed to load tasks');
+    const doLoad = async (attempt = 0): Promise<void> => {
+      const maxRetries = 2; // 3 total attempts: 0, 1, 2
+      const retryDelays = [1000, 2500]; // Longer delays for Next.js API cold-start
+      try {
+        const response = await apiFetch('/api/tasks/list');
+        if (!response.ok) {
+          throw new Error('Failed to load tasks');
+        }
+        const tasks = await response.json();
+        set({ tasks, isLoading: false });
+      } catch (error) {
+        if (attempt < maxRetries) {
+          const delay = retryDelays[attempt] ?? 1500;
+          setTimeout(() => doLoad(attempt + 1), delay);
+        } else {
+          set({
+            error: error instanceof Error ? error.message : 'Unknown error',
+            isLoading: false,
+          });
+        }
       }
-      const tasks = await response.json();
-      set({ tasks, isLoading: false });
-    } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : 'Unknown error',
-        isLoading: false,
-      });
-    }
+    };
+    doLoad();
   },
 
   createTask: async (taskData) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch('/api/tasks/create', {
+      const response = await apiFetch('/api/tasks/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData),
@@ -74,7 +85,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   updateTask: async (taskId, updates) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch('/api/tasks/update', {
+      const response = await apiFetch('/api/tasks/update', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ taskId, ...updates }),
@@ -86,9 +97,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       set((state) => ({
         tasks: state.tasks.map((t) =>
-          t.id === taskId
-            ? { ...t, ...updates, updatedAt: Date.now() }
-            : t
+          t.id === taskId ? { ...t, ...updates, updatedAt: Date.now() } : t
         ),
         isLoading: false,
       }));
@@ -103,7 +112,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   updateTaskPhase: async (taskId, phase) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch('/api/tasks/update', {
+      const response = await apiFetch('/api/tasks/update', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ taskId, phase }),
@@ -115,9 +124,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       set((state) => ({
         tasks: state.tasks.map((t) =>
-          t.id === taskId
-            ? { ...t, phase, updatedAt: Date.now() }
-            : t
+          t.id === taskId ? { ...t, phase, updatedAt: Date.now() } : t
         ),
         isLoading: false,
       }));
@@ -132,7 +139,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   deleteTask: async (taskId) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch(`/api/tasks/delete?taskId=${taskId}`, {
+      const response = await apiFetch(`/api/tasks/delete?taskId=${taskId}`, {
         method: 'DELETE',
       });
 

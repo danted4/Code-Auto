@@ -90,11 +90,13 @@ The main navigation sidebar that provides:
 - **New Task Button**: Opens the NewTaskModal
 
 **Key Features:**
+
 - Uses `usePathname()` for active route highlighting
 - Manages `NewTaskModal` open/close state
 - Fixed 64-unit width (`w-64`)
 
 **Dependencies:**
+
 - `NewTaskModal` from tasks
 - `ThemeSwitcher` from theme
 - UI primitives: `Button`
@@ -112,6 +114,7 @@ The main navigation sidebar that provides:
 The main kanban board container with drag-and-drop support.
 
 **Key Features:**
+
 - Uses `@dnd-kit/core` for drag-and-drop
 - Renders 5 workflow phase columns: `planning`, `in_progress`, `ai_review`, `human_review`, `done`
 - Auto-refreshes tasks every 3 seconds
@@ -139,6 +142,7 @@ A single workflow phase column that accepts dropped tasks.
 | `tasks` | `Task[]` | Tasks to display in this column |
 
 **Key Features:**
+
 - Uses `useDroppable` from `@dnd-kit/core`
 - Phase-specific top border colors
 - Shows task count
@@ -158,6 +162,7 @@ Draggable task card displayed within columns.
 | `task` | `Task` | The task data to display |
 
 **Key Features:**
+
 - Uses `useDraggable` from `@dnd-kit/core`
 - Phase-specific action buttons:
   - **Planning Phase**: Answer Questions, Review Plan, Start Development
@@ -169,6 +174,7 @@ Draggable task card displayed within columns.
 - Branch name display with git icon
 
 **Dependencies:**
+
 - UI primitives: `Card`, `Badge`, `Button`
 - Task modals: `QAStepperModal`, `PlanReviewModal`, `TaskDetailModal`, `HumanReviewModal`
 
@@ -191,6 +197,7 @@ Modal for creating new tasks.
 | `onOpenChange` | `(open: boolean) => void` | Callback when visibility changes |
 
 **Key Features:**
+
 - Task title and description inputs
 - Dynamic CLI tool selection (fetched from `/api/cli/adapters`)
 - Dynamic CLI configuration fields based on selected adapter
@@ -213,6 +220,7 @@ Modal showing task subtasks with drag-and-drop reordering.
 | `task` | `Task` | The task to display details for |
 
 **Key Features:**
+
 - Tabbed interface: Subtasks and Logs
 - Sortable subtask list using `@dnd-kit/sortable`
 - Skip and delete subtask actions
@@ -236,6 +244,7 @@ Multi-step wizard for answering planning questions.
 | `questions` | `PlanningQuestion[]` | Questions to answer |
 
 **Key Features:**
+
 - Numbered question navigation with visual progress
 - Radio button options for each question
 - Optional additional text input
@@ -260,6 +269,7 @@ Modal for reviewing AI-generated implementation plans.
 | `taskTitle` | `string` | Task title for display |
 
 **Key Features:**
+
 - Rendered markdown view with `react-markdown` and `remark-gfm`
 - Two modification methods:
   - **Inline Edit**: Direct markdown editing with raw/preview toggle
@@ -282,6 +292,7 @@ Modal for final human review before merge.
 | `task` | `Task` | The task to review |
 
 **Key Features:**
+
 - Summary of completed dev and QA subtasks
 - Git integration status display
 - Actions:
@@ -309,6 +320,7 @@ Real-time agent log viewer.
 | `threadId` | `string` | The agent thread ID to stream logs from |
 
 **Key Features:**
+
 - Server-Sent Events (SSE) streaming via `/api/agents/stream`
 - Auto-scroll to latest logs
 - Status indicator: connecting, running, completed, error, stopped
@@ -327,6 +339,7 @@ Real-time agent log viewer.
 Context provider that applies theme CSS variables to the document.
 
 **Key Features:**
+
 - Reads theme from `useThemeStore`
 - Applies 30+ CSS custom properties to `:root`
 - Categories: colors, surfaces, text, status, phases, terminal
@@ -353,6 +366,7 @@ Context provider that applies theme CSS variables to the document.
 Dropdown for selecting themes.
 
 **Key Features:**
+
 - Uses `useThemeStore` for current theme
 - Fetches available themes from `getAllThemes()`
 - Shows theme display name and description
@@ -365,19 +379,19 @@ Dropdown for selecting themes.
 
 These components are based on [shadcn/ui](https://ui.shadcn.com/) and Radix UI primitives.
 
-| Component | File | Based On | Description |
-|-----------|------|----------|-------------|
-| **Badge** | [`badge.tsx`](../src/components/ui/badge.tsx) | Custom | Status/label indicators |
-| **Button** | [`button.tsx`](../src/components/ui/button.tsx) | Custom | Buttons with variants: default, destructive, outline, secondary, ghost, link |
-| **Card** | [`card.tsx`](../src/components/ui/card.tsx) | Custom | Container cards with header, title, description, content, footer |
-| **Checkbox** | [`checkbox.tsx`](../src/components/ui/checkbox.tsx) | Radix | Checkboxes |
-| **Dialog** | [`dialog.tsx`](../src/components/ui/dialog.tsx) | Radix | Modal dialogs with overlay, header, footer |
-| **Input** | [`input.tsx`](../src/components/ui/input.tsx) | Custom | Text input fields |
-| **Label** | [`label.tsx`](../src/components/ui/label.tsx) | Radix | Form labels |
-| **RadioGroup** | [`radio-group.tsx`](../src/components/ui/radio-group.tsx) | Radix | Radio button groups |
-| **Select** | [`select.tsx`](../src/components/ui/select.tsx) | Radix | Dropdown selects |
-| **Sonner** | [`sonner.tsx`](../src/components/ui/sonner.tsx) | Sonner | Toast notifications |
-| **Textarea** | [`textarea.tsx`](../src/components/ui/textarea.tsx) | Custom | Multi-line text input |
+| Component      | File                                                      | Based On | Description                                                                  |
+| -------------- | --------------------------------------------------------- | -------- | ---------------------------------------------------------------------------- |
+| **Badge**      | [`badge.tsx`](../src/components/ui/badge.tsx)             | Custom   | Status/label indicators                                                      |
+| **Button**     | [`button.tsx`](../src/components/ui/button.tsx)           | Custom   | Buttons with variants: default, destructive, outline, secondary, ghost, link |
+| **Card**       | [`card.tsx`](../src/components/ui/card.tsx)               | Custom   | Container cards with header, title, description, content, footer             |
+| **Checkbox**   | [`checkbox.tsx`](../src/components/ui/checkbox.tsx)       | Radix    | Checkboxes                                                                   |
+| **Dialog**     | [`dialog.tsx`](../src/components/ui/dialog.tsx)           | Radix    | Modal dialogs with overlay, header, footer                                   |
+| **Input**      | [`input.tsx`](../src/components/ui/input.tsx)             | Custom   | Text input fields                                                            |
+| **Label**      | [`label.tsx`](../src/components/ui/label.tsx)             | Radix    | Form labels                                                                  |
+| **RadioGroup** | [`radio-group.tsx`](../src/components/ui/radio-group.tsx) | Radix    | Radio button groups                                                          |
+| **Select**     | [`select.tsx`](../src/components/ui/select.tsx)           | Radix    | Dropdown selects                                                             |
+| **Sonner**     | [`sonner.tsx`](../src/components/ui/sonner.tsx)           | Sonner   | Toast notifications                                                          |
+| **Textarea**   | [`textarea.tsx`](../src/components/ui/textarea.tsx)       | Custom   | Multi-line text input                                                        |
 
 ### Button Variants
 
@@ -429,13 +443,13 @@ graph LR
     LBL[Label] --> RAD
     PRM[PlanReviewModal] --> RM
     BTN[Button] --> CVA
-    
+
     KB --> TS
     SB[Sidebar] --> TS
     TC[TaskCard] --> TS
     TPR[ThemeProvider] --> THS
     TSW[ThemeSwitcher] --> THS
-    
+
     TC --> LU
     SB --> LU
     TDM --> LU
@@ -489,14 +503,9 @@ import { useDraggable } from '@dnd-kit/core';
 
 function DraggableItem({ id }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
-  
+
   return (
-    <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      style={{ opacity: isDragging ? 0.5 : 1 }}
-    >
+    <div ref={setNodeRef} {...listeners} {...attributes} style={{ opacity: isDragging ? 0.5 : 1 }}>
       Drag me
     </div>
   );

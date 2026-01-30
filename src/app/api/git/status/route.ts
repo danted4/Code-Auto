@@ -6,29 +6,26 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getWorktreeManager } from '@/lib/git/worktree';
-import { taskPersistence } from '@/lib/tasks/persistence';
-
-const worktreeManager = getWorktreeManager();
+import { getTaskPersistence } from '@/lib/tasks/persistence';
+import { getProjectDir } from '@/lib/project-dir';
 
 export async function GET(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
+    const worktreeManager = getWorktreeManager(projectDir);
+
     const { searchParams } = new URL(req.url);
     const taskId = searchParams.get('taskId');
 
     if (!taskId) {
-      return NextResponse.json(
-        { error: 'taskId is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'taskId is required' }, { status: 400 });
     }
 
     // Load task to get worktree path
     const task = await taskPersistence.loadTask(taskId);
     if (!task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
     if (!task.worktreePath) {

@@ -52,6 +52,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.style.setProperty('--color-agent-active', colors.agentActive);
     root.style.setProperty('--color-terminal-background', colors.terminalBackground);
     root.style.setProperty('--color-terminal-text', colors.terminalText);
+    root.style.setProperty('--color-sidebar-shadow', colors.sidebarShadow);
   }, [theme]);
 
   return <>{children}</>;

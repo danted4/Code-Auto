@@ -5,33 +5,32 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { taskPersistence } from '@/lib/tasks/persistence';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
 import { startAgentForTask } from '@/lib/agents/registry';
+import { getProjectDir } from '@/lib/project-dir';
 import fs from 'fs/promises';
+import path from 'path';
 
 export async function POST(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
+
     const { taskId, answers } = await req.json();
 
     if (!taskId || !answers) {
-      return NextResponse.json(
-        { error: 'taskId and answers required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'taskId and answers required' }, { status: 400 });
     }
 
     // Load task
     const task = await taskPersistence.loadTask(taskId);
     if (!task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
     // Update task with answers
     if (task.planningData) {
-      task.planningData.questions = task.planningData.questions.map(q => ({
+      task.planningData.questions = task.planningData.questions.map((q) => ({
         ...q,
         answer: answers[q.id] || { selectedOption: '', additionalText: '' },
       }));
@@ -43,18 +42,27 @@ export async function POST(req: NextRequest) {
     await taskPersistence.saveTask(task);
 
     // Log to planning logs
-    const logsPath = task.planningLogsPath || `.code-auto/tasks/${taskId}/planning-logs.txt`;
+    const logsPath = task.planningLogsPath
+      ? path.isAbsolute(task.planningLogsPath)
+        ? task.planningLogsPath
+        : path.join(projectDir, task.planningLogsPath)
+      : path.join(projectDir, '.code-auto', 'tasks', taskId, 'planning-logs.txt');
     await fs.appendFile(
       logsPath,
       `\n${'='.repeat(80)}\n` +
-      `[Answers Submitted] ${new Date().toISOString()}\n` +
-      `${Object.entries(answers).map(([qId, answer]: [string, any]) => {
-        const question = task.planningData?.questions.find(q => q.id === qId);
-        return `\nQ${question?.order || '?'}: ${question?.question || qId}\n` +
-               `A: ${answer.selectedOption}\n` +
-               (answer.additionalText ? `Additional: ${answer.additionalText}\n` : '');
-      }).join('')}\n` +
-      `${'='.repeat(80)}\n\n`,
+        `[Answers Submitted] ${new Date().toISOString()}\n` +
+        `${Object.entries(answers)
+          .map(([qId, answer]) => {
+            const a = answer as { selectedOption?: string; additionalText?: string };
+            const question = task.planningData?.questions.find((q) => q.id === qId);
+            return (
+              `\nQ${question?.order || '?'}: ${question?.question || qId}\n` +
+              `A: ${a.selectedOption}\n` +
+              (a.additionalText ? `Additional: ${a.additionalText}\n` : '')
+            );
+          })
+          .join('')}\n` +
+        `${'='.repeat(80)}\n\n`,
       'utf-8'
     );
 
@@ -63,7 +71,11 @@ export async function POST(req: NextRequest) {
 
     // Create completion handler
     const onComplete = async (result: { success: boolean; output: string; error?: string }) => {
-      await fs.appendFile(logsPath, `\n[Plan Generation Completed] Success: ${result.success}\n`, 'utf-8');
+      await fs.appendFile(
+        logsPath,
+        `\n[Plan Generation Completed] Success: ${result.success}\n`,
+        'utf-8'
+      );
 
       if (!result.success) {
         await fs.appendFile(logsPath, `[Error] ${result.error}\n`, 'utf-8');
@@ -129,7 +141,8 @@ export async function POST(req: NextRequest) {
     const { threadId } = await startAgentForTask({
       task,
       prompt,
-      workingDir: task.worktreePath || process.cwd(),
+      workingDir: task.worktreePath || projectDir,
+      projectDir,
       onComplete,
     });
 
@@ -158,6 +171,7 @@ export async function POST(req: NextRequest) {
 /**
  * Build plan generation prompt with user answers
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildPlanGenerationPrompt(task: any, answers: Record<string, any>): string {
   const basePrompt = `You are an AI planning assistant. Your task is to create a detailed implementation plan based on the task requirements and the user's answers to your questions.
 
@@ -169,10 +183,13 @@ ${task.cliConfig ? `CLI Config: ${JSON.stringify(task.cliConfig, null, 2)}` : ''
 
 # User Answers to Planning Questions
 
-${task.planningData?.questions.map((q: any) => {
-  const answer = answers[q.id];
-  return `Q${q.order}: ${q.question}\nA: ${answer?.selectedOption || 'Not answered'}${answer?.additionalText ? `\nAdditional notes: ${answer.additionalText}` : ''}`;
-}).join('\n\n')}
+${task.planningData?.questions
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  .map((q: any) => {
+    const answer = answers[q.id];
+    return `Q${q.order ?? '?'}: ${q.question}\nA: ${answer?.selectedOption || 'Not answered'}${answer?.additionalText ? `\nAdditional notes: ${answer.additionalText}` : ''}`;
+  })
+  .join('\n\n')}
 
 # PLANNING PHASE: Generate Implementation Plan
 

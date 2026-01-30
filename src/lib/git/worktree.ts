@@ -33,8 +33,13 @@ export interface WorktreeStatus {
 }
 
 export class WorktreeManager {
+  private readonly projectDir: string;
   private mainRepoPath: string | null = null;
   private mainBranch: string | null = null;
+
+  constructor(projectDir: string = process.cwd()) {
+    this.projectDir = projectDir;
+  }
 
   /**
    * Get the root directory of the main git repository
@@ -47,14 +52,13 @@ export class WorktreeManager {
       const result = execSync('git rev-parse --show-toplevel', {
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
+        cwd: this.projectDir,
       }).trim();
 
       this.mainRepoPath = result;
       return result;
-    } catch (error) {
-      throw new Error(
-        'Failed to detect git repository root. Ensure you are in a git repository.'
-      );
+    } catch (_error) {
+      throw new Error('Failed to detect git repository root. Ensure you are in a git repository.');
     }
   }
 
@@ -65,10 +69,13 @@ export class WorktreeManager {
     if (this.mainBranch) return this.mainBranch;
 
     try {
+      const mainRepo = await this.getMainRepoPath();
+
       // Try to get the default branch
       const result = execSync('git symbolic-ref refs/remotes/origin/HEAD', {
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
+        cwd: mainRepo,
       })
         .trim()
         .split('/')
@@ -82,6 +89,7 @@ export class WorktreeManager {
       // Fallback: Check for main or master locally
       const localBranches = execSync('git branch -l', {
         encoding: 'utf-8',
+        cwd: mainRepo,
       });
 
       if (localBranches.includes('* main') || localBranches.includes('main')) {
@@ -97,7 +105,7 @@ export class WorktreeManager {
       // Ultimate fallback
       this.mainBranch = 'main';
       return 'main';
-    } catch (error) {
+    } catch (_error) {
       // Fallback to 'main' if detection fails
       this.mainBranch = 'main';
       return 'main';
@@ -349,14 +357,18 @@ export class WorktreeManager {
   }
 }
 
-/**
- * Singleton instance for application-wide use
- */
-let instance: WorktreeManager | null = null;
+const worktreeCache = new Map<string, WorktreeManager>();
 
-export function getWorktreeManager(): WorktreeManager {
+/**
+ * Get WorktreeManager instance for the given project directory.
+ * Caches instances by projectDir for efficiency.
+ * Falls back to process.cwd() when projectDir is not provided.
+ */
+export function getWorktreeManager(projectDir: string = process.cwd()): WorktreeManager {
+  let instance = worktreeCache.get(projectDir);
   if (!instance) {
-    instance = new WorktreeManager();
+    instance = new WorktreeManager(projectDir);
+    worktreeCache.set(projectDir, instance);
   }
   return instance;
 }

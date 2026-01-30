@@ -7,10 +7,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { taskPersistence } from '@/lib/tasks/persistence';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
 import { getAgentManagerForTask, startAgentForTask } from '@/lib/agents/registry';
+import { getProjectDir } from '@/lib/project-dir';
 import { extractAndValidateJSON } from '@/lib/validation/subtask-validator';
-import { generatePlanValidationFeedback, validatePlanMarkdown } from '@/lib/validation/plan-validator';
+import {
+  generatePlanValidationFeedback,
+  validatePlanMarkdown,
+} from '@/lib/validation/plan-validator';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -19,22 +23,19 @@ const MAX_PLAN_FORMAT_ATTEMPTS = 3;
 
 export async function POST(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
+
     const { taskId } = await req.json();
 
     if (!taskId) {
-      return NextResponse.json(
-        { error: 'taskId required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'taskId required' }, { status: 400 });
     }
 
     // Load task
     const task = await taskPersistence.loadTask(taskId);
     if (!task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
     // Check if task already has an agent assigned
@@ -42,15 +43,16 @@ export async function POST(req: NextRequest) {
       const mgr = await getAgentManagerForTask(task);
       const existingSession = mgr.getAgentStatus(task.assignedAgent);
       if (existingSession && existingSession.status === 'running') {
-        return NextResponse.json(
-          { error: 'Task already has an agent running' },
-          { status: 409 }
-        );
+        return NextResponse.json({ error: 'Task already has an agent running' }, { status: 409 });
       }
     }
 
     // Ensure planning logs directory exists
-    const logsPath = task.planningLogsPath || `.code-auto/tasks/${taskId}/planning-logs.txt`;
+    const logsPath = task.planningLogsPath
+      ? path.isAbsolute(task.planningLogsPath)
+        ? task.planningLogsPath
+        : path.join(projectDir, task.planningLogsPath)
+      : path.join(projectDir, '.code-auto', 'tasks', taskId, 'planning-logs.txt');
     const logsDir = path.dirname(logsPath);
     await fs.mkdir(logsDir, { recursive: true });
 
@@ -58,10 +60,10 @@ export async function POST(req: NextRequest) {
     await fs.writeFile(
       logsPath,
       `Planning started for task: ${task.title}\n` +
-      `Task ID: ${taskId}\n` +
-      `Requires Human Review: ${task.requiresHumanReview}\n` +
-      `Started at: ${new Date().toISOString()}\n` +
-      `${'='.repeat(80)}\n\n`,
+        `Task ID: ${taskId}\n` +
+        `Requires Human Review: ${task.requiresHumanReview}\n` +
+        `Started at: ${new Date().toISOString()}\n` +
+        `${'='.repeat(80)}\n\n`,
       'utf-8'
     );
 
@@ -99,12 +101,17 @@ export async function POST(req: NextRequest) {
         if (!currentTask) return;
 
         // Update task based on output type
-        if (parsedOutput.questions) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const output = parsedOutput as any;
+        if (output?.questions) {
           // Questions generated
-          await appendToLog(logsPath, `[Questions Generated] ${parsedOutput.questions.length} questions\n`);
+          await appendToLog(
+            logsPath,
+            `[Questions Generated] ${output.questions.length} questions\n`
+          );
 
           currentTask.planningData = {
-            questions: parsedOutput.questions,
+            questions: output.questions,
             generatedAt: Date.now(),
             status: 'pending',
           };
@@ -114,11 +121,11 @@ export async function POST(req: NextRequest) {
 
           await taskPersistence.saveTask(currentTask);
           await appendToLog(logsPath, `[Task Updated Successfully]\n`);
-        } else if (parsedOutput.plan) {
+        } else if (output?.plan) {
           // Plan generated directly
           await appendToLog(logsPath, `[Plan Generated]\n`);
 
-          const planText = parsedOutput.plan;
+          const planText = output.plan;
           const validation = validatePlanMarkdown(planText);
 
           await appendToLog(
@@ -157,7 +164,8 @@ export async function POST(req: NextRequest) {
               const { threadId: retryThreadId } = await startAgentForTask({
                 task: currentTask,
                 prompt: correctionPrompt,
-                workingDir: currentTask.worktreePath || process.cwd(),
+                workingDir: currentTask.worktreePath || projectDir,
+                projectDir,
                 onComplete,
               });
 
@@ -200,14 +208,23 @@ export async function POST(req: NextRequest) {
             await appendToLog(logsPath, `[Task saved with planApproved = true]\n`);
 
             // Start development immediately (generate subtasks and execute)
-            await appendToLog(logsPath, `[Starting Development Automatically - Generating Subtasks]\n`);
+            await appendToLog(
+              logsPath,
+              `[Starting Development Automatically - Generating Subtasks]\n`
+            );
 
             try {
-              const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/agents/start-development`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ taskId }),
-              });
+              const projectPath = req.headers.get('X-Project-Path');
+              const fetchHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+              if (projectPath) fetchHeaders['X-Project-Path'] = projectPath;
+              const response = await fetch(
+                `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/agents/start-development`,
+                {
+                  method: 'POST',
+                  headers: fetchHeaders,
+                  body: JSON.stringify({ taskId }),
+                }
+              );
 
               if (!response.ok) {
                 const error = await response.json();
@@ -271,7 +288,8 @@ Markdown must include required headings:
             const { threadId: retryThreadId } = await startAgentForTask({
               task: currentTask,
               prompt: correctionPrompt,
-              workingDir: currentTask.worktreePath || process.cwd(),
+              workingDir: currentTask.worktreePath || projectDir,
+              projectDir,
               onComplete,
             });
 
@@ -297,12 +315,16 @@ Markdown must include required headings:
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
-        await appendToLog(logsPath, `\n[Attempt ${attempt}/${MAX_RETRIES}] Starting planning agent...\n`);
+        await appendToLog(
+          logsPath,
+          `\n[Attempt ${attempt}/${MAX_RETRIES}] Starting planning agent...\n`
+        );
 
         const res = await startAgentForTask({
           task,
           prompt,
-          workingDir: task.worktreePath || process.cwd(),
+          workingDir: task.worktreePath || projectDir,
+          projectDir,
           onComplete,
         });
         threadId = res.threadId;
@@ -318,7 +340,7 @@ Markdown must include required headings:
 
         if (attempt < MAX_RETRIES) {
           await appendToLog(logsPath, `[Retry] Waiting 2 seconds before retry...\n`);
-          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+          await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
         }
       }
     }
@@ -344,9 +366,7 @@ Markdown must include required headings:
     // Update task with assigned agent and planning status
     task.assignedAgent = threadId;
     task.status = 'planning';
-    task.planningStatus = task.requiresHumanReview
-      ? 'generating_questions'
-      : 'generating_plan';
+    task.planningStatus = task.requiresHumanReview ? 'generating_questions' : 'generating_plan';
     task.planningLogsPath = logsPath;
     await taskPersistence.saveTask(task);
 
@@ -369,6 +389,7 @@ Markdown must include required headings:
 /**
  * Build the planning prompt based on task requirements
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildPlanningPrompt(task: any): string {
   const basePrompt = `You are an AI planning assistant. Your task is to help plan the implementation of the following task:
 
@@ -382,7 +403,9 @@ ${task.cliConfig ? `CLI Config: ${JSON.stringify(task.cliConfig, null, 2)}` : ''
 
   if (task.requiresHumanReview) {
     // Generate questions for human to answer
-    return basePrompt + `# PLANNING PHASE 1: Question Generation
+    return (
+      basePrompt +
+      `# PLANNING PHASE 1: Question Generation
 
 Your goal is to generate clarifying questions to better understand the requirements before creating a plan.
 
@@ -432,10 +455,13 @@ Just the pure JSON object starting with { and ending with }.
 
 Example of what your final output should look like:
 {"questions":[{"id":"q1","question":"...","options":[...],"required":true,"order":1}]}
-====================`;
+====================`
+    );
   } else {
     // Generate plan directly
-    return basePrompt + `# PLANNING PHASE: Direct Plan Generation
+    return (
+      basePrompt +
+      `# PLANNING PHASE: Direct Plan Generation
 
 Your goal is to create a comprehensive implementation plan for this task.
 
@@ -474,11 +500,16 @@ Example of what your FINAL OUTPUT should look like:
 {"plan":"# Implementation Plan\\n\\n## Overview\\nThis task requires adding a delete icon...\\n\\n## Technical Approach\\n..."}
 
 IMPORTANT: After your analysis, RESPOND with the JSON. Do not just stop thinking.
-====================`;
+====================`
+    );
   }
 }
 
-function buildPlanCorrectionPrompt(task: any, previousPlan: string, feedback: string): string {
+function buildPlanCorrectionPrompt(
+  task: { title: string; description: string },
+  previousPlan: string,
+  feedback: string
+): string {
   return `You previously generated an implementation plan, but it failed validation against the required format.
 
 Task: ${task.title}

@@ -7,12 +7,25 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useTaskStore } from '@/store/task-store';
 
@@ -39,7 +52,7 @@ interface ConfigField {
   label: string;
   type: 'select' | 'number' | 'boolean' | 'text';
   options?: { value: string; label: string }[];
-  default?: any;
+  default?: unknown;
   description?: string;
 }
 
@@ -60,7 +73,7 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [cliTool, setCliTool] = useState<string>('mock');
-  const [cliConfig, setCliConfig] = useState<Record<string, any>>({});
+  const [cliConfig, setCliConfig] = useState<Record<string, unknown>>({});
   const [requiresHumanReview, setRequiresHumanReview] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [availableAdapters, setAvailableAdapters] = useState<CLIAdapter[]>([]);
@@ -84,6 +97,7 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
           setCliTool(defaultAdapter.name);
 
           // Set default config values
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- CLI config values vary by adapter
           const defaults: Record<string, any> = {};
           defaultAdapter.configSchema.fields.forEach((field: ConfigField) => {
             if (field.default !== undefined) {
@@ -177,7 +191,7 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
   }, [open, cliTool]);
 
   // Get config schema for selected CLI
-  const currentAdapter = availableAdapters.find(a => a.name === cliTool);
+  const currentAdapter = availableAdapters.find((a) => a.name === cliTool);
   const configSchema = currentAdapter?.configSchema || null;
 
   // Initialize config with defaults when CLI changes
@@ -185,8 +199,9 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
     setCliTool(newCli);
 
     // Set default values from schema
-    const adapter = availableAdapters.find(a => a.name === newCli);
+    const adapter = availableAdapters.find((a) => a.name === newCli);
     if (adapter) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- CLI config values vary by adapter
       const defaults: Record<string, any> = {};
       adapter.configSchema.fields.forEach((field: ConfigField) => {
         if (field.default !== undefined) {
@@ -199,8 +214,8 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
     }
   };
 
-  const handleConfigChange = (fieldName: string, value: any) => {
-    setCliConfig(prev => ({
+  const handleConfigChange = (fieldName: string, value: unknown) => {
+    setCliConfig((prev) => ({
       ...prev,
       [fieldName]: value,
     }));
@@ -269,7 +284,7 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
     return 'Start Task';
   };
 
-  const renderConfigField = (field: any) => {
+  const renderConfigField = (field: ConfigField) => {
     const value = cliConfig[field.name] ?? field.default;
 
     switch (field.type) {
@@ -278,14 +293,19 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
           <div key={field.name} className="space-y-2">
             <Label htmlFor={field.name}>{field.label}</Label>
             {field.description && (
-              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{field.description}</p>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                {field.description}
+              </p>
             )}
-            <Select value={value} onValueChange={(v) => handleConfigChange(field.name, v)}>
+            <Select
+              value={value as string | undefined}
+              onValueChange={(v) => handleConfigChange(field.name, v)}
+            >
               <SelectTrigger id={field.name}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {field.options?.map((opt: any) => (
+                {field.options?.map((opt: { value: string; label: string }) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>
@@ -300,7 +320,7 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
           <div key={field.name} className="flex items-center space-x-2">
             <Checkbox
               id={field.name}
-              checked={value}
+              checked={value as boolean | 'indeterminate' | undefined}
               onCheckedChange={(checked) => handleConfigChange(field.name, checked)}
             />
             <Label htmlFor={field.name} className="cursor-pointer">
@@ -314,12 +334,14 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
           <div key={field.name} className="space-y-2">
             <Label htmlFor={field.name}>{field.label}</Label>
             {field.description && (
-              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{field.description}</p>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                {field.description}
+              </p>
             )}
             <Input
               id={field.name}
               type="number"
-              value={value}
+              value={value as string | number | undefined}
               onChange={(e) => handleConfigChange(field.name, parseInt(e.target.value))}
             />
           </div>
@@ -331,11 +353,13 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
           <div key={field.name} className="space-y-2">
             <Label htmlFor={field.name}>{field.label}</Label>
             {field.description && (
-              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{field.description}</p>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                {field.description}
+              </p>
             )}
             <Input
               id={field.name}
-              value={value}
+              value={value as string | undefined}
               onChange={(e) => handleConfigChange(field.name, e.target.value)}
             />
           </div>
@@ -381,7 +405,9 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
           <div className="space-y-2">
             <Label htmlFor="cli-tool">CLI Tool</Label>
             {isLoadingAdapters ? (
-              <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Loading CLI tools...</div>
+              <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                Loading CLI tools...
+              </div>
             ) : (
               <Select value={cliTool} onValueChange={handleCliChange}>
                 <SelectTrigger id="cli-tool">
@@ -400,7 +426,10 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
 
           {/* Amp readiness panel */}
           {cliTool === 'amp' && (
-            <div className="space-y-2 rounded-md border p-3 text-sm" style={{ borderColor: 'var(--color-border)' }}>
+            <div
+              className="space-y-2 rounded-md border p-3 text-sm"
+              style={{ borderColor: 'var(--color-border)' }}
+            >
               <div className="flex items-center justify-between">
                 <div className="font-medium">Amp readiness</div>
                 <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
@@ -430,31 +459,42 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
 
           {/* Cursor readiness panel */}
           {cliTool === 'cursor' && (
-            <div className="space-y-2 rounded-md border p-3 text-sm" style={{ borderColor: 'var(--color-border)' }}>
+            <div
+              className="space-y-2 rounded-md border p-3 text-sm"
+              style={{ borderColor: 'var(--color-border)' }}
+            >
               <div className="flex items-center justify-between">
                 <div className="font-medium">Cursor readiness</div>
                 <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  {isCheckingCursor ? 'Checking…' : cursorPreflight?.canRunCursor ? 'Ready' : 'Not ready'}
+                  {isCheckingCursor
+                    ? 'Checking…'
+                    : cursorPreflight?.canRunCursor
+                      ? 'Ready'
+                      : 'Not ready'}
                 </div>
               </div>
 
               {cursorPreflight && (
                 <div className="space-y-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  <div>CLI: {cursorPreflight.agentCliPath ? cursorPreflight.agentCliPath : 'not found'}</div>
+                  <div>
+                    CLI: {cursorPreflight.agentCliPath ? cursorPreflight.agentCliPath : 'not found'}
+                  </div>
                   <div>Auth: {cursorPreflight.authSource}</div>
                 </div>
               )}
 
-              {cursorPreflight && !cursorPreflight.canRunCursor && cursorPreflight.instructions.length > 0 && (
-                <div className="space-y-1 text-xs">
-                  <div className="font-medium">Fix steps</div>
-                  <ul className="list-disc pl-5" style={{ color: 'var(--color-text-muted)' }}>
-                    {cursorPreflight.instructions.map((s, i) => (
-                      <li key={i}>{s}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              {cursorPreflight &&
+                !cursorPreflight.canRunCursor &&
+                cursorPreflight.instructions.length > 0 && (
+                  <div className="space-y-1 text-xs">
+                    <div className="font-medium">Fix steps</div>
+                    <ul className="list-disc pl-5" style={{ color: 'var(--color-text-muted)' }}>
+                      {cursorPreflight.instructions.map((s, i) => (
+                        <li key={i}>{s}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
             </div>
           )}
 
@@ -467,7 +507,10 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
           )}
 
           {/* Human Review Checkbox */}
-          <div className="flex items-start gap-3 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+          <div
+            className="flex items-start gap-3 pt-4 border-t"
+            style={{ borderColor: 'var(--color-border)' }}
+          >
             <Checkbox
               id="human-review"
               checked={requiresHumanReview}
@@ -497,7 +540,8 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
               isCreating ||
               !description.trim() ||
               (cliTool === 'amp' && (isCheckingAmp || !ampPreflight || !ampPreflight.canRunAmp)) ||
-              (cliTool === 'cursor' && (isCheckingCursor || !cursorPreflight || !cursorPreflight.canRunCursor))
+              (cliTool === 'cursor' &&
+                (isCheckingCursor || !cursorPreflight || !cursorPreflight.canRunCursor))
             }
             className="font-medium"
             style={{

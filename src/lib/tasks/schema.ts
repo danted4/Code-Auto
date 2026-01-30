@@ -53,7 +53,7 @@ export interface Task {
 
   // CLI Configuration
   cliTool?: string; // 'amp', 'aider', 'cursor', etc.
-  cliConfig?: Record<string, any>; // Dynamic CLI-specific config
+  cliConfig?: Record<string, unknown>; // Dynamic CLI-specific config
 
   // Workflow Control
   requiresHumanReview?: boolean; // If true, task locked until plan approved
@@ -130,9 +130,7 @@ export function getPhaseDescription(phase: WorkflowPhase): string {
 /**
  * Helper to get next phase
  */
-export function getNextPhase(
-  currentPhase: WorkflowPhase
-): WorkflowPhase | null {
+export function getNextPhase(currentPhase: WorkflowPhase): WorkflowPhase | null {
   const currentIndex = WORKFLOW_PHASES.indexOf(currentPhase);
   if (currentIndex === WORKFLOW_PHASES.length - 1) {
     return null; // Already at last phase
@@ -143,9 +141,7 @@ export function getNextPhase(
 /**
  * Helper to get previous phase
  */
-export function getPreviousPhase(
-  currentPhase: WorkflowPhase
-): WorkflowPhase | null {
+export function getPreviousPhase(currentPhase: WorkflowPhase): WorkflowPhase | null {
   const currentIndex = WORKFLOW_PHASES.indexOf(currentPhase);
   if (currentIndex === 0) {
     return null; // Already at first phase

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test.describe('Theme System Audit', () => {
   test('identify theme issues across all components', async ({ page }) => {
@@ -75,9 +75,13 @@ test.describe('Theme System Audit', () => {
 
       // Check inputs
       const titleInput = await page.locator('#title');
-      const inputBg = await titleInput.evaluate((el) => window.getComputedStyle(el).backgroundColor);
+      const inputBg = await titleInput.evaluate(
+        (el) => window.getComputedStyle(el).backgroundColor
+      );
       const inputColor = await titleInput.evaluate((el) => window.getComputedStyle(el).color);
-      const inputBorder = await titleInput.evaluate((el) => window.getComputedStyle(el).borderColor);
+      const inputBorder = await titleInput.evaluate(
+        (el) => window.getComputedStyle(el).borderColor
+      );
 
       console.log('   Title input:');
       console.log(`     - Background: ${inputBg}`);
@@ -103,7 +107,7 @@ test.describe('Theme System Audit', () => {
 
     await page.screenshot({
       path: 'e2e/screenshots/theme-dark-default.png',
-      fullPage: true
+      fullPage: true,
     });
     console.log('   ✓ Saved: theme-dark-default.png');
 
@@ -120,7 +124,7 @@ test.describe('Theme System Audit', () => {
 
         await page.screenshot({
           path: 'e2e/screenshots/theme-light.png',
-          fullPage: true
+          fullPage: true,
         });
         console.log('   ✓ Saved: theme-light.png');
       }
@@ -135,7 +139,7 @@ test.describe('Theme System Audit', () => {
 
         await page.screenshot({
           path: 'e2e/screenshots/theme-retro.png',
-          fullPage: true
+          fullPage: true,
         });
         console.log('   ✓ Saved: theme-retro.png');
       }

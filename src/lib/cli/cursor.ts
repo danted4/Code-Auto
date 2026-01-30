@@ -34,8 +34,8 @@ interface CursorStreamMessage {
   type: 'text' | 'tool_call' | 'tool_result' | 'end' | 'error';
   content?: string;
   tool_name?: string;
-  tool_input?: any;
-  tool_output?: any;
+  tool_input?: unknown;
+  tool_output?: unknown;
   error?: string;
 }
 
@@ -68,7 +68,7 @@ export class CursorAdapter implements CLIAdapter {
    */
   private async fetchAvailableModels(): Promise<Array<{ value: string; label: string }>> {
     const now = Date.now();
-    
+
     // Return cached models if still valid
     if (modelsCache.length > 0 && now - modelsCacheTimestamp < MODELS_CACHE_TTL) {
       return modelsCache;
@@ -86,7 +86,7 @@ export class CursorAdapter implements CLIAdapter {
       // Strip ANSI codes and parse lines
       const cleanOutput = stdout.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '').trim();
       const lines = cleanOutput.split('\n');
-      
+
       const models: Array<{ value: string; label: string }> = [];
       let defaultModel = 'opus-4.5-thinking'; // Default fallback
 
@@ -97,7 +97,7 @@ export class CursorAdapter implements CLIAdapter {
         if (match) {
           const [, modelId, displayName] = match;
           const fullLine = line;
-          
+
           // Skip 'auto' and 'composer-1' as they're special modes, not models
           if (modelId === 'auto' || modelId === 'composer-1') {
             continue;
@@ -149,14 +149,14 @@ export class CursorAdapter implements CLIAdapter {
 
   async initialize(config: CLIConfig): Promise<void> {
     this.config = config;
-    
+
     // Prefetch models on first initialization (don't block, just warm the cache)
     if (modelsCache.length === 0) {
       this.fetchAvailableModels().catch((err) =>
         console.warn('[CursorAdapter] Failed to prefetch models during init:', err)
       );
     }
-    
+
     console.log('[CursorAdapter] Initialized with cwd:', config.cwd);
   }
 
@@ -173,17 +173,18 @@ export class CursorAdapter implements CLIAdapter {
       request.isQuestionGeneration ||
       request.prompt.includes('PLANNING PHASE') ||
       request.prompt.includes('Question Generation');
-    
+
     const isSubtaskGeneration =
-      request.isSubtaskGeneration ||
-      request.prompt.includes('SUBTASK GENERATION');
+      request.isSubtaskGeneration || request.prompt.includes('SUBTASK GENERATION');
 
     // Build command arguments
     const command = process.env.CURSOR_AGENT_CMD || 'agent';
     const args: string[] = [
       '--print', // Non-interactive mode
-      '--output-format', 'stream-json', // Structured streaming
-      '--workspace', effectiveCwd, // Set working directory
+      '--output-format',
+      'stream-json', // Structured streaming
+      '--workspace',
+      effectiveCwd, // Set working directory
     ];
 
     // Note: --mode plan prevents file writes but also seems to prevent final responses
@@ -192,8 +193,8 @@ export class CursorAdapter implements CLIAdapter {
     //   args.push('--mode', 'plan');
     // }
 
-    // Add model selection
-    const model = (this.config as any).model || 'opus-4.5-thinking';
+    // Add model selection (Cursor extends config with model field)
+    const model = (this.config as CLIConfig & { model?: string }).model || 'opus-4.5-thinking';
     args.push('--model', model);
 
     // Resume previous chat session if available
@@ -202,11 +203,7 @@ export class CursorAdapter implements CLIAdapter {
       args.push('--resume', existingChatId);
     }
 
-    console.log(
-      '[CursorAdapter] Spawning Cursor agent:',
-      command,
-      args.join(' ')
-    );
+    console.log('[CursorAdapter] Spawning Cursor agent:', command, args.join(' '));
 
     // Yield initial system message
     yield {
@@ -223,19 +220,19 @@ export class CursorAdapter implements CLIAdapter {
 
     // Prepare environment variables
     const configApiKey = this.config?.apiKey;
-    
+
     // Build clean environment:
     // 1. Copy all env vars EXCEPT CURSOR_API_KEY
     // 2. Then conditionally add CURSOR_API_KEY if we have a real key
     const { CURSOR_API_KEY: _, ...cleanEnv } = process.env;
     const env = cleanEnv as NodeJS.ProcessEnv;
-    
+
     // Only set CURSOR_API_KEY if we have a real API key (not the placeholder)
     if (configApiKey && configApiKey !== 'cursor-cli-login' && configApiKey !== 'mock-key') {
       env.CURSOR_API_KEY = configApiKey;
     }
     // Otherwise: CLI login is used, no API key env var set
-    
+
     // Spawn the agent process
     const child = spawn(command, args, {
       cwd: effectiveCwd,
@@ -283,7 +280,7 @@ export class CursorAdapter implements CLIAdapter {
       const text = chunk.toString();
       accumulatedStderr += text;
       console.error('[CursorAdapter] stderr:', text);
-      
+
       // Store stderr messages to emit later
       stderrMessages.push({
         type: 'system',
@@ -306,15 +303,28 @@ export class CursorAdapter implements CLIAdapter {
           if (!line.trim()) continue;
 
           try {
-            const msg: any = JSON.parse(line);
+            // Cursor CLI emits various message types; use loose type for parsing
+            const msg = JSON.parse(line) as {
+              type?: string;
+              message?: { content?: Array<{ type?: string; text?: string }> } | string;
+              text?: string;
+              subtype?: string;
+              tool_call?: Record<string, unknown>;
+              call_id?: string;
+              error?: string;
+            };
 
             // Cursor stream-json format uses different message types
             if (msg.type === 'assistant') {
               // Extract text from assistant message
               // Format: {type: 'assistant', message: {role: 'assistant', content: [{type: 'text', text: '...'}]}}
               let text = '';
-              if (msg.message?.content) {
-                for (const item of msg.message.content) {
+              const msgContent =
+                typeof msg.message === 'object' && msg.message && 'content' in msg.message
+                  ? msg.message.content
+                  : undefined;
+              if (msgContent) {
+                for (const item of msgContent) {
                   if (item.type === 'text' && item.text) {
                     text += item.text;
                   }
@@ -323,7 +333,7 @@ export class CursorAdapter implements CLIAdapter {
                 // Fallback for delta format
                 text = msg.text;
               }
-              
+
               if (text) {
                 accumulatedOutput += text;
                 yield {
@@ -376,21 +386,25 @@ export class CursorAdapter implements CLIAdapter {
               // User messages (echoed back)
               // Skip these
             } else if (msg.type === 'error') {
+              const errMsg =
+                msg.error ||
+                (typeof msg.message === 'string' ? msg.message : undefined) ||
+                'Unknown error from agent';
               yield {
                 type: 'error',
                 timestamp: Date.now(),
-                data: { error: msg.error || msg.message || 'Unknown error from agent' },
+                data: { error: errMsg },
                 threadId,
               };
             }
             // No explicit "end" message in Cursor - process ends naturally
-          } catch (parseError) {
+          } catch (_parseError) {
             // If JSON parse fails, treat as plain text
             console.warn('[CursorAdapter] Failed to parse line as JSON:', line.substring(0, 100));
             accumulatedOutput += line + '\n';
             yield {
               type: 'assistant',
-                timestamp: Date.now(),
+              timestamp: Date.now(),
               data: { message: line },
               threadId,
             };
@@ -402,10 +416,7 @@ export class CursorAdapter implements CLIAdapter {
         type: 'error',
         timestamp: Date.now(),
         data: {
-          error:
-            error instanceof Error
-              ? error.message
-              : 'Error reading agent output',
+          error: error instanceof Error ? error.message : 'Error reading agent output',
         },
         threadId,
       };
@@ -452,10 +463,10 @@ export class CursorAdapter implements CLIAdapter {
       };
     } else {
       // Include stderr in error for debugging
-      const errorMessage = accumulatedStderr.trim() 
+      const errorMessage = accumulatedStderr.trim()
         ? `Cursor agent exited with code ${exitCode}.\n\nError output:\n${accumulatedStderr.trim()}`
         : `Cursor agent exited with code ${exitCode}`;
-        
+
       yield {
         type: 'error',
         timestamp: Date.now(),
@@ -519,11 +530,8 @@ export class CursorAdapter implements CLIAdapter {
     workingDir: string,
     model: string
   ): AsyncIterable<StreamMessage> {
-    const {
-      extractAndValidateJSON,
-      validateSubtasks,
-      generateValidationFeedback,
-    } = await import('../validation/subtask-validator');
+    const { extractAndValidateJSON, validateSubtasks, generateValidationFeedback } =
+      await import('../validation/subtask-validator');
 
     let attempt = 0;
     const maxAttempts = 3;
@@ -531,8 +539,7 @@ export class CursorAdapter implements CLIAdapter {
     while (attempt < maxAttempts) {
       attempt++;
 
-      const { data: parsedData, error: parseError } =
-        extractAndValidateJSON(output);
+      const { data: parsedData, error: parseError } = extractAndValidateJSON(output);
 
       if (parseError) {
         yield {
@@ -560,13 +567,7 @@ export class CursorAdapter implements CLIAdapter {
 
         // Re-prompt with feedback
         const feedback = `Previous output had a parsing error. ${parseError}\n\nPlease provide a corrected version with valid JSON format.`;
-        yield* this.executeWithFeedback(
-          feedback,
-          originalPrompt,
-          threadId,
-          workingDir,
-          model
-        );
+        yield* this.executeWithFeedback(feedback, originalPrompt, threadId, workingDir, model);
         return;
       }
 
@@ -594,7 +595,7 @@ export class CursorAdapter implements CLIAdapter {
             success: true,
             message: 'Subtasks validation passed',
             output: output,
-            subtasks: parsedData.subtasks,
+            subtasks: parsedData?.subtasks ?? [],
           },
           threadId,
         };
@@ -652,9 +653,12 @@ export class CursorAdapter implements CLIAdapter {
     const command = process.env.CURSOR_AGENT_CMD || 'agent';
     const args = [
       '--print',
-      '--output-format', 'stream-json',
-      '--workspace', workingDir,
-      '--model', model,
+      '--output-format',
+      'stream-json',
+      '--workspace',
+      workingDir,
+      '--model',
+      model,
     ];
 
     // Resume the same chat if we have a chat ID
@@ -667,11 +671,11 @@ export class CursorAdapter implements CLIAdapter {
     const configApiKey = this.config?.apiKey;
     const { CURSOR_API_KEY: _, ...cleanEnv } = process.env;
     const env = cleanEnv as NodeJS.ProcessEnv;
-    
+
     if (configApiKey && configApiKey !== 'cursor-cli-login' && configApiKey !== 'mock-key') {
       env.CURSOR_API_KEY = configApiKey;
     }
-    
+
     const child = spawn(command, args, {
       cwd: workingDir,
       shell: false,
@@ -713,12 +717,10 @@ export class CursorAdapter implements CLIAdapter {
     await new Promise((resolve) => child.on('close', resolve));
 
     // Recursively validate again
-    const { extractAndValidateJSON, validateSubtasks } = await import(
-      '../validation/subtask-validator'
-    );
+    const { extractAndValidateJSON, validateSubtasks } =
+      await import('../validation/subtask-validator');
 
-    const { data: parsedData, error: parseError } =
-      extractAndValidateJSON(accumulatedOutput);
+    const { data: parsedData, error: parseError } = extractAndValidateJSON(accumulatedOutput);
 
     if (!parseError && parsedData) {
       const result = validateSubtasks(parsedData);

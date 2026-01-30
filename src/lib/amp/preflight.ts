@@ -202,11 +202,11 @@ export async function ampPreflight(): Promise<AmpPreflightResult> {
 
   if (!ampCliPath) {
     instructions.push('Install the Amp CLI so `which amp` returns a path.');
-    instructions.push('After installing, restart `yarn dev` so the server picks it up.');
+    instructions.push('After installing, restart `yarn start` so the app picks it up.');
   }
 
   // Detect CLI login using a mix of (1) command and (2) config dir presence
-  const detectedConfigDirs = getCandidateAmpConfigDirs().filter((d) => {
+  const detectedConfigDirs = getCandidateAmpConfigDirs().filter((_d) => {
     // synchronous filter is ok; we’ll check existence async below
     return true;
   });
@@ -280,4 +280,3 @@ export async function ampPreflight(): Promise<AmpPreflightResult> {
     },
   };
 }
-

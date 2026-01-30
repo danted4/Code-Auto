@@ -20,30 +20,30 @@ Two primary stores manage client-side state:
 
 Manages all task-related state and provides actions that sync with the server:
 
-| State | Type | Description |
-|-------|------|-------------|
-| `tasks` | `Task[]` | Array of all tasks |
-| `isLoading` | `boolean` | Loading state for async operations |
-| `error` | `string \| null` | Error message if operation failed |
+| State       | Type             | Description                        |
+| ----------- | ---------------- | ---------------------------------- |
+| `tasks`     | `Task[]`         | Array of all tasks                 |
+| `isLoading` | `boolean`        | Loading state for async operations |
+| `error`     | `string \| null` | Error message if operation failed  |
 
 **Actions:**
 
-| Action | API Endpoint | Description |
-|--------|--------------|-------------|
-| `loadTasks()` | `GET /api/tasks/list` | Fetch all tasks from server |
-| `createTask()` | `POST /api/tasks/create` | Create new task + worktree |
-| `updateTask()` | `PATCH /api/tasks/update` | Update task properties |
-| `updateTaskPhase()` | `PATCH /api/tasks/update` | Move task between workflow phases |
-| `deleteTask()` | `DELETE /api/tasks/delete` | Remove task and cleanup |
+| Action              | API Endpoint               | Description                       |
+| ------------------- | -------------------------- | --------------------------------- |
+| `loadTasks()`       | `GET /api/tasks/list`      | Fetch all tasks from server       |
+| `createTask()`      | `POST /api/tasks/create`   | Create new task + worktree        |
+| `updateTask()`      | `PATCH /api/tasks/update`  | Update task properties            |
+| `updateTaskPhase()` | `PATCH /api/tasks/update`  | Move task between workflow phases |
+| `deleteTask()`      | `DELETE /api/tasks/delete` | Remove task and cleanup           |
 
 #### Theme Store (`theme-store.ts`)
 
 Persists theme selection to localStorage:
 
-| State | Type | Description |
-|-------|------|-------------|
-| `currentTheme` | `ThemeName` | Current theme identifier |
-| `theme` | `Theme` | Resolved theme configuration |
+| State          | Type        | Description                  |
+| -------------- | ----------- | ---------------------------- |
+| `currentTheme` | `ThemeName` | Current theme identifier     |
+| `theme`        | `Theme`     | Resolved theme configuration |
 
 **Persistence:** Uses `zustand/middleware/persist` with key `code-auto-theme`.
 
@@ -51,33 +51,33 @@ Persists theme selection to localStorage:
 
 ### Task Routes (`/api/tasks/`)
 
-| Endpoint | Method | Handler | Description |
-|----------|--------|---------|-------------|
-| `/api/tasks/list` | GET | List all tasks | Reads from `.code-auto/tasks/*.json` |
-| `/api/tasks/create` | POST | Create task | Creates JSON file + git worktree |
-| `/api/tasks/update` | PATCH | Update task | Updates JSON file, handles phase transitions |
-| `/api/tasks/delete` | DELETE | Delete task | Removes JSON file |
-| `/api/tasks/seed` | POST | Seed test data | Creates sample tasks for development |
+| Endpoint            | Method | Handler        | Description                                  |
+| ------------------- | ------ | -------------- | -------------------------------------------- |
+| `/api/tasks/list`   | GET    | List all tasks | Reads from `.code-auto/tasks/*.json`         |
+| `/api/tasks/create` | POST   | Create task    | Creates JSON file + git worktree             |
+| `/api/tasks/update` | PATCH  | Update task    | Updates JSON file, handles phase transitions |
+| `/api/tasks/delete` | DELETE | Delete task    | Removes JSON file                            |
+| `/api/tasks/seed`   | POST   | Seed test data | Creates sample tasks for development         |
 
 ### Agent Routes (`/api/agents/`)
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/agents/start` | POST | Start AI agent on a task |
-| `/api/agents/stop` | POST | Stop running agent |
-| `/api/agents/stream` | GET (SSE) | Stream agent logs in real-time |
-| `/api/agents/start-planning` | POST | Start planning phase agent |
-| `/api/agents/start-development` | POST | Start development phase agent |
-| `/api/agents/start-review` | POST | Start review phase agent |
-| `/api/agents/approve-plan` | POST | Approve generated plan |
-| `/api/agents/submit-answers` | POST | Submit planning Q&A answers |
+| Endpoint                        | Method    | Description                    |
+| ------------------------------- | --------- | ------------------------------ |
+| `/api/agents/start`             | POST      | Start AI agent on a task       |
+| `/api/agents/stop`              | POST      | Stop running agent             |
+| `/api/agents/stream`            | GET (SSE) | Stream agent logs in real-time |
+| `/api/agents/start-planning`    | POST      | Start planning phase agent     |
+| `/api/agents/start-development` | POST      | Start development phase agent  |
+| `/api/agents/start-review`      | POST      | Start review phase agent       |
+| `/api/agents/approve-plan`      | POST      | Approve generated plan         |
+| `/api/agents/submit-answers`    | POST      | Submit planning Q&A answers    |
 
 ### Git Routes (`/api/git/`)
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/git/status` | GET | Get git status for a worktree |
-| `/api/git/worktree` | POST/DELETE | Create or delete worktree |
+| Endpoint            | Method      | Description                   |
+| ------------------- | ----------- | ----------------------------- |
+| `/api/git/status`   | GET         | Get git status for a worktree |
+| `/api/git/worktree` | POST/DELETE | Create or delete worktree     |
 
 ## Data Persistence Patterns
 
@@ -102,12 +102,12 @@ The `TaskPersistence` class provides CRUD operations:
 
 ```typescript
 class TaskPersistence {
-  saveTask(task: Task): Promise<void>     // Write to .code-auto/tasks/{id}.json
-  loadTask(taskId: string): Promise<Task> // Read from .code-auto/tasks/{id}.json
-  listTasks(): Promise<Task[]>            // List all .json files in tasks dir
-  deleteTask(taskId: string): Promise<void>
-  updateTaskStatus(taskId: string, status: TaskStatus): Promise<void>
-  updateTaskPhase(taskId: string, phase: WorkflowPhase): Promise<void>
+  saveTask(task: Task): Promise<void>; // Write to .code-auto/tasks/{id}.json
+  loadTask(taskId: string): Promise<Task>; // Read from .code-auto/tasks/{id}.json
+  listTasks(): Promise<Task[]>; // List all .json files in tasks dir
+  deleteTask(taskId: string): Promise<void>;
+  updateTaskStatus(taskId: string, status: TaskStatus): Promise<void>;
+  updateTaskPhase(taskId: string, phase: WorkflowPhase): Promise<void>;
 }
 ```
 
@@ -192,7 +192,7 @@ sequenceDiagram
     Mgr-->>API: Return threadId
     API->>FS: Update task.assignedAgent
     API-->>UI: {success, threadId}
-    
+
     Note over Mgr,CLI: Background execution begins
     Mgr->>CLI: execute({prompt, threadId})
     loop Streaming logs
@@ -215,7 +215,7 @@ sequenceDiagram
     SSE->>Mgr: getAgentStatus(threadId)
     Mgr-->>SSE: AgentSession
     SSE-->>UI: SSE: {type: 'connected'}
-    
+
     loop Every 100ms
         SSE->>Mgr: getAgentStatus(threadId)
         Mgr-->>SSE: Current session
@@ -287,11 +287,11 @@ try {
 
 ## Data Flow Summary
 
-| Layer | Responsibility | Key Files |
-|-------|----------------|-----------|
-| **UI Components** | Render state, trigger actions | `src/components/tasks/` |
-| **Zustand Stores** | Client state, API calls | `src/store/*.ts` |
-| **API Routes** | HTTP handlers, validation | `src/app/api/**/*.ts` |
-| **Core Libraries** | Business logic | `src/lib/tasks/`, `src/lib/agents/`, `src/lib/git/` |
-| **File System** | Persistent storage | `.code-auto/tasks/*.json` |
-| **Git** | Worktree isolation | `.code-auto/worktrees/` |
+| Layer              | Responsibility                | Key Files                                           |
+| ------------------ | ----------------------------- | --------------------------------------------------- |
+| **UI Components**  | Render state, trigger actions | `src/components/tasks/`                             |
+| **Zustand Stores** | Client state, API calls       | `src/store/*.ts`                                    |
+| **API Routes**     | HTTP handlers, validation     | `src/app/api/**/*.ts`                               |
+| **Core Libraries** | Business logic                | `src/lib/tasks/`, `src/lib/agents/`, `src/lib/git/` |
+| **File System**    | Persistent storage            | `.code-auto/tasks/*.json`                           |
+| **Git**            | Worktree isolation            | `.code-auto/worktrees/`                             |

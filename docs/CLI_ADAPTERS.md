@@ -5,6 +5,7 @@ This document describes the pluggable CLI adapter architecture used in Code-Auto
 ## Overview
 
 Code-Auto uses a **pluggable adapter pattern** to abstract CLI tool interactions. This allows the system to:
+
 - Swap between different AI coding CLIs (Amp SDK, Cursor Agent CLI, etc.)
 - Use a mock adapter for testing without API costs
 - Dynamically configure adapters via the UI
@@ -76,26 +77,26 @@ classDiagram
 
 Defines the contract all CLI adapters must implement:
 
-| Method | Description |
-|--------|-------------|
-| `getConfigSchema()` | Returns UI configuration fields for this adapter |
-| `initialize(config)` | Sets up the adapter with API keys, working directory, etc. |
-| `execute(request)` | Executes a task, returning an async stream of messages |
-| `createThread(workingDir)` | Creates an isolated execution thread |
-| `resumeThread(threadId)` | Resumes an existing thread |
-| `stopThread(threadId)` | Stops a running thread |
-| `getCapabilities()` | Returns adapter capabilities (threads, modes, limits) |
+| Method                     | Description                                                |
+| -------------------------- | ---------------------------------------------------------- |
+| `getConfigSchema()`        | Returns UI configuration fields for this adapter           |
+| `initialize(config)`       | Sets up the adapter with API keys, working directory, etc. |
+| `execute(request)`         | Executes a task, returning an async stream of messages     |
+| `createThread(workingDir)` | Creates an isolated execution thread                       |
+| `resumeThread(threadId)`   | Resumes an existing thread                                 |
+| `stopThread(threadId)`     | Stops a running thread                                     |
+| `getCapabilities()`        | Returns adapter capabilities (threads, modes, limits)      |
 
 **Key Types** (see [TYPE_REFERENCE.md](./TYPE_REFERENCE.md#cli-adapter-types) for full definitions):
 
-| Type | Lines | Description |
-|------|-------|-------------|
-| [`CLIAdapter`](../src/lib/cli/base.ts#L8-L52) | 8-52 | Core interface for all adapters |
-| [`CLIConfig`](../src/lib/cli/base.ts#L54-L61) | 54-61 | API key, working directory, mode, permissions |
-| [`ExecuteRequest`](../src/lib/cli/base.ts#L63-L68) | 63-68 | Prompt, optional thread ID, injected context |
-| [`StreamMessage`](../src/lib/cli/base.ts#L70-L75) | 70-75 | Typed messages (system, assistant, tool, result, error) |
-| [`CLICapabilities`](../src/lib/cli/base.ts#L77-L82) | 77-82 | Feature flags and limits |
-| [`ContextData`](../src/lib/cli/base.ts#L89-L93) | 89-93 | Memory context (patterns, gotchas, history) |
+| Type                                                | Lines | Description                                             |
+| --------------------------------------------------- | ----- | ------------------------------------------------------- |
+| [`CLIAdapter`](../src/lib/cli/base.ts#L8-L52)       | 8-52  | Core interface for all adapters                         |
+| [`CLIConfig`](../src/lib/cli/base.ts#L54-L61)       | 54-61 | API key, working directory, mode, permissions           |
+| [`ExecuteRequest`](../src/lib/cli/base.ts#L63-L68)  | 63-68 | Prompt, optional thread ID, injected context            |
+| [`StreamMessage`](../src/lib/cli/base.ts#L70-L75)   | 70-75 | Typed messages (system, assistant, tool, result, error) |
+| [`CLICapabilities`](../src/lib/cli/base.ts#L77-L82) | 77-82 | Feature flags and limits                                |
+| [`ContextData`](../src/lib/cli/base.ts#L89-L93)     | 89-93 | Memory context (patterns, gotchas, history)             |
 
 ### Amp Adapter ([src/lib/cli/amp.ts](../src/lib/cli/amp.ts))
 
@@ -106,6 +107,7 @@ import { execute as ampExecute } from '@sourcegraph/amp-sdk';
 ```
 
 **Features:**
+
 - Executes real AI agent tasks via Amp CLI
 - Supports smart (Opus 4.5) and rush (Haiku 4.5) modes
 - Injects context from the memory system into prompts
@@ -119,6 +121,7 @@ import { execute as ampExecute } from '@sourcegraph/amp-sdk';
 Testing adapter that simulates CLI responses without API calls:
 
 **Features:**
+
 - Simulates realistic message streams with configurable delays
 - Handles planning prompts (questions, plans)
 - Handles subtask generation and execution
@@ -126,6 +129,7 @@ Testing adapter that simulates CLI responses without API calls:
 - Supports all interface methods
 
 **Use Cases:**
+
 - UI development without burning credits
 - E2E testing of the task orchestration pipeline
 - Debugging workflow logic
@@ -139,12 +143,14 @@ Production adapter that shells out to the Cursor Agent CLI:
 - Treats each Code-Auto `threadId` as a single Cursor agent run; there is no cross-run resume yet.
 
 **How it works:**
+
 1. **Planning prompts** → Uses `--mode plan` to prevent file writes, returns JSON
 2. **Subtask generation** → Validates JSON structure, provides feedback for corrections (up to 3 attempts)
 3. **Subtask execution** → Full write access in worktree directory
 4. **Streaming** → Parses `stream-json` format and maps to standard `StreamMessage` types
 
 **Notes:**
+
 - Authentication via `agent login` (preferred) or `CURSOR_API_KEY` env var
 - Preflight check ensures CLI is installed and authenticated before tasks start
 - Use this adapter when you want to run Code-Auto tasks through Cursor instead of Amp
@@ -165,6 +171,7 @@ const adapters = CLIFactory.getAvailableAdapters(); // [{name, displayName}, ...
 ```
 
 **Extensibility:** Add new providers by:
+
 1. Creating a new adapter class implementing `CLIAdapter`
 2. Adding the provider to the `CLIProvider` type union
 3. Adding a case to the `create()` switch statement
@@ -209,9 +216,10 @@ for await (const message of adapter.execute(request)) {
 To add support for a new CLI tool (e.g., Aider):
 
 1. **Create the adapter file** `src/lib/cli/aider.ts`:
+
    ```typescript
    import { CLIAdapter, ... } from './base';
-   
+
    export class AiderAdapter implements CLIAdapter {
      name = 'aider';
      displayName = 'Aider CLI';
@@ -220,9 +228,10 @@ To add support for a new CLI tool (e.g., Aider):
    ```
 
 2. **Register in factory** `src/lib/cli/factory.ts`:
+
    ```typescript
    export type CLIProvider = 'amp' | 'mock' | 'aider';
-   
+
    // In create():
    case 'aider':
      return new AiderAdapter();
@@ -237,9 +246,9 @@ To add support for a new CLI tool (e.g., Aider):
 
 ## File Reference
 
-| File | Purpose |
-|------|---------|
-| [src/lib/cli/base.ts](../src/lib/cli/base.ts) | Interface definitions and types |
-| [src/lib/cli/amp.ts](../src/lib/cli/amp.ts) | Production Amp SDK adapter |
-| [src/lib/cli/mock.ts](../src/lib/cli/mock.ts) | Mock adapter for testing |
+| File                                                | Purpose                           |
+| --------------------------------------------------- | --------------------------------- |
+| [src/lib/cli/base.ts](../src/lib/cli/base.ts)       | Interface definitions and types   |
+| [src/lib/cli/amp.ts](../src/lib/cli/amp.ts)         | Production Amp SDK adapter        |
+| [src/lib/cli/mock.ts](../src/lib/cli/mock.ts)       | Mock adapter for testing          |
 | [src/lib/cli/factory.ts](../src/lib/cli/factory.ts) | Factory for adapter instantiation |

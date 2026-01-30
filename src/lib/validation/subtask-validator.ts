@@ -1,11 +1,9 @@
 /**
  * Subtask Validator
- * 
+ *
  * Validates that generated subtasks conform to the required schema.
  * Provides detailed feedback when validation fails.
  */
-
-import { Subtask } from '../tasks/schema';
 
 export interface ValidationError {
   field: string;
@@ -23,9 +21,11 @@ export interface ValidationResult {
  * Validate subtasks JSON structure
  * Returns validation result and human-readable feedback
  */
-export function validateSubtasks(data: any): ValidationResult {
+export function validateSubtasks(data: unknown): ValidationResult {
   const errors: ValidationError[] = [];
   const warnings: string[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic JSON structure
+  const d = data as any;
 
   // Check if data exists
   if (!data) {
@@ -37,7 +37,7 @@ export function validateSubtasks(data: any): ValidationResult {
   }
 
   // Check if subtasks array exists
-  if (!data.subtasks) {
+  if (!d.subtasks) {
     errors.push({
       field: 'subtasks',
       issue: 'Missing "subtasks" field. Expected: { "subtasks": [...] }',
@@ -46,16 +46,16 @@ export function validateSubtasks(data: any): ValidationResult {
   }
 
   // Check if subtasks is an array
-  if (!Array.isArray(data.subtasks)) {
+  if (!Array.isArray(d.subtasks)) {
     errors.push({
       field: 'subtasks',
-      issue: `"subtasks" must be an array, got ${typeof data.subtasks}`,
+      issue: `"subtasks" must be an array, got ${typeof d.subtasks}`,
     });
     return { valid: false, errors, warnings };
   }
 
   // Check array is not empty
-  if (data.subtasks.length === 0) {
+  if (d.subtasks.length === 0) {
     errors.push({
       field: 'subtasks',
       issue: 'Subtasks array is empty. Generate at least 1 subtask.',
@@ -64,15 +64,15 @@ export function validateSubtasks(data: any): ValidationResult {
   }
 
   // Check array size
-  if (data.subtasks.length > 20) {
+  if (d.subtasks.length > 20) {
     warnings.push(
-      `Subtasks count is ${data.subtasks.length}. Recommend keeping it under 15 for better sequential execution.`
+      `Subtasks count is ${d.subtasks.length}. Recommend keeping it under 15 for better sequential execution.`
     );
   }
 
   // Validate each subtask
-  for (let i = 0; i < data.subtasks.length; i++) {
-    const subtask = data.subtasks[i];
+  for (let i = 0; i < d.subtasks.length; i++) {
+    const subtask = d.subtasks[i];
     const subtaskId = subtask?.id || `subtask[${i}]`;
 
     // Check if subtask is an object
@@ -129,7 +129,13 @@ export function validateSubtasks(data: any): ValidationResult {
     }
 
     // Check for duplicate IDs
-    if (subtask.id && data.subtasks.some((s: any, idx: number) => idx < i && s.id === subtask.id)) {
+    if (
+      subtask.id &&
+      d.subtasks?.some(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (s: any, idx: number) => idx < i && s.id === subtask.id
+      )
+    ) {
       errors.push({
         field: `subtasks[${i}].id`,
         issue: `Duplicate ID "${subtask.id}" found. Each subtask must have a unique ID.`,
@@ -173,9 +179,7 @@ export function generateValidationFeedback(result: ValidationResult): string {
     parts.push('VALIDATION ERRORS - Please fix these issues:\n');
     result.errors.forEach((error, i) => {
       parts.push(
-        `${i + 1}. [${error.field}] ${error.issue}${
-          error.subtaskId ? ` (${error.subtaskId})` : ''
-        }`
+        `${i + 1}. [${error.field}] ${error.issue}${error.subtaskId ? ` (${error.subtaskId})` : ''}`
       );
     });
   }
@@ -190,9 +194,7 @@ export function generateValidationFeedback(result: ValidationResult): string {
   if (result.errors.length === 0) {
     parts.push('\nValidation PASSED with warnings. Please improve the format as noted above.\n');
   } else {
-    parts.push(
-      '\nPlease review your JSON output. Ensure it matches the required format:\n'
-    );
+    parts.push('\nPlease review your JSON output. Ensure it matches the required format:\n');
     parts.push(
       JSON.stringify(
         {
@@ -219,9 +221,10 @@ export function generateValidationFeedback(result: ValidationResult): string {
  * Extract and validate JSON from text
  * Handles markdown code blocks and raw JSON
  */
-export function extractAndValidateJSON(
-  text: string
-): { data: any; error: string | null } {
+export function extractAndValidateJSON(text: string): {
+  data: { subtasks?: unknown[] } | null;
+  error: string | null;
+} {
   try {
     const parsed = extractFirstValidJSON(text);
     if (parsed === null) {
@@ -249,7 +252,7 @@ export function extractAndValidateJSON(
  * Why: LLMs often include extra prose, markdown fences, or repeat JSON blocks.
  * We want the first successfully-parseable JSON object/array and ignore everything else.
  */
-function extractFirstValidJSON(text: string): any | null {
+function extractFirstValidJSON(text: string): { subtasks?: unknown[] } | null {
   // Prefer fenced code blocks first.
   const fenceRe = /```(?:json)?\s*([\s\S]*?)```/gi;
   let m: RegExpExecArray | null;
@@ -264,7 +267,7 @@ function extractFirstValidJSON(text: string): any | null {
   return tryParseFirstJSONFromText(text);
 }
 
-function tryParseFirstJSONFromText(text: string): any | null {
+function tryParseFirstJSONFromText(text: string): { subtasks?: unknown[] } | null {
   // Find the earliest '{' or '[' and then attempt to parse the shortest balanced JSON
   // value starting at each candidate position.
   const starts: Array<{ idx: number; ch: '{' | '[' }> = [];

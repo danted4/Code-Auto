@@ -16,8 +16,12 @@ export type StreamLogLine =
 
 const ensuredDirs = new Set<string>();
 
-export function getAgentStreamLogPath(taskId: string, threadId: string): string {
-  return path.join(process.cwd(), '.code-auto', 'tasks', taskId, `agent-stream-${threadId}.ndjson`);
+export function getAgentStreamLogPath(
+  taskId: string,
+  threadId: string,
+  projectDir: string = process.cwd()
+): string {
+  return path.join(projectDir, '.code-auto', 'tasks', taskId, `agent-stream-${threadId}.ndjson`);
 }
 
 async function ensureDirForFile(filePath: string): Promise<void> {
@@ -30,10 +34,10 @@ async function ensureDirForFile(filePath: string): Promise<void> {
 export async function appendAgentStreamLog(
   taskId: string,
   threadId: string,
-  line: StreamLogLine
+  line: StreamLogLine,
+  projectDir: string = process.cwd()
 ): Promise<void> {
-  const filePath = getAgentStreamLogPath(taskId, threadId);
+  const filePath = getAgentStreamLogPath(taskId, threadId, projectDir);
   await ensureDirForFile(filePath);
   await fs.appendFile(filePath, JSON.stringify(line) + '\n', 'utf-8');
 }
-

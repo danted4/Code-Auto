@@ -7,8 +7,14 @@
  */
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -24,12 +30,17 @@ interface QAStepperModalProps {
 
 export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStepperModalProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, { selectedOption: string; additionalText: string }>>(
+  const [answers, setAnswers] = useState<
+    Record<string, { selectedOption: string; additionalText: string }>
+  >(
     // Initialize with empty answers
-    questions.reduce((acc, q) => {
-      acc[q.id] = { selectedOption: '', additionalText: '' };
-      return acc;
-    }, {} as Record<string, { selectedOption: string; additionalText: string }>)
+    questions.reduce(
+      (acc, q) => {
+        acc[q.id] = { selectedOption: '', additionalText: '' };
+        return acc;
+      },
+      {} as Record<string, { selectedOption: string; additionalText: string }>
+    )
   );
   const [skippedQuestions, setSkippedQuestions] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,7 +50,7 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
   const handleOptionChange = (option: string) => {
-    setAnswers(prev => ({
+    setAnswers((prev) => ({
       ...prev,
       [currentQuestion.id]: {
         ...prev[currentQuestion.id],
@@ -49,7 +60,7 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
   };
 
   const handleTextChange = (text: string) => {
-    setAnswers(prev => ({
+    setAnswers((prev) => ({
       ...prev,
       [currentQuestion.id]: {
         ...prev[currentQuestion.id],
@@ -60,13 +71,13 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
 
   const handlePrevious = () => {
     if (!isFirstQuestion) {
-      setCurrentQuestionIndex(prev => prev - 1);
+      setCurrentQuestionIndex((prev) => prev - 1);
     }
   };
 
   const handleNext = () => {
     if (!isLastQuestion) {
-      setCurrentQuestionIndex(prev => prev + 1);
+      setCurrentQuestionIndex((prev) => prev + 1);
     }
   };
 
@@ -75,14 +86,14 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
 
     if (isCurrentlySkipped) {
       // Unskip
-      setSkippedQuestions(prev => {
+      setSkippedQuestions((prev) => {
         const newSet = new Set(prev);
         newSet.delete(currentQuestion.id);
         return newSet;
       });
     } else {
       // Skip
-      setSkippedQuestions(prev => new Set(prev).add(currentQuestion.id));
+      setSkippedQuestions((prev) => new Set(prev).add(currentQuestion.id));
     }
   };
 
@@ -92,16 +103,18 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
 
   const canSubmit = () => {
     // Check if ALL questions (required or optional) are either answered or skipped
-    return questions.every(q => answers[q.id]?.selectedOption || skippedQuestions.has(q.id));
+    return questions.every((q) => answers[q.id]?.selectedOption || skippedQuestions.has(q.id));
   };
 
   const handleSubmit = async () => {
     // Validate using canSubmit
     if (!canSubmit()) {
       const unanswered = questions.filter(
-        q => !answers[q.id]?.selectedOption && !skippedQuestions.has(q.id)
+        (q) => !answers[q.id]?.selectedOption && !skippedQuestions.has(q.id)
       );
-      alert(`Please answer or skip all questions. Missing: ${unanswered.map(q => `Q${q.order}`).join(', ')}`);
+      alert(
+        `Please answer or skip all questions. Missing: ${unanswered.map((q) => `Q${q.order}`).join(', ')}`
+      );
       return;
     }
 
@@ -167,20 +180,25 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
                     background: isCurrent
                       ? 'var(--color-primary)'
                       : isAnswered
-                      ? 'var(--color-success)'
-                      : isSkipped
-                      ? 'var(--color-warning)'
-                      : 'var(--color-surface)',
-                    color: isCurrent || isAnswered ? '#ffffff' : isSkipped ? '#000000' : 'var(--color-text-secondary)',
+                        ? 'var(--color-success)'
+                        : isSkipped
+                          ? 'var(--color-warning)'
+                          : 'var(--color-surface)',
+                    color:
+                      isCurrent || isAnswered
+                        ? '#ffffff'
+                        : isSkipped
+                          ? '#000000'
+                          : 'var(--color-text-secondary)',
                     borderWidth: '2px',
                     borderStyle: 'solid',
                     borderColor: isCurrent
                       ? 'var(--color-primary)'
                       : isAnswered
-                      ? 'var(--color-success)'
-                      : isSkipped
-                      ? 'var(--color-warning)'
-                      : 'var(--color-border)',
+                        ? 'var(--color-success)'
+                        : isSkipped
+                          ? 'var(--color-warning)'
+                          : 'var(--color-border)',
                   }}
                 >
                   {index + 1}
@@ -194,11 +212,16 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <div className="flex items-start gap-2">
-              <Label className="text-base font-medium" style={{ color: 'var(--color-text-primary)' }}>
+              <Label
+                className="text-base font-medium"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
                 {currentQuestion.question}
               </Label>
               {currentQuestion.required && (
-                <span className="text-xs" style={{ color: 'var(--color-error)' }}>*</span>
+                <span className="text-xs" style={{ color: 'var(--color-error)' }}>
+                  *
+                </span>
               )}
             </div>
           </div>
@@ -223,7 +246,11 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
 
           {/* Additional Text Input */}
           <div className="space-y-2 pt-2">
-            <Label htmlFor="additional-text" className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+            <Label
+              htmlFor="additional-text"
+              className="text-sm"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
               Additional notes or custom answer (optional)
             </Label>
             <Textarea
@@ -263,9 +290,13 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
           </button>
 
           <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            {questions.filter(q => answers[q.id]?.selectedOption).length} answered, {skippedQuestions.size} skipped
+            {questions.filter((q) => answers[q.id]?.selectedOption).length} answered,{' '}
+            {skippedQuestions.size} skipped
             {' · '}
-            {questions.length - questions.filter(q => answers[q.id]?.selectedOption || skippedQuestions.has(q.id)).length} remaining
+            {questions.length -
+              questions.filter((q) => answers[q.id]?.selectedOption || skippedQuestions.has(q.id))
+                .length}{' '}
+            remaining
           </div>
 
           <div className="flex gap-2">
@@ -274,7 +305,9 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
               onClick={handleToggleSkip}
               className="px-4 py-2 rounded-md text-sm font-medium transition-all"
               style={{
-                background: isCurrentQuestionSkipped ? 'var(--color-secondary)' : 'var(--color-warning)',
+                background: isCurrentQuestionSkipped
+                  ? 'var(--color-secondary)'
+                  : 'var(--color-warning)',
                 color: isCurrentQuestionSkipped ? 'var(--color-secondary-text)' : '#000000',
                 border: `1px solid ${isCurrentQuestionSkipped ? 'var(--color-secondary)' : 'var(--color-warning)'}`,
                 cursor: 'pointer',

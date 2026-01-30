@@ -2,11 +2,14 @@
  * List Tasks API Route
  */
 
-import { NextResponse } from 'next/server';
-import { taskPersistence } from '@/lib/tasks/persistence';
+import { NextRequest, NextResponse } from 'next/server';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
+import { getProjectDir } from '@/lib/project-dir';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
     const tasks = await taskPersistence.listTasks();
     return NextResponse.json(tasks);
   } catch (error) {

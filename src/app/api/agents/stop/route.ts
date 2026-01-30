@@ -6,35 +6,30 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAgentSessionByThreadId, stopAgentByThreadId } from '@/lib/agents/registry';
-import { taskPersistence } from '@/lib/tasks/persistence';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
+import { getProjectDir } from '@/lib/project-dir';
 
 export async function POST(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
+
     const { threadId } = await req.json();
 
     if (!threadId) {
-      return NextResponse.json(
-        { error: 'threadId required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'threadId required' }, { status: 400 });
     }
 
     // Get agent session
     const session = getAgentSessionByThreadId(threadId);
     if (!session) {
-      return NextResponse.json(
-        { error: 'Agent not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
 
     // Stop agent
     const stopped = await stopAgentByThreadId(threadId);
     if (!stopped) {
-      return NextResponse.json(
-        { error: 'Agent not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
 
     // Update task - move back to planning phase when agent stopped

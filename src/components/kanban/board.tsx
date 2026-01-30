@@ -17,12 +17,14 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { useTaskStore } from '@/store/task-store';
+import { useProjectStore } from '@/store/project-store';
 import { WORKFLOW_PHASES, WorkflowPhase, Task } from '@/lib/tasks/schema';
 import { KanbanColumn } from './column';
 import { TaskCard } from './task-card';
 
 export function KanbanBoard() {
   const { tasks, loadTasks, updateTaskPhase } = useTaskStore();
+  const projectPath = useProjectStore((s) => s.projectPath);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   // Disable pointer sensor activation delay for instant drag
@@ -35,15 +37,27 @@ export function KanbanBoard() {
   );
 
   useEffect(() => {
+    // Load immediately and again after delay (handles API cold-start in dev)
     loadTasks();
+    const delayedTimer = setTimeout(() => loadTasks(), 600);
 
     // Auto-refresh tasks every 3 seconds to catch background updates
-    const interval = setInterval(() => {
-      loadTasks();
-    }, 3000);
+    const interval = setInterval(() => loadTasks(), 3000);
 
-    return () => clearInterval(interval);
-  }, [loadTasks]);
+    // Reload when window becomes visible (fixes race when Electron opens before server ready)
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadTasks();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      clearTimeout(delayedTimer);
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [loadTasks, projectPath]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const taskId = event.active.id as string;
@@ -91,18 +105,10 @@ export function KanbanBoard() {
   };
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex gap-4 p-4 overflow-x-auto h-full">
         {WORKFLOW_PHASES.map((phase) => (
-          <KanbanColumn
-            key={phase}
-            phase={phase}
-            tasks={tasks.filter((t) => t.phase === phase)}
-          />
+          <KanbanColumn key={phase} phase={phase} tasks={tasks.filter((t) => t.phase === phase)} />
         ))}
       </div>
       <DragOverlay dropAnimation={null}>

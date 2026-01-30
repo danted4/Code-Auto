@@ -5,27 +5,25 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { taskPersistence } from '@/lib/tasks/persistence';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
 import { getAgentManagerForTask, startAgentForTask } from '@/lib/agents/registry';
+import { getProjectDir } from '@/lib/project-dir';
 
 export async function POST(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
+
     const { taskId, prompt } = await req.json();
 
     if (!taskId || !prompt) {
-      return NextResponse.json(
-        { error: 'taskId and prompt required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'taskId and prompt required' }, { status: 400 });
     }
 
     // Load task
     const task = await taskPersistence.loadTask(taskId);
     if (!task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
     // Check if task already has an agent assigned
@@ -33,10 +31,7 @@ export async function POST(req: NextRequest) {
       const mgr = await getAgentManagerForTask(task);
       const existingSession = mgr.getAgentStatus(task.assignedAgent);
       if (existingSession && existingSession.status === 'running') {
-        return NextResponse.json(
-          { error: 'Task already has an agent running' },
-          { status: 409 }
-        );
+        return NextResponse.json({ error: 'Task already has an agent running' }, { status: 409 });
       }
     }
 
@@ -44,7 +39,8 @@ export async function POST(req: NextRequest) {
     const { threadId } = await startAgentForTask({
       task,
       prompt,
-      workingDir: task.worktreePath || process.cwd(),
+      workingDir: task.worktreePath || projectDir,
+      projectDir,
       // TODO: Add context from memory system
     });
 

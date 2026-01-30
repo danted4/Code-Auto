@@ -8,7 +8,8 @@ import { NextRequest } from 'next/server';
 import fs from 'fs/promises';
 import { getTaskIdForThread } from '@/lib/agents/thread-index';
 import { getAgentStreamLogPath } from '@/lib/agents/stream-log';
-import { taskPersistence } from '@/lib/tasks/persistence';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
+import { getProjectDir } from '@/lib/project-dir';
 
 export async function GET(req: NextRequest) {
   const threadId = req.nextUrl.searchParams.get('threadId');
@@ -17,14 +18,17 @@ export async function GET(req: NextRequest) {
     return new Response('Missing threadId', { status: 400 });
   }
 
-  let taskId = await getTaskIdForThread(threadId);
+  const projectDir = await getProjectDir(req);
+  const taskPersistence = getTaskPersistence(projectDir);
+
+  let taskId = await getTaskIdForThread(threadId, projectDir);
   if (!taskId) {
     // Fallback: find task by assignedAgent (helps if index is missing)
     const tasks = await taskPersistence.listTasks().catch(() => []);
     taskId = tasks.find((t) => t.assignedAgent === threadId)?.id || null;
   }
   if (!taskId) return new Response('Agent not found', { status: 404 });
-  const logPath = getAgentStreamLogPath(taskId, threadId);
+  const logPath = getAgentStreamLogPath(taskId, threadId, projectDir);
 
   const encoder = new TextEncoder();
 
@@ -36,9 +40,7 @@ export async function GET(req: NextRequest) {
       let ready = false;
 
       // Send initial connection message
-      controller.enqueue(
-        encoder.encode(`data: ${JSON.stringify({ type: 'connected' })}\n\n`)
-      );
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'connected' })}\n\n`));
 
       // Stream logs every 150ms by tailing the per-thread NDJSON file
       const interval = setInterval(async () => {
@@ -72,9 +74,9 @@ export async function GET(req: NextRequest) {
 
           for (const line of lines) {
             if (!line.trim()) continue;
-            let obj: any;
+            let obj: Record<string, unknown>;
             try {
-              obj = JSON.parse(line);
+              obj = JSON.parse(line) as Record<string, unknown>;
             } catch {
               continue;
             }

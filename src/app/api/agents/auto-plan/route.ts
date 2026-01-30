@@ -2,41 +2,39 @@
  * Auto-Plan Agent API Route
  *
  * Automatically plans a task and breaks it down into subtasks WITHOUT requiring human review.
- * 
+ *
  * Flow:
  * 1. Generate plan directly (no questions)
  * 2. Auto-approve plan
  * 3. Generate subtasks
  * 4. Start sequential execution
- * 
+ *
  * This enables fully autonomous task execution.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { taskPersistence } from '@/lib/tasks/persistence';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
 import { Subtask } from '@/lib/tasks/schema';
 import { getAgentManagerForTask, startAgentForTask } from '@/lib/agents/registry';
+import { getProjectDir } from '@/lib/project-dir';
 import fs from 'fs/promises';
 import path from 'path';
 
 export async function POST(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
+
     const { taskId } = await req.json();
 
     if (!taskId) {
-      return NextResponse.json(
-        { error: 'taskId required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'taskId required' }, { status: 400 });
     }
 
     // Load task
     const task = await taskPersistence.loadTask(taskId);
     if (!task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
     // Check if task already has an agent assigned
@@ -44,15 +42,12 @@ export async function POST(req: NextRequest) {
       const mgr = await getAgentManagerForTask(task);
       const existingSession = mgr.getAgentStatus(task.assignedAgent);
       if (existingSession && existingSession.status === 'running') {
-        return NextResponse.json(
-          { error: 'Task already has an agent running' },
-          { status: 409 }
-        );
+        return NextResponse.json({ error: 'Task already has an agent running' }, { status: 409 });
       }
     }
 
     // Ensure logs directory exists
-    const logsPath = `.code-auto/tasks/${taskId}/auto-plan-logs.txt`;
+    const logsPath = path.join(projectDir, '.code-auto', 'tasks', taskId, 'auto-plan-logs.txt');
     const logsDir = path.dirname(logsPath);
     await fs.mkdir(logsDir, { recursive: true });
 
@@ -60,20 +55,28 @@ export async function POST(req: NextRequest) {
     await fs.writeFile(
       logsPath,
       `Auto-Plan started for task: ${task.title}\n` +
-      `Task ID: ${taskId}\n` +
-      `Description: ${task.description}\n` +
-      `Started at: ${new Date().toISOString()}\n` +
-      `${'='.repeat(80)}\n\n`,
+        `Task ID: ${taskId}\n` +
+        `Description: ${task.description}\n` +
+        `Started at: ${new Date().toISOString()}\n` +
+        `${'='.repeat(80)}\n\n`,
       'utf-8'
     );
 
-    await fs.appendFile(logsPath, `[Phase 1] Starting plan generation (no human review required)...\n`, 'utf-8');
+    await fs.appendFile(
+      logsPath,
+      `[Phase 1] Starting plan generation (no human review required)...\n`,
+      'utf-8'
+    );
 
     // Step 1: Generate plan directly (no questions asked)
     const planPrompt = buildPlanPrompt(task);
-    
+
     const onPlanComplete = async (result: { success: boolean; output: string; error?: string }) => {
-      await fs.appendFile(logsPath, `\n[Plan Generation Completed] Success: ${result.success}\n`, 'utf-8');
+      await fs.appendFile(
+        logsPath,
+        `\n[Plan Generation Completed] Success: ${result.success}\n`,
+        'utf-8'
+      );
 
       if (!result.success) {
         await fs.appendFile(logsPath, `[Error] ${result.error}\n`, 'utf-8');
@@ -91,7 +94,7 @@ export async function POST(req: NextRequest) {
       try {
         // Extract plan from output
         let planContent = result.output;
-        
+
         // Try to extract markdown plan if it's in JSON
         try {
           const jsonMatch = result.output.match(/\{[\s\S]*\}/);
@@ -121,17 +124,25 @@ export async function POST(req: NextRequest) {
         await fs.appendFile(
           logsPath,
           `[Plan auto-approved]\n` +
-          `${'='.repeat(80)}\n` +
-          `[Phase 2] Starting subtask generation...\n` +
-          `${'='.repeat(80)}\n\n`,
+            `${'='.repeat(80)}\n` +
+            `[Phase 2] Starting subtask generation...\n` +
+            `${'='.repeat(80)}\n\n`,
           'utf-8'
         );
 
         // Step 2: Generate subtasks from the plan
         const subtaskPrompt = buildSubtaskGenerationPrompt(currentTask);
-        
-        const onSubtasksComplete = async (subtaskResult: { success: boolean; output: string; error?: string }) => {
-          await fs.appendFile(logsPath, `\n[Subtask Generation Completed] Success: ${subtaskResult.success}\n`, 'utf-8');
+
+        const onSubtasksComplete = async (subtaskResult: {
+          success: boolean;
+          output: string;
+          error?: string;
+        }) => {
+          await fs.appendFile(
+            logsPath,
+            `\n[Subtask Generation Completed] Success: ${subtaskResult.success}\n`,
+            'utf-8'
+          );
 
           if (!subtaskResult.success) {
             await fs.appendFile(logsPath, `[Error] ${subtaskResult.error}\n`, 'utf-8');
@@ -154,7 +165,7 @@ export async function POST(req: NextRequest) {
             }
 
             const parsedOutput = JSON.parse(jsonMatch[0]);
-            
+
             if (!parsedOutput.subtasks || !Array.isArray(parsedOutput.subtasks)) {
               throw new Error('Invalid subtasks structure');
             }
@@ -175,7 +186,7 @@ export async function POST(req: NextRequest) {
             if (!taskToUpdate) return;
 
             // Process subtasks
-            const processedSubtasks = subtasks.map(s => ({
+            const processedSubtasks = subtasks.map((s) => ({
               ...s,
               type: (s.type === 'qa' ? 'qa' : 'dev') as 'dev' | 'qa',
               status: 'pending' as const,
@@ -183,18 +194,21 @@ export async function POST(req: NextRequest) {
             }));
 
             // Separate dev and QA subtasks
-            const devSubtasks = processedSubtasks.filter(s => s.type === 'dev');
-            const qaSubtasks = processedSubtasks.filter(s => s.type === 'qa');
+            const devSubtasks = processedSubtasks.filter((s) => s.type === 'dev');
+            const qaSubtasks = processedSubtasks.filter((s) => s.type === 'qa');
 
             // Auto-generate QA subtasks if none provided
-            const finalQASubtasks = qaSubtasks.length > 0 ? qaSubtasks : Array.from({ length: Math.floor(devSubtasks.length * 0.6) }, (_, i) => ({
-              id: `subtask-qa-${i + 1}`,
-              content: `[AUTO] Verify implementation step ${i + 1}`,
-              label: `Verify Step ${i + 1}`,
-              type: 'qa' as const,
-              status: 'pending' as const,
-              activeForm: `Verifying Step ${i + 1}`,
-            }));
+            const finalQASubtasks =
+              qaSubtasks.length > 0
+                ? qaSubtasks
+                : Array.from({ length: Math.floor(devSubtasks.length * 0.6) }, (_, i) => ({
+                    id: `subtask-qa-${i + 1}`,
+                    content: `[AUTO] Verify implementation step ${i + 1}`,
+                    label: `Verify Step ${i + 1}`,
+                    type: 'qa' as const,
+                    status: 'pending' as const,
+                    activeForm: `Verifying Step ${i + 1}`,
+                  }));
 
             taskToUpdate.subtasks = [...devSubtasks, ...finalQASubtasks];
             taskToUpdate.assignedAgent = undefined;
@@ -203,14 +217,13 @@ export async function POST(req: NextRequest) {
             await fs.appendFile(
               logsPath,
               `[Subtasks saved]\n` +
-              `- Dev subtasks: ${devSubtasks.length}\n` +
-              `- QA subtasks: ${finalQASubtasks.length}\n` +
-              `${'='.repeat(80)}\n` +
-              `[PLAN COMPLETE] Task ready for execution\n` +
-              `${'='.repeat(80)}\n`,
+                `- Dev subtasks: ${devSubtasks.length}\n` +
+                `- QA subtasks: ${finalQASubtasks.length}\n` +
+                `${'='.repeat(80)}\n` +
+                `[PLAN COMPLETE] Task ready for execution\n` +
+                `${'='.repeat(80)}\n`,
               'utf-8'
             );
-
           } catch (parseError) {
             await fs.appendFile(
               logsPath,
@@ -233,7 +246,8 @@ export async function POST(req: NextRequest) {
         const { threadId: subtaskThreadId } = await startAgentForTask({
           task: currentTask,
           prompt: subtaskPrompt,
-          workingDir: currentTask.worktreePath || process.cwd(),
+          workingDir: currentTask.worktreePath || projectDir,
+          projectDir,
           onComplete: onSubtasksComplete,
         });
 
@@ -241,8 +255,11 @@ export async function POST(req: NextRequest) {
         currentTask.assignedAgent = subtaskThreadId;
         await taskPersistence.saveTask(currentTask);
 
-        await fs.appendFile(logsPath, `[Subtask Agent Started] Thread ID: ${subtaskThreadId}\n`, 'utf-8');
-
+        await fs.appendFile(
+          logsPath,
+          `[Subtask Agent Started] Thread ID: ${subtaskThreadId}\n`,
+          'utf-8'
+        );
       } catch (error) {
         await fs.appendFile(
           logsPath,
@@ -263,7 +280,8 @@ export async function POST(req: NextRequest) {
     const { threadId: planThreadId } = await startAgentForTask({
       task,
       prompt: planPrompt,
-      workingDir: task.worktreePath || process.cwd(),
+      workingDir: task.worktreePath || projectDir,
+      projectDir,
       onComplete: onPlanComplete,
     });
 
@@ -293,7 +311,7 @@ export async function POST(req: NextRequest) {
 /**
  * Build prompt for direct plan generation (no questions asked)
  */
-function buildPlanPrompt(task: any): string {
+function buildPlanPrompt(task: { title: string; description: string }): string {
   return `You are an AI development assistant. Your task is to create a detailed implementation plan.
 
 **Task:** ${task.title}
@@ -323,7 +341,11 @@ Return your plan as clear markdown. Do NOT return JSON. Format it nicely with he
 /**
  * Build prompt for subtask generation from plan
  */
-function buildSubtaskGenerationPrompt(task: any): string {
+function buildSubtaskGenerationPrompt(task: {
+  title: string;
+  description: string;
+  planContent?: string;
+}): string {
   return `You are an AI development assistant. Your task is to break down an implementation plan into actionable subtasks.
 
 **Task:** ${task.title}

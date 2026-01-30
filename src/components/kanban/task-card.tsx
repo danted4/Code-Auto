@@ -7,7 +7,7 @@
  */
 
 import { useDraggable } from '@dnd-kit/core';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Task } from '@/lib/tasks/schema';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -75,7 +75,7 @@ export function TaskCard({ task }: TaskCardProps) {
         toast.success('Agent started successfully');
         await loadTasks();
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to start agent');
     } finally {
       setIsStarting(false);
@@ -101,14 +101,12 @@ export function TaskCard({ task }: TaskCardProps) {
         toast.success('Agent stopped successfully');
         await loadTasks();
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to stop agent');
     } finally {
       setIsStopping(false);
     }
   };
-
-
 
   const handleAnswerQuestions = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -137,7 +135,7 @@ export function TaskCard({ task }: TaskCardProps) {
         toast.success('Development started successfully');
         await loadTasks();
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to start development');
     } finally {
       setIsStarting(false);
@@ -161,14 +159,14 @@ export function TaskCard({ task }: TaskCardProps) {
         toast.success('AI Review started successfully');
         await loadTasks();
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to start review');
     } finally {
       setIsStarting(false);
     }
   };
 
-  const handleCardClick = (e: React.MouseEvent) => {
+  const handleCardClick = (_e: React.MouseEvent) => {
     // Prevent opening if modal is currently closing (prevents event propagation issues)
     if (isModalClosing) {
       return;
@@ -187,8 +185,12 @@ export function TaskCard({ task }: TaskCardProps) {
     }
 
     // Open detail modal if task has subtasks and is in progress or ai_review phase
-    if (task.subtasks && task.subtasks.length > 0 && !showTaskDetailModal && 
-        (task.phase === 'in_progress' || task.phase === 'ai_review' || task.phase === 'done')) {
+    if (
+      task.subtasks &&
+      task.subtasks.length > 0 &&
+      !showTaskDetailModal &&
+      (task.phase === 'in_progress' || task.phase === 'ai_review' || task.phase === 'done')
+    ) {
       setShowTaskDetailModal(true);
     }
   };
@@ -210,8 +212,12 @@ export function TaskCard({ task }: TaskCardProps) {
 
   const isClickable =
     (task.phase === 'planning' && task.status === 'planning' && !!task.assignedAgent) ||
-    (task.subtasks && task.subtasks.length > 0 &&
-      (task.phase === 'in_progress' || task.phase === 'ai_review' || task.phase === 'human_review' || task.phase === 'done'));
+    (task.subtasks &&
+      task.subtasks.length > 0 &&
+      (task.phase === 'in_progress' ||
+        task.phase === 'ai_review' ||
+        task.phase === 'human_review' ||
+        task.phase === 'done'));
 
   return (
     <Card
@@ -225,7 +231,11 @@ export function TaskCard({ task }: TaskCardProps) {
       {...listeners}
       {...attributes}
       data-testid={`task-card-${task.id}`}
-      className={isClickable ? "hover:shadow-lg transition-shadow" : "cursor-grab active:cursor-grabbing hover:shadow-lg transition-shadow"}
+      className={
+        isClickable
+          ? 'hover:shadow-lg transition-shadow'
+          : 'cursor-grab active:cursor-grabbing hover:shadow-lg transition-shadow'
+      }
       onClick={handleCardClick}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = 'var(--color-border-hover)';
@@ -236,7 +246,11 @@ export function TaskCard({ task }: TaskCardProps) {
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle data-testid="task-title" className="text-sm font-medium line-clamp-2" style={{ color: 'var(--color-text-primary)' }}>
+          <CardTitle
+            data-testid="task-title"
+            className="text-sm font-medium line-clamp-2"
+            style={{ color: 'var(--color-text-primary)' }}
+          >
             {task.title}
           </CardTitle>
           <Badge
@@ -251,7 +265,11 @@ export function TaskCard({ task }: TaskCardProps) {
           </Badge>
         </div>
         {task.description && (
-          <CardDescription data-testid="task-description" className="line-clamp-2 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+          <CardDescription
+            data-testid="task-description"
+            className="line-clamp-2 text-xs"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
             {task.description}
           </CardDescription>
         )}
@@ -267,24 +285,30 @@ export function TaskCard({ task }: TaskCardProps) {
 
       <CardContent className="pt-0 space-y-2">
         {task.subtasks.length > 0 && (
-           <div data-testid="task-subtasks" className="space-y-1">
-             <div className="flex items-center justify-between text-xs">
-               <span style={{ color: 'var(--color-text-muted)' }}>
-                 {task.phase === 'ai_review' ? 'QA Progress' : 'Progress'}
-               </span>
-               <span style={{ color: 'var(--color-text-secondary)' }} className="font-medium">
-                 {(() => {
-                   const relevantSubtasks = task.phase === 'in_progress' 
-                     ? task.subtasks.filter(s => s.type === 'dev')
-                     : task.phase === 'ai_review'
-                     ? task.subtasks.filter(s => s.type === 'qa')
-                     : task.phase === 'human_review'
-                     ? task.subtasks
-                     : task.subtasks;
-                   return Math.round((relevantSubtasks.filter((s) => s.status === 'completed').length / (relevantSubtasks.length || 1)) * 100);
-                 })()}%
-               </span>
-             </div>
+          <div data-testid="task-subtasks" className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span style={{ color: 'var(--color-text-muted)' }}>
+                {task.phase === 'ai_review' ? 'QA Progress' : 'Progress'}
+              </span>
+              <span style={{ color: 'var(--color-text-secondary)' }} className="font-medium">
+                {(() => {
+                  const relevantSubtasks =
+                    task.phase === 'in_progress'
+                      ? task.subtasks.filter((s) => s.type === 'dev')
+                      : task.phase === 'ai_review'
+                        ? task.subtasks.filter((s) => s.type === 'qa')
+                        : task.phase === 'human_review'
+                          ? task.subtasks
+                          : task.subtasks;
+                  return Math.round(
+                    (relevantSubtasks.filter((s) => s.status === 'completed').length /
+                      (relevantSubtasks.length || 1)) *
+                      100
+                  );
+                })()}
+                %
+              </span>
+            </div>
             {/* Progress dots - filtered by phase */}
             <div className="flex gap-1">
               {task.subtasks
@@ -301,7 +325,7 @@ export function TaskCard({ task }: TaskCardProps) {
                   }
                   return false;
                 })
-                .map((subtask, idx) => (
+                .map((subtask, _idx) => (
                   <div
                     key={subtask.id}
                     className="w-2 h-2 rounded-full"
@@ -312,9 +336,12 @@ export function TaskCard({ task }: TaskCardProps) {
                             ? '#a78bfa' // Purple for QA completions
                             : 'var(--color-success)' // Green/Blue for dev completions
                           : subtask.status === 'in_progress'
-                          ? 'var(--color-info)'
-                          : 'var(--color-border)',
-                      animation: subtask.status === 'in_progress' ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : undefined,
+                            ? 'var(--color-info)'
+                            : 'var(--color-border)',
+                      animation:
+                        subtask.status === 'in_progress'
+                          ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                          : undefined,
                     }}
                     title={subtask.content}
                   />
@@ -328,7 +355,11 @@ export function TaskCard({ task }: TaskCardProps) {
           <>
             {task.status === 'planning' && task.assignedAgent ? (
               <div className="flex items-center gap-2">
-                <div data-testid="planning-status" className="text-xs flex-1" style={{ color: 'var(--color-info)' }}>
+                <div
+                  data-testid="planning-status"
+                  className="text-xs flex-1"
+                  style={{ color: 'var(--color-info)' }}
+                >
                   🤖 Planning in progress
                 </div>
                 <Button
@@ -374,7 +405,9 @@ export function TaskCard({ task }: TaskCardProps) {
               >
                 ❓ Answer Questions ({task.planningData?.questions?.length || 0})
               </Button>
-            ) : task.planningStatus === 'plan_ready' && task.requiresHumanReview && !task.planApproved ? (
+            ) : task.planningStatus === 'plan_ready' &&
+              task.requiresHumanReview &&
+              !task.planApproved ? (
               <Button
                 data-testid="review-plan-button"
                 size="sm"
@@ -447,7 +480,10 @@ export function TaskCard({ task }: TaskCardProps) {
               ) : (
                 <div
                   className="w-full text-xs py-2 px-3 rounded text-center"
-                  style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-secondary)' }}
+                  style={{
+                    background: 'var(--color-surface-hover)',
+                    color: 'var(--color-text-secondary)',
+                  }}
                 >
                   🤖 Auto-starting development…
                 </div>
@@ -459,7 +495,11 @@ export function TaskCard({ task }: TaskCardProps) {
           <>
             {task.assignedAgent ? (
               <div className="flex items-center gap-2">
-                <div data-testid="review-status" className="text-xs flex-1" style={{ color: 'var(--color-agent-active)' }}>
+                <div
+                  data-testid="review-status"
+                  className="text-xs flex-1"
+                  style={{ color: 'var(--color-agent-active)' }}
+                >
                   🤖 QA review in progress
                 </div>
                 <Button
@@ -484,42 +524,10 @@ export function TaskCard({ task }: TaskCardProps) {
                   {isStopping ? 'Pausing...' : 'Pause'}
                 </Button>
               </div>
-            ) : (
-              // No-human-review tasks auto-start QA shortly after entering ai_review.
-              // Avoid briefly flashing "Start Review" while the background trigger spins up.
-              !task.requiresHumanReview ? (
-                Date.now() - task.updatedAt > 10_000 ? (
-                  <Button
-                    data-testid="start-review-button"
-                    size="sm"
-                    variant="outline"
-                    onClick={handleStartReview}
-                    disabled={isStarting}
-                    className="w-full text-xs"
-                    style={{
-                      background: 'var(--color-primary)',
-                      color: 'var(--color-primary-text)',
-                      borderColor: 'var(--color-primary)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'var(--color-primary-hover)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'var(--color-primary)';
-                    }}
-                  >
-                    <Play className="w-4 h-4" strokeWidth={2.5} />
-                    {isStarting ? 'Starting...' : 'Retry Auto-Start'}
-                  </Button>
-                ) : (
-                  <div
-                    className="w-full text-xs py-2 px-3 rounded text-center"
-                    style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-secondary)' }}
-                  >
-                    🤖 Auto-starting QA…
-                  </div>
-                )
-              ) : (
+            ) : // No-human-review tasks auto-start QA shortly after entering ai_review.
+            // Avoid briefly flashing "Start Review" while the background trigger spins up.
+            !task.requiresHumanReview ? (
+              Date.now() - task.updatedAt > 10_000 ? (
                 <Button
                   data-testid="start-review-button"
                   size="sm"
@@ -540,15 +548,51 @@ export function TaskCard({ task }: TaskCardProps) {
                   }}
                 >
                   <Play className="w-4 h-4" strokeWidth={2.5} />
-                  {isStarting ? 'Starting...' : 'Start Review'}
+                  {isStarting ? 'Starting...' : 'Retry Auto-Start'}
                 </Button>
+              ) : (
+                <div
+                  className="w-full text-xs py-2 px-3 rounded text-center"
+                  style={{
+                    background: 'var(--color-surface-hover)',
+                    color: 'var(--color-text-secondary)',
+                  }}
+                >
+                  🤖 Auto-starting QA…
+                </div>
               )
+            ) : (
+              <Button
+                data-testid="start-review-button"
+                size="sm"
+                variant="outline"
+                onClick={handleStartReview}
+                disabled={isStarting}
+                className="w-full text-xs"
+                style={{
+                  background: 'var(--color-primary)',
+                  color: 'var(--color-primary-text)',
+                  borderColor: 'var(--color-primary)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--color-primary-hover)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--color-primary)';
+                }}
+              >
+                <Play className="w-4 h-4" strokeWidth={2.5} />
+                {isStarting ? 'Starting...' : 'Start Review'}
+              </Button>
             )}
           </>
         ) : task.phase === 'human_review' ? (
           /* Human Review Phase - Review & Approval */
           <>
-            <div className="w-full text-xs py-2 px-3 rounded text-center" style={{ background: 'var(--color-success)', color: '#ffffff' }}>
+            <div
+              className="w-full text-xs py-2 px-3 rounded text-center"
+              style={{ background: 'var(--color-success)', color: '#ffffff' }}
+            >
               ✓ Ready for human review
             </div>
           </>
@@ -557,7 +601,10 @@ export function TaskCard({ task }: TaskCardProps) {
           <>
             <div
               className="w-full text-xs py-2 px-3 rounded text-center"
-              style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-secondary)' }}
+              style={{
+                background: 'var(--color-surface-hover)',
+                color: 'var(--color-text-secondary)',
+              }}
             >
               ✓ Completed
             </div>
@@ -567,7 +614,11 @@ export function TaskCard({ task }: TaskCardProps) {
           <>
             {task.assignedAgent ? (
               <div className="flex items-center gap-2">
-                <div data-testid="agent-status" className="text-xs flex-1" style={{ color: 'var(--color-agent-active)' }}>
+                <div
+                  data-testid="agent-status"
+                  className="text-xs flex-1"
+                  style={{ color: 'var(--color-agent-active)' }}
+                >
                   🤖 Agent working
                 </div>
                 <Button
@@ -668,6 +719,6 @@ export function TaskCard({ task }: TaskCardProps) {
           threadId={task.assignedAgent}
         />
       )}
-      </Card>
-      );
-      }
+    </Card>
+  );
+}

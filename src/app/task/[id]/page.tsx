@@ -74,19 +74,13 @@ export default function TaskDetailPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/')}
-          className="mb-4"
-        >
+        <Button variant="ghost" onClick={() => router.push('/')} className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Kanban
         </Button>
         <h1 className="text-2xl font-bold text-gray-900">{task.title}</h1>
         <div className="flex items-center gap-2 mt-2">
-          <Badge className={statusColors[task.status]}>
-            {task.status.replace('_', ' ')}
-          </Badge>
+          <Badge className={statusColors[task.status]}>{task.status.replace('_', ' ')}</Badge>
           <Badge variant="outline">{task.phase}</Badge>
         </div>
       </div>
@@ -107,15 +101,24 @@ export default function TaskDetailPage() {
             {task.subtasks.length > 0 && (
               <div>
                 <h3 className="font-medium text-sm text-gray-700 mb-2">
-                  Subtasks ({task.subtasks.filter(s => s.status === 'completed').length}/{task.subtasks.length})
+                  Subtasks ({task.subtasks.filter((s) => s.status === 'completed').length}/
+                  {task.subtasks.length})
                 </h3>
                 <ul className="space-y-1">
                   {task.subtasks.map((subtask) => (
                     <li key={subtask.id} className="flex items-center gap-2 text-sm">
-                      <span className={subtask.status === 'completed' ? 'text-green-600' : 'text-gray-500'}>
+                      <span
+                        className={
+                          subtask.status === 'completed' ? 'text-green-600' : 'text-gray-500'
+                        }
+                      >
                         {subtask.status === 'completed' ? '✓' : '○'}
                       </span>
-                      <span className={subtask.status === 'completed' ? 'line-through text-gray-500' : ''}>
+                      <span
+                        className={
+                          subtask.status === 'completed' ? 'line-through text-gray-500' : ''
+                        }
+                      >
                         {subtask.content}
                       </span>
                     </li>
@@ -127,15 +130,11 @@ export default function TaskDetailPage() {
             <div className="grid grid-cols-2 gap-4 pt-4 border-t">
               <div>
                 <h3 className="font-medium text-sm text-gray-700">Created</h3>
-                <p className="text-sm text-gray-600">
-                  {new Date(task.createdAt).toLocaleString()}
-                </p>
+                <p className="text-sm text-gray-600">{new Date(task.createdAt).toLocaleString()}</p>
               </div>
               <div>
                 <h3 className="font-medium text-sm text-gray-700">Updated</h3>
-                <p className="text-sm text-gray-600">
-                  {new Date(task.updatedAt).toLocaleString()}
-                </p>
+                <p className="text-sm text-gray-600">{new Date(task.updatedAt).toLocaleString()}</p>
               </div>
             </div>
           </CardContent>

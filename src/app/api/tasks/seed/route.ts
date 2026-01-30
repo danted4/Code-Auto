@@ -4,12 +4,15 @@
  * Creates sample tasks for testing the Kanban board
  */
 
-import { NextResponse } from 'next/server';
-import { taskPersistence } from '@/lib/tasks/persistence';
-import { Task, WORKFLOW_PHASES } from '@/lib/tasks/schema';
+import { NextRequest, NextResponse } from 'next/server';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
+import { Task } from '@/lib/tasks/schema';
+import { getProjectDir } from '@/lib/project-dir';
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
     const sampleTasks: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>[] = [
       {
         title: 'Implement user authentication',
@@ -43,10 +46,35 @@ export async function POST() {
         phase: 'in_progress',
         status: 'in_progress',
         subtasks: [
-          { id: '1', content: 'Create endpoint', label: 'Create endpoint', type: 'dev', status: 'completed', completedAt: Date.now() },
-          { id: '2', content: 'Update endpoint', label: 'Update endpoint', type: 'dev', status: 'in_progress' },
-          { id: '3', content: 'List endpoint', label: 'List endpoint', type: 'dev', status: 'pending' },
-          { id: '4', content: 'Verify endpoints work correctly', label: 'Verify endpoints', type: 'qa', status: 'pending' },
+          {
+            id: '1',
+            content: 'Create endpoint',
+            label: 'Create endpoint',
+            type: 'dev',
+            status: 'completed',
+            completedAt: Date.now(),
+          },
+          {
+            id: '2',
+            content: 'Update endpoint',
+            label: 'Update endpoint',
+            type: 'dev',
+            status: 'in_progress',
+          },
+          {
+            id: '3',
+            content: 'List endpoint',
+            label: 'List endpoint',
+            type: 'dev',
+            status: 'pending',
+          },
+          {
+            id: '4',
+            content: 'Verify endpoints work correctly',
+            label: 'Verify endpoints',
+            type: 'qa',
+            status: 'pending',
+          },
         ],
         cliTool: 'amp',
         cliConfig: { mode: 'rush' },
@@ -70,8 +98,22 @@ export async function POST() {
         phase: 'human_review',
         status: 'pending',
         subtasks: [
-          { id: '1', content: 'WebSocket server', label: 'WebSocket server', type: 'qa', status: 'completed', completedAt: Date.now() },
-          { id: '2', content: 'Client integration', label: 'Client integration', type: 'qa', status: 'completed', completedAt: Date.now() },
+          {
+            id: '1',
+            content: 'WebSocket server',
+            label: 'WebSocket server',
+            type: 'qa',
+            status: 'completed',
+            completedAt: Date.now(),
+          },
+          {
+            id: '2',
+            content: 'Client integration',
+            label: 'Client integration',
+            type: 'qa',
+            status: 'completed',
+            completedAt: Date.now(),
+          },
         ],
         cliTool: 'amp',
         cliConfig: { mode: 'rush' },
@@ -84,8 +126,22 @@ export async function POST() {
         phase: 'done',
         status: 'completed',
         subtasks: [
-          { id: '1', content: 'GitHub Actions workflow', label: 'GitHub Actions workflow', type: 'dev', status: 'completed', completedAt: Date.now() },
-          { id: '2', content: 'Deploy to production', label: 'Deploy to production', type: 'dev', status: 'completed', completedAt: Date.now() },
+          {
+            id: '1',
+            content: 'GitHub Actions workflow',
+            label: 'GitHub Actions workflow',
+            type: 'dev',
+            status: 'completed',
+            completedAt: Date.now(),
+          },
+          {
+            id: '2',
+            content: 'Deploy to production',
+            label: 'Deploy to production',
+            type: 'dev',
+            status: 'completed',
+            completedAt: Date.now(),
+          },
         ],
         cliTool: 'amp',
         cliConfig: { mode: 'rush' },

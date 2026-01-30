@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test.describe('Theme Visual Test', () => {
   test('capture all three themes', async ({ page }) => {
@@ -9,7 +9,7 @@ test.describe('Theme Visual Test', () => {
     console.log('📸 Capturing Modern Dark theme...');
     await page.screenshot({
       path: 'e2e/screenshots/theme-modern-dark.png',
-      fullPage: true
+      fullPage: true,
     });
 
     // Open New Task modal for dark theme
@@ -17,7 +17,7 @@ test.describe('Theme Visual Test', () => {
     await page.waitForTimeout(500);
     await page.screenshot({
       path: 'e2e/screenshots/theme-modern-dark-modal.png',
-      fullPage: true
+      fullPage: true,
     });
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
@@ -36,7 +36,7 @@ test.describe('Theme Visual Test', () => {
 
     await page.screenshot({
       path: 'e2e/screenshots/theme-light.png',
-      fullPage: true
+      fullPage: true,
     });
 
     // Open New Task modal for light theme
@@ -44,7 +44,7 @@ test.describe('Theme Visual Test', () => {
     await page.waitForTimeout(500);
     await page.screenshot({
       path: 'e2e/screenshots/theme-light-modal.png',
-      fullPage: true
+      fullPage: true,
     });
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
@@ -62,7 +62,7 @@ test.describe('Theme Visual Test', () => {
 
     await page.screenshot({
       path: 'e2e/screenshots/theme-retro.png',
-      fullPage: true
+      fullPage: true,
     });
 
     // Open New Task modal for retro theme
@@ -70,7 +70,7 @@ test.describe('Theme Visual Test', () => {
     await page.waitForTimeout(500);
     await page.screenshot({
       path: 'e2e/screenshots/theme-retro-modal.png',
-      fullPage: true
+      fullPage: true,
     });
 
     console.log('✅ All theme screenshots captured successfully!');

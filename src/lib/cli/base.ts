@@ -65,7 +65,7 @@ export interface ExecuteRequest {
   threadId?: string; // Optional: resume existing thread
   context?: ContextData; // Optional: injected memory context
   permissions?: PermissionRule[];
-  
+
   // Phase detection fields
   isSubtaskGeneration?: boolean;
   isQuestionGeneration?: boolean;
@@ -131,6 +131,6 @@ export interface ConfigField {
   label: string;
   type: 'select' | 'number' | 'boolean' | 'text';
   options?: { value: string; label: string }[];
-  default?: any;
+  default?: unknown;
   description?: string;
 }

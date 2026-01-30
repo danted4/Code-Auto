@@ -8,51 +8,43 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { taskPersistence } from '@/lib/tasks/persistence';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
 import { Subtask } from '@/lib/tasks/schema';
 import { startAgentForTask } from '@/lib/agents/registry';
+import { getProjectDir } from '@/lib/project-dir';
 import fs from 'fs/promises';
 import path from 'path';
 
 export async function POST(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
+
     const { taskId } = await req.json();
 
     if (!taskId) {
-      return NextResponse.json(
-        { error: 'taskId required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'taskId required' }, { status: 400 });
     }
 
     // Load task
     const task = await taskPersistence.loadTask(taskId);
     if (!task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
     // Check if task is in AI review phase
     if (task.phase !== 'ai_review') {
-      return NextResponse.json(
-        { error: 'Task must be in ai_review phase' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Task must be in ai_review phase' }, { status: 400 });
     }
 
     // Check if task has QA subtasks
-    const qaSubtasks = task.subtasks.filter(s => s.type === 'qa');
+    const qaSubtasks = task.subtasks.filter((s) => s.type === 'qa');
     if (qaSubtasks.length === 0) {
-      return NextResponse.json(
-        { error: 'No QA subtasks found' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No QA subtasks found' }, { status: 400 });
     }
 
     // Ensure review logs directory exists
-    const logsPath = `.code-auto/tasks/${taskId}/review-logs.txt`;
+    const logsPath = path.join(projectDir, '.code-auto', 'tasks', taskId, 'review-logs.txt');
     const logsDir = path.dirname(logsPath);
     await fs.mkdir(logsDir, { recursive: true });
 
@@ -60,9 +52,9 @@ export async function POST(req: NextRequest) {
     await fs.writeFile(
       logsPath,
       `AI Review started for task: ${task.title}\n` +
-      `Task ID: ${taskId}\n` +
-      `Started at: ${new Date().toISOString()}\n` +
-      `${'='.repeat(80)}\n\n`,
+        `Task ID: ${taskId}\n` +
+        `Started at: ${new Date().toISOString()}\n` +
+        `${'='.repeat(80)}\n\n`,
       'utf-8'
     );
 
@@ -71,13 +63,21 @@ export async function POST(req: NextRequest) {
     task.phase = 'ai_review';
     await taskPersistence.saveTask(task);
 
-    await fs.appendFile(logsPath, `[Starting AI Review] ${qaSubtasks.length} QA subtasks to verify\n`, 'utf-8');
+    await fs.appendFile(
+      logsPath,
+      `[Starting AI Review] ${qaSubtasks.length} QA subtasks to verify\n`,
+      'utf-8'
+    );
 
     // Start sequential execution
-    await fs.appendFile(logsPath, `\n${'='.repeat(80)}\n[Starting Sequential QA Verification]\n${'='.repeat(80)}\n\n`, 'utf-8');
+    await fs.appendFile(
+      logsPath,
+      `\n${'='.repeat(80)}\n[Starting Sequential QA Verification]\n${'='.repeat(80)}\n\n`,
+      'utf-8'
+    );
 
     // Execute QA subtasks one by one
-    await executeQASubtasksSequentially(taskId, qaSubtasks, logsPath);
+    await executeQASubtasksSequentially(taskId, qaSubtasks, logsPath, taskPersistence, projectDir);
 
     return NextResponse.json({
       success: true,
@@ -96,7 +96,13 @@ export async function POST(req: NextRequest) {
 /**
  * Execute QA subtasks sequentially
  */
-async function executeQASubtasksSequentially(taskId: string, qaSubtasks: Subtask[], logsPath: string) {
+async function executeQASubtasksSequentially(
+  taskId: string,
+  qaSubtasks: Subtask[],
+  logsPath: string,
+  taskPersistence: ReturnType<typeof getTaskPersistence>,
+  projectDir: string
+) {
   for (let count = 0; count < qaSubtasks.length; count++) {
     const subtask = qaSubtasks[count];
 
@@ -153,8 +159,16 @@ async function executeQASubtasksSequentially(taskId: string, qaSubtasks: Subtask
 Please verify and test this thoroughly following best practices.`;
 
     // Create completion handler for this subtask
-    const onSubtaskComplete = async (result: { success: boolean; output: string; error?: string }) => {
-      await fs.appendFile(logsPath, `\n[QA Subtask ${count + 1} Completed] Success: ${result.success}\n`, 'utf-8');
+    const onSubtaskComplete = async (result: {
+      success: boolean;
+      output: string;
+      error?: string;
+    }) => {
+      await fs.appendFile(
+        logsPath,
+        `\n[QA Subtask ${count + 1} Completed] Success: ${result.success}\n`,
+        'utf-8'
+      );
 
       if (!result.success) {
         await fs.appendFile(logsPath, `[Error] ${result.error}\n`, 'utf-8');
@@ -190,7 +204,11 @@ Please verify and test this thoroughly following best practices.`;
           currentTask.phase = 'human_review'; // Move to human review phase
           currentTask.status = 'completed';
           currentTask.assignedAgent = undefined; // Clear agent
-          await fs.appendFile(logsPath, `\n${'='.repeat(80)}\n[ALL QA SUBTASKS COMPLETED - Moving to Human Review]\n${'='.repeat(80)}\n`, 'utf-8');
+          await fs.appendFile(
+            logsPath,
+            `\n${'='.repeat(80)}\n[ALL QA SUBTASKS COMPLETED - Moving to Human Review]\n${'='.repeat(80)}\n`,
+            'utf-8'
+          );
         }
 
         await taskPersistence.saveTask(currentTask);
@@ -201,11 +219,16 @@ Please verify and test this thoroughly following best practices.`;
     const { threadId: subtaskThreadId } = await startAgentForTask({
       task,
       prompt,
-      workingDir: task.worktreePath || process.cwd(),
+      workingDir: task.worktreePath || projectDir,
+      projectDir,
       onComplete: onSubtaskComplete,
     });
 
-    await fs.appendFile(logsPath, `[Agent Started for QA Subtask] Thread ID: ${subtaskThreadId}\n`, 'utf-8');
+    await fs.appendFile(
+      logsPath,
+      `[Agent Started for QA Subtask] Thread ID: ${subtaskThreadId}\n`,
+      'utf-8'
+    );
 
     // Store the thread ID in task for potential cancellation
     const taskWithThread = await taskPersistence.loadTask(taskId);
@@ -215,14 +238,18 @@ Please verify and test this thoroughly following best practices.`;
     }
 
     // Wait for this subtask to complete before moving to next
-    await waitForSubtaskCompletion(taskId, subtask.id);
+    await waitForSubtaskCompletion(taskId, subtask.id, taskPersistence);
   }
 }
 
 /**
  * Wait for a subtask to complete
  */
-async function waitForSubtaskCompletion(taskId: string, subtaskId: string): Promise<void> {
+async function waitForSubtaskCompletion(
+  taskId: string,
+  subtaskId: string,
+  taskPersistence: ReturnType<typeof getTaskPersistence>
+): Promise<void> {
   return new Promise((resolve) => {
     let elapsed = 0;
     const configured = Number(process.env.CODE_AUTO_SUBTASK_WAIT_MS || '');

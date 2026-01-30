@@ -13,13 +13,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 import { getWorktreeManager } from '@/lib/git/worktree';
+import { getProjectDir } from '@/lib/project-dir';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({} as any));
-    const force = !!body?.force;
+    const projectDir = await getProjectDir(req);
+    const manager = getWorktreeManager(projectDir);
 
-    const manager = getWorktreeManager();
+    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
+    const force = !!body?.force;
     const gitAvailable = await manager.verifyGitAvailable();
 
     let worktreesCleaned = 0;
@@ -29,7 +31,7 @@ export async function POST(req: NextRequest) {
       worktreesCleaned = before.length;
     }
 
-    const base = path.join(process.cwd(), '.code-auto');
+    const base = path.join(projectDir, '.code-auto');
     await fs.rm(path.join(base, 'tasks'), { recursive: true, force: true });
     await fs.rm(path.join(base, 'implementation_plan.json'), { force: true });
     await fs.rm(path.join(base, 'thread-index.json'), { force: true });
@@ -46,4 +48,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

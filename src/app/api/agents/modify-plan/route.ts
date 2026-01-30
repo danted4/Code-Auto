@@ -5,46 +5,46 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { taskPersistence } from '@/lib/tasks/persistence';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
 import { startAgentForTask } from '@/lib/agents/registry';
+import { getProjectDir } from '@/lib/project-dir';
 import fs from 'fs/promises';
+import path from 'path';
 
 export async function POST(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
+
     const { taskId, method, newPlan, feedback } = await req.json();
 
     if (!taskId || !method) {
-      return NextResponse.json(
-        { error: 'taskId and method required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'taskId and method required' }, { status: 400 });
     }
 
     // Load task
     const task = await taskPersistence.loadTask(taskId);
     if (!task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    const logsPath = task.planningLogsPath || `.code-auto/tasks/${taskId}/planning-logs.txt`;
+    const logsPath = task.planningLogsPath
+      ? path.isAbsolute(task.planningLogsPath)
+        ? task.planningLogsPath
+        : path.join(projectDir, task.planningLogsPath)
+      : path.join(projectDir, '.code-auto', 'tasks', taskId, 'planning-logs.txt');
 
     if (method === 'inline') {
       // Direct inline edit - just save the new plan
       if (!newPlan) {
-        return NextResponse.json(
-          { error: 'newPlan required for inline method' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'newPlan required for inline method' }, { status: 400 });
       }
 
       await fs.appendFile(
         logsPath,
         `\n${'='.repeat(80)}\n` +
-        `[Plan Modified - Inline Edit] ${new Date().toISOString()}\n` +
-        `${'='.repeat(80)}\n\n`,
+          `[Plan Modified - Inline Edit] ${new Date().toISOString()}\n` +
+          `${'='.repeat(80)}\n\n`,
         'utf-8'
       );
 
@@ -68,9 +68,9 @@ export async function POST(req: NextRequest) {
       await fs.appendFile(
         logsPath,
         `\n${'='.repeat(80)}\n` +
-        `[Plan Modification Requested] ${new Date().toISOString()}\n` +
-        `Feedback: ${feedback}\n` +
-        `${'='.repeat(80)}\n\n`,
+          `[Plan Modification Requested] ${new Date().toISOString()}\n` +
+          `Feedback: ${feedback}\n` +
+          `${'='.repeat(80)}\n\n`,
         'utf-8'
       );
 
@@ -98,7 +98,11 @@ IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting around
 
       // Create completion handler
       const onComplete = async (result: { success: boolean; output: string; error?: string }) => {
-        await fs.appendFile(logsPath, `\n[Plan Regeneration Completed] Success: ${result.success}\n`, 'utf-8');
+        await fs.appendFile(
+          logsPath,
+          `\n[Plan Regeneration Completed] Success: ${result.success}\n`,
+          'utf-8'
+        );
 
         if (!result.success) {
           await fs.appendFile(logsPath, `[Error] ${result.error}\n`, 'utf-8');
@@ -159,7 +163,8 @@ IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting around
       const { threadId } = await startAgentForTask({
         task,
         prompt,
-        workingDir: task.worktreePath || process.cwd(),
+        workingDir: task.worktreePath || projectDir,
+        projectDir,
         onComplete,
       });
 

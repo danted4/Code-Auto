@@ -2,7 +2,7 @@
  * Agent Manager Singleton
  *
  * Global instance of AgentManager for API routes to use
- * 
+ *
  * Adapter selection:
  * - If AMP_API_KEY env var is set → Use real Amp adapter
  * - Otherwise → Use mock adapter for testing

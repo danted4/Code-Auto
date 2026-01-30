@@ -1,14 +1,15 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { Sidebar } from "@/components/layout/sidebar";
-import { ThemeProvider } from "@/components/theme/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
+import type { Metadata } from 'next';
+import './globals.css';
+import { Sidebar } from '@/components/layout/sidebar';
+import { ThemeProvider } from '@/components/theme/theme-provider';
+import { OpenProjectGate } from '@/components/project/open-project-gate';
+import { Toaster } from '@/components/ui/sonner';
 
 export const metadata: Metadata = {
-  title: "Code-Auto",
-  description: "Autonomous AI agents for developers",
+  title: 'Code-Auto',
+  description: 'Autonomous AI agents for developers',
   icons: {
-    icon: [{ url: "/icon.png", type: "image/png" }],
+    icon: [{ url: '/icon.png', type: 'image/png' }],
   },
 };
 
@@ -19,11 +20,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased flex" style={{ background: 'var(--color-background)', color: 'var(--color-foreground)' }}>
+      <body
+        className="antialiased flex"
+        style={{ background: 'var(--color-background)', color: 'var(--color-foreground)' }}
+      >
         <ThemeProvider>
-          <Sidebar />
-          <main className="flex-1 overflow-hidden">{children}</main>
-          <Toaster />
+          <OpenProjectGate>
+            <Sidebar />
+            <main className="flex-1 overflow-hidden">{children}</main>
+            <Toaster />
+          </OpenProjectGate>
         </ThemeProvider>
       </body>
     </html>

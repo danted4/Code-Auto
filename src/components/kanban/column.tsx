@@ -9,7 +9,6 @@
 import { useDroppable } from '@dnd-kit/core';
 import { Task, WorkflowPhase, getPhaseDisplayName } from '@/lib/tasks/schema';
 import { TaskCard } from './task-card';
-import { cn } from '@/lib/utils';
 
 interface KanbanColumnProps {
   phase: WorkflowPhase;
@@ -48,18 +47,29 @@ export function KanbanColumn({ phase, tasks }: KanbanColumnProps) {
         <h3 className="font-semibold text-base" style={{ color: 'var(--color-text-primary)' }}>
           {getPhaseDisplayName(phase)}
         </h3>
-        <div data-testid={`task-count-${phase}`} className="mt-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+        <div
+          data-testid={`task-count-${phase}`}
+          className="mt-2 text-xs"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
           {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
         </div>
       </div>
 
       {/* Tasks */}
-      <div data-testid={`task-list-${phase}`} className="p-3 space-y-3 min-h-[200px] max-h-[calc(100vh-12rem)] overflow-y-auto">
+      <div
+        data-testid={`task-list-${phase}`}
+        className="p-3 space-y-3 min-h-[200px] max-h-[calc(100vh-12rem)] overflow-y-auto"
+      >
         {tasks.map((task) => (
           <TaskCard key={task.id} task={task} />
         ))}
         {tasks.length === 0 && (
-          <div data-testid={`empty-state-${phase}`} className="text-center py-8 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+          <div
+            data-testid={`empty-state-${phase}`}
+            className="text-center py-8 text-sm"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
             No tasks
           </div>
         )}

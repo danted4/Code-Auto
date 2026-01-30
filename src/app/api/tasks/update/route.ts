@@ -8,27 +8,23 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { taskPersistence } from '@/lib/tasks/persistence';
-import { getWorktreeManager } from '@/lib/git/worktree';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
+import { getProjectDir } from '@/lib/project-dir';
 
 export async function PATCH(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
     const body = await req.json();
     const { taskId, ...updates } = body;
 
     if (!taskId) {
-      return NextResponse.json(
-        { error: 'Task ID required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Task ID required' }, { status: 400 });
     }
 
     const task = await taskPersistence.loadTask(taskId);
     if (!task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
     // Update task
@@ -44,7 +40,9 @@ export async function PATCH(req: NextRequest) {
     // Note: We don't auto-delete worktrees on completion because user may need
     // them for PR/MR review. Worktree cleanup is manual via /api/git/worktree endpoint.
     if (updates.phase === 'done' && task.phase !== 'done' && task.worktreePath) {
-      console.log(`[Task ${taskId}] Transitioned to done. Worktree preserved at ${task.worktreePath}`);
+      console.log(
+        `[Task ${taskId}] Transitioned to done. Worktree preserved at ${task.worktreePath}`
+      );
     }
 
     return NextResponse.json(updatedTask);

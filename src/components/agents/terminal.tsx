@@ -21,9 +21,7 @@ export function AgentTerminal({ threadId }: AgentTerminalProps) {
 
   useEffect(() => {
     // Connect to SSE stream
-    const eventSource = new EventSource(
-      `/api/agents/stream?threadId=${threadId}`
-    );
+    const eventSource = new EventSource(`/api/agents/stream?threadId=${threadId}`);
 
     eventSource.onmessage = (event) => {
       try {
@@ -94,9 +92,7 @@ export function AgentTerminal({ threadId }: AgentTerminalProps) {
         }}
       >
         <span style={{ color: 'var(--color-text-muted)' }}>Thread: {threadId}</span>
-        <span style={{ color: getStatusColor(status) }}>
-          ● {status.toUpperCase()}
-        </span>
+        <span style={{ color: getStatusColor(status) }}>● {status.toUpperCase()}</span>
       </div>
 
       {/* Logs */}
@@ -112,9 +108,7 @@ export function AgentTerminal({ threadId }: AgentTerminalProps) {
             </span>{' '}
             <span style={{ color: 'var(--color-info)' }}>{log.type}:</span>{' '}
             <span style={{ color: 'var(--color-terminal-text)' }}>
-              {typeof log.content === 'string'
-                ? log.content
-                : JSON.stringify(log.content, null, 2)}
+              {typeof log.content === 'string' ? log.content : JSON.stringify(log.content, null, 2)}
             </span>
           </div>
         ))}

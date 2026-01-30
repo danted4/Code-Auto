@@ -23,7 +23,8 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
 
-    /* Custom theme variables (defaults - overridden by ThemeProvider) */
+    /* Custom theme variables (defaults - overridden by ThemeProvider)
+       Must include ALL variables so first paint has correct colors before useEffect runs */
     --color-background: #0f172a;
     --color-foreground: #ffffff;
     --color-surface: #1e293b;
@@ -42,6 +43,25 @@
     --color-destructive: #ef4444;
     --color-destructive-hover: #dc2626;
     --color-destructive-text: #ffffff;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-error: #ef4444;
+    --color-info: #06b6d4;
+    /* Kanban phase colors - critical for first-load appearance */
+    --color-phase-discovery: #8b5cf6;
+    --color-phase-requirements: #6366f1;
+    --color-phase-context: #3b82f6;
+    --color-phase-spec: #06b6d4;
+    --color-phase-planning: #10b981;
+    --color-phase-validate: #f59e0b;
+    --color-status-pending: #6b7280;
+    --color-status-in-progress: #3b82f6;
+    --color-status-completed: #10b981;
+    --color-status-blocked: #ef4444;
+    --color-agent-active: #06b6d4;
+    --color-terminal-background: #0f172a;
+    --color-terminal-text: #e2e8f0;
+    --color-sidebar-shadow: rgba(0, 0, 0, 0.35);
   }
 
   * {

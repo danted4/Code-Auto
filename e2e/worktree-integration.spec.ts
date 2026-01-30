@@ -15,7 +15,7 @@ import * as path from 'path';
 
 const REPO_ROOT = path.join(__dirname, '..');
 const WORKTREES_DIR = path.join(REPO_ROOT, '.code-auto', 'worktrees');
-const ATTENDANCE_FILE = '.code-auto/subtask-attendance.txt';
+const _ATTENDANCE_FILE = '.code-auto/subtask-attendance.txt';
 
 test.describe('Worktree Integration (Phase 3.3)', () => {
   test.beforeEach(async ({ page }) => {
@@ -26,9 +26,7 @@ test.describe('Worktree Integration (Phase 3.3)', () => {
   test('should create worktree when task is created', async ({ request }) => {
     // Get current task count
     const tasksDir = path.join(REPO_ROOT, '.code-auto', 'tasks');
-    const initialCount = fs
-      .readdirSync(tasksDir)
-      .filter((f) => f.endsWith('.json')).length;
+    const _initialCount = fs.readdirSync(tasksDir).filter((f) => f.endsWith('.json')).length;
 
     // Create a new task via API
     const response = await request.post('/api/tasks/create', {
@@ -68,10 +66,7 @@ test.describe('Worktree Integration (Phase 3.3)', () => {
     console.log(`✓ Worktree created at: ${worktreePath}`);
   });
 
-  test('should verify all seeded tasks have worktrees', async ({
-    page,
-    request,
-  }) => {
+  test('should verify all seeded tasks have worktrees', async ({ page, request }) => {
     // Seed test tasks
     const seedResp = await request.post('/api/tasks/seed-test');
     console.log('Seed response status:', seedResp.status());
@@ -107,10 +102,7 @@ test.describe('Worktree Integration (Phase 3.3)', () => {
     }
   });
 
-  test('should verify task metadata has worktree and branch info', async ({
-    page,
-    request,
-  }) => {
+  test('should verify task metadata has worktree and branch info', async ({ request }) => {
     // Seed test tasks
     await request.post('/api/tasks/seed-test');
 
@@ -144,9 +136,7 @@ test.describe('Worktree Integration (Phase 3.3)', () => {
     }
   });
 
-  test('should maintain unique branch per task', async ({
-    request,
-  }) => {
+  test('should maintain unique branch per task', async ({ request }) => {
     // Seed test tasks
     await request.post('/api/tasks/seed-test');
 
@@ -170,7 +160,7 @@ test.describe('Worktree Integration (Phase 3.3)', () => {
           branches.add(task.branchName);
           validTasks++;
         }
-      } catch (e) {
+      } catch (_e) {
         console.log(`Skipping invalid task file: ${taskFile}`);
       }
     }
@@ -183,15 +173,13 @@ test.describe('Worktree Integration (Phase 3.3)', () => {
 
   test('should verify concurrent worktree independence', async () => {
     // List all worktrees
-    const worktrees = fs
-      .readdirSync(WORKTREES_DIR)
-      .filter((f) => {
-        try {
-          return fs.statSync(path.join(WORKTREES_DIR, f)).isDirectory();
-        } catch {
-          return false;
-        }
-      });
+    const worktrees = fs.readdirSync(WORKTREES_DIR).filter((f) => {
+      try {
+        return fs.statSync(path.join(WORKTREES_DIR, f)).isDirectory();
+      } catch {
+        return false;
+      }
+    });
 
     // Should have multiple worktrees from our tests
     expect(worktrees.length).toBeGreaterThanOrEqual(1);
@@ -213,8 +201,6 @@ test.describe('Worktree Integration (Phase 3.3)', () => {
     const uniquePaths = new Set(worktreePaths);
     expect(uniquePaths.size).toBe(worktreePaths.length);
 
-    console.log(
-      `Verified ${worktrees.length} independent worktrees with unique paths`
-    );
+    console.log(`Verified ${worktrees.length} independent worktrees with unique paths`);
   });
 });

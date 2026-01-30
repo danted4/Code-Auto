@@ -8,7 +8,13 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AgentLog } from '@/lib/agents/manager';
 import { toast } from 'sonner';
@@ -20,7 +26,12 @@ interface PlanningLogsModalProps {
   threadId: string;
 }
 
-export function PlanningLogsModal({ open, onOpenChange, taskTitle, threadId }: PlanningLogsModalProps) {
+export function PlanningLogsModal({
+  open,
+  onOpenChange,
+  taskTitle,
+  threadId,
+}: PlanningLogsModalProps) {
   const [logs, setLogs] = useState<AgentLog[]>([]);
   const [status, setStatus] = useState<string>('connecting');
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -87,13 +98,9 @@ export function PlanningLogsModal({ open, onOpenChange, taskTitle, threadId }: P
         typeof log.content === 'string' ? log.content : JSON.stringify(log.content, null, 2);
       return `[${formatTimestamp(log.timestamp)}] ${log.type}: ${content}`;
     });
-    return [
-      `Task: ${taskTitle}`,
-      `Thread: ${threadId}`,
-      `Status: ${status}`,
-      '',
-      ...lines,
-    ].join('\n');
+    return [`Task: ${taskTitle}`, `Thread: ${threadId}`, `Status: ${status}`, '', ...lines].join(
+      '\n'
+    );
   }, [logs, status, taskTitle, threadId]);
 
   const handleCopyLogs = async () => {
@@ -178,10 +185,14 @@ export function PlanningLogsModal({ open, onOpenChange, taskTitle, threadId }: P
 
             {logs.map((log, i) => (
               <div key={i} className="mb-2 whitespace-pre-wrap break-words">
-                <span style={{ color: 'var(--color-text-muted)' }}>[{formatTimestamp(log.timestamp)}]</span>{' '}
+                <span style={{ color: 'var(--color-text-muted)' }}>
+                  [{formatTimestamp(log.timestamp)}]
+                </span>{' '}
                 <span style={{ color: 'var(--color-info)' }}>{log.type}:</span>{' '}
                 <span style={{ color: 'var(--color-terminal-text)' }}>
-                  {typeof log.content === 'string' ? log.content : JSON.stringify(log.content, null, 2)}
+                  {typeof log.content === 'string'
+                    ? log.content
+                    : JSON.stringify(log.content, null, 2)}
                 </span>
               </div>
             ))}
@@ -190,7 +201,10 @@ export function PlanningLogsModal({ open, onOpenChange, taskTitle, threadId }: P
           </div>
         </div>
 
-        <div className="pt-4 flex justify-end gap-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
+        <div
+          className="pt-4 flex justify-end gap-2 border-t"
+          style={{ borderColor: 'var(--color-border)' }}
+        >
           <Button variant="destructive" onClick={() => onOpenChange(false)}>
             Close
           </Button>
@@ -199,4 +213,3 @@ export function PlanningLogsModal({ open, onOpenChange, taskTitle, threadId }: P
     </Dialog>
   );
 }
-

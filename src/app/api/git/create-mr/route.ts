@@ -8,30 +8,30 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { taskPersistence } from '@/lib/tasks/persistence';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
 import { getWorktreeManager } from '@/lib/git/worktree';
+import { getProjectDir } from '@/lib/project-dir';
 import { execFile } from 'child_process';
 
 export const runtime = 'nodejs';
 
-function run(cmd: string, args: string[], cwd: string): Promise<{ stdout: string; stderr: string }> {
+function run(
+  cmd: string,
+  args: string[],
+  cwd: string
+): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
-    execFile(
-      cmd,
-      args,
-      { cwd, maxBuffer: 10 * 1024 * 1024 },
-      (error, stdout, stderr) => {
-        if (error) {
-          const e = new Error(
-            `${cmd} ${args.join(' ')} failed: ${String((stderr || stdout || '').trim()) || error.message}`
-          );
-          (e as any).cause = error;
-          reject(e);
-          return;
-        }
-        resolve({ stdout: String(stdout || ''), stderr: String(stderr || '') });
+    execFile(cmd, args, { cwd, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+      if (error) {
+        const e = new Error(
+          `${cmd} ${args.join(' ')} failed: ${String((stderr || stdout || '').trim()) || error.message}`
+        );
+        (e as Error & { cause?: unknown }).cause = error;
+        reject(e);
+        return;
       }
-    );
+      resolve({ stdout: String(stdout || ''), stderr: String(stderr || '') });
+    });
   });
 }
 
@@ -42,6 +42,10 @@ function extractFirstUrl(text: string): string | null {
 
 export async function POST(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
+    const manager = getWorktreeManager(projectDir);
+
     const { taskId } = await req.json();
     if (!taskId || typeof taskId !== 'string') {
       return NextResponse.json({ error: 'taskId required' }, { status: 400 });
@@ -57,7 +61,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const manager = getWorktreeManager();
     const gitAvailable = await manager.verifyGitAvailable();
     if (!gitAvailable) {
       return NextResponse.json({ error: 'Git is not available' }, { status: 503 });
@@ -128,7 +131,18 @@ export async function POST(req: NextRequest) {
 
     const { stdout: createdOut } = await run(
       'gh',
-      ['pr', 'create', '--title', title, '--body', body, '--base', baseBranch, '--head', task.branchName],
+      [
+        'pr',
+        'create',
+        '--title',
+        title,
+        '--body',
+        body,
+        '--base',
+        baseBranch,
+        '--head',
+        task.branchName,
+      ],
       task.worktreePath
     );
 
@@ -149,4 +163,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

@@ -17,7 +17,7 @@
  */
 
 import { execute } from '@sourcegraph/amp-sdk';
-import type { AmpOptions, StreamMessage as AmpStreamMessage } from '@sourcegraph/amp-sdk';
+import type { AmpOptions } from '@sourcegraph/amp-sdk';
 import fs from 'fs/promises';
 import path from 'path';
 import {
@@ -74,8 +74,8 @@ export class AmpAdapter implements CLIAdapter {
     const effectiveCwd = this.activeThreads.get(threadId) ?? this.config.cwd;
 
     // Detect phase from request or prompt
-    const isSubtaskGeneration = request.isSubtaskGeneration || 
-      request.prompt.includes('SUBTASK GENERATION');
+    const isSubtaskGeneration =
+      request.isSubtaskGeneration || request.prompt.includes('SUBTASK GENERATION');
     const isPlanningPrompt =
       request.prompt.includes('PLANNING PHASE') ||
       request.prompt.includes('Question Generation') ||
@@ -83,10 +83,7 @@ export class AmpAdapter implements CLIAdapter {
 
     try {
       // Build prompt with context injection
-      let fullPrompt = this.buildPromptWithContext(
-        request.prompt,
-        request.context
-      );
+      let fullPrompt = this.buildPromptWithContext(request.prompt, request.context);
 
       console.log('[AmpAdapter] Executing with mode:', this.config.mode);
       console.log('[AmpAdapter] Working directory:', effectiveCwd);
@@ -166,7 +163,7 @@ export class AmpAdapter implements CLIAdapter {
           'utf-8'
         );
         // Amp SDK supports loading a settings file per execution.
-        (options as any).settingsFile = settingsFilePath;
+        (options as AmpOptions & { settingsFile?: string }).settingsFile = settingsFilePath;
       }
 
       // For subtask generation, add validation instructions
@@ -204,23 +201,31 @@ Rules:
 
         // Map SDK message types to our standard format
         let streamType: StreamMessage['type'] = 'assistant';
-        let data: any = message;
+        let data: unknown = message;
+
+        interface AmpAssistantContent {
+          type?: string;
+          text?: string;
+          name?: string;
+          input?: unknown;
+          id?: string;
+        }
 
         if (message.type === 'system') {
           streamType = 'system';
           data = {
             message: `System: session initialized`,
             sessionId: message.session_id,
-            tools: (message as any).tools,
+            tools: (message as { tools?: unknown }).tools,
           };
         } else if (message.type === 'assistant') {
           // The SDK provides a structured Anthropic-style message payload.
           // For downstream validators/parsers, we only want the *raw text* (like Mock does),
           // not JSON-stringified message objects (which escape quotes and break JSON extraction).
-          const msg = (message as any).message;
+          const msg = (message as { message?: { content?: AmpAssistantContent[] } }).message;
           const content = Array.isArray(msg?.content) ? msg.content : [];
 
-          const toolUses = content.filter((c: any) => c?.type === 'tool_use');
+          const toolUses = content.filter((c: AmpAssistantContent) => c?.type === 'tool_use');
           for (const toolUse of toolUses) {
             yield {
               type: 'tool',
@@ -235,8 +240,8 @@ Rules:
           }
 
           const textParts = content
-            .filter((c: any) => c?.type === 'text' && typeof c?.text === 'string')
-            .map((c: any) => c.text);
+            .filter((c: AmpAssistantContent) => c?.type === 'text' && typeof c?.text === 'string')
+            .map((c: AmpAssistantContent) => c.text);
           const text = textParts.join('');
 
           if (text) {
@@ -249,7 +254,12 @@ Rules:
           }
         } else if (message.type === 'result') {
           streamType = 'result';
-          const resultMsg = message as any;
+          const resultMsg = message as {
+            result?: string;
+            message?: string;
+            output?: string;
+            is_error?: boolean;
+          };
           const resultOutput =
             resultMsg.result || resultMsg.message || resultMsg.output || 'Completed';
           accumulatedOutput += String(resultOutput) + '\n';
@@ -384,11 +394,8 @@ Rules:
     options: AmpOptions
   ): AsyncIterable<StreamMessage> {
     // Import validator
-    const {
-      extractAndValidateJSON,
-      validateSubtasks,
-      generateValidationFeedback,
-    } = await import('../validation/subtask-validator');
+    const { extractAndValidateJSON, validateSubtasks, generateValidationFeedback } =
+      await import('../validation/subtask-validator');
 
     let attempt = 0;
     const maxAttempts = 3;
@@ -455,7 +462,7 @@ Rules:
             success: true,
             message: 'Subtasks validation passed',
             output: output,
-            subtasks: parsedData.subtasks,
+            subtasks: parsedData?.subtasks ?? [],
           },
           threadId,
         };
@@ -487,7 +494,9 @@ Rules:
     }
 
     // All attempts failed
-    const finalFeedback = generateValidationFeedback(lastValidationResult || { valid: false, errors: [], warnings: [] });
+    const finalFeedback = generateValidationFeedback(
+      lastValidationResult || { valid: false, errors: [], warnings: [] }
+    );
     yield {
       type: 'error',
       timestamp: Date.now(),
@@ -516,15 +525,15 @@ Rules:
     let accumulatedOutput = '';
 
     for await (const message of messages) {
-      let streamType: StreamMessage['type'] = 'assistant';
-      let data: any = message;
+      const streamType: StreamMessage['type'] = 'assistant';
+      let data: unknown = message;
 
       if (message.type === 'assistant') {
-        const msgContent = JSON.stringify((message as any).message);
+        const msgContent = JSON.stringify((message as { message?: unknown }).message);
         accumulatedOutput += msgContent;
         data = { message: msgContent };
       } else if (message.type === 'result') {
-        const resultMsg = message as any;
+        const resultMsg = message as { result?: string; is_error?: boolean };
         const resultOutput = resultMsg.result || 'Completed';
         accumulatedOutput += resultOutput;
         data = {
@@ -543,11 +552,8 @@ Rules:
     }
 
     // Recursively validate again
-    const {
-      extractAndValidateJSON,
-      validateSubtasks,
-      generateValidationFeedback,
-    } = await import('../validation/subtask-validator');
+    const { extractAndValidateJSON, validateSubtasks } =
+      await import('../validation/subtask-validator');
 
     const { data: parsedData, error: parseError } = extractAndValidateJSON(accumulatedOutput);
 

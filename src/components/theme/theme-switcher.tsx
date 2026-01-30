@@ -26,9 +26,7 @@ export function ThemeSwitcher() {
       <Palette className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
       <Select value={currentTheme} onValueChange={(value) => setTheme(value as ThemeName)}>
         <SelectTrigger className="w-[180px]">
-          <SelectValue>
-            {theme.displayName}
-          </SelectValue>
+          <SelectValue>{theme.displayName}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {themes.map((theme) => (

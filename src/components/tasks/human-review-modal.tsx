@@ -11,12 +11,26 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { GitBranch, Eye, Code2, Folder, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { Task, Subtask } from '@/lib/tasks/schema';
+import {
+  GitBranch,
+  Eye,
+  Code2,
+  Folder,
+  AlertCircle,
+  CheckCircle2,
+  AlertTriangle,
+} from 'lucide-react';
+import { Task } from '@/lib/tasks/schema';
 import { toast } from 'sonner';
 import { useTaskStore } from '@/store/task-store';
 
@@ -37,8 +51,8 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
   const { loadTasks } = useTaskStore();
 
   // Separate dev and QA subtasks
-  const devSubtasks = task.subtasks.filter(s => s.type === 'dev');
-  const qaSubtasks = task.subtasks.filter(s => s.type === 'qa');
+  const devSubtasks = task.subtasks.filter((s) => s.type === 'dev');
+  const qaSubtasks = task.subtasks.filter((s) => s.type === 'qa');
 
   // Check if git is enabled (for now, mock check based on branchName)
   const isGitEnabled = !!task.branchName;
@@ -47,9 +61,9 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
   useEffect(() => {
     if (open && task.branchName) {
       fetch(`/api/git/status?taskId=${task.id}`)
-        .then(res => res.json())
-        .then(data => setGitStatus(data))
-        .catch(err => console.error('Failed to fetch git status:', err));
+        .then((res) => res.json())
+        .then((data) => setGitStatus(data))
+        .catch((err) => console.error('Failed to fetch git status:', err));
     }
   }, [open, task.id, task.branchName]);
 
@@ -68,7 +82,7 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
         body: JSON.stringify({ taskId: task.id }),
       });
 
-      const data = await response.json().catch(() => ({} as any));
+      const data = await response.json().catch(() => ({}) as Record<string, unknown>);
       if (!response.ok) {
         toast.error(data?.error || 'Failed to create MR');
         return;
@@ -106,7 +120,7 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
         }),
       });
 
-      const data = await response.json().catch(() => ({} as any));
+      const data = await response.json().catch(() => ({}) as Record<string, unknown>);
       if (!response.ok) {
         toast.error(data?.error || 'Failed to move task to Done');
         return;
@@ -187,7 +201,7 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
+      <DialogContent
         className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto"
         onClick={handleModalClick}
         onMouseDown={handleMouseDown}
@@ -201,7 +215,10 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
           </DialogDescription>
           {task.branchName && (
             <div className="flex items-center gap-2 pt-2">
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded" style={{ background: 'var(--color-surface-hover)' }}>
+              <div
+                className="flex items-center gap-1.5 px-2 py-1 rounded"
+                style={{ background: 'var(--color-surface-hover)' }}
+              >
                 <GitBranch className="w-3.5 h-3.5" style={{ color: 'var(--color-info)' }} />
                 <span className="text-xs font-mono" style={{ color: 'var(--color-text-primary)' }}>
                   {task.branchName}
@@ -212,20 +229,32 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
                   className="flex items-center gap-1 px-2 py-1 rounded border"
                   style={{
                     borderColor: gitStatus.clean ? 'var(--color-success)' : 'var(--color-warning)',
-                    background: 'transparent'
+                    background: 'transparent',
                   }}
                 >
                   {gitStatus.clean ? (
                     <>
-                      <CheckCircle2 className="w-3.5 h-3.5" style={{ color: 'var(--color-success)' }} />
-                      <span className="text-xs font-medium" style={{ color: 'var(--color-success)' }}>
+                      <CheckCircle2
+                        className="w-3.5 h-3.5"
+                        style={{ color: 'var(--color-success)' }}
+                      />
+                      <span
+                        className="text-xs font-medium"
+                        style={{ color: 'var(--color-success)' }}
+                      >
                         Clean
                       </span>
                     </>
                   ) : (
                     <>
-                      <AlertTriangle className="w-3.5 h-3.5" style={{ color: 'var(--color-warning)' }} />
-                      <span className="text-xs font-medium" style={{ color: 'var(--color-warning)' }}>
+                      <AlertTriangle
+                        className="w-3.5 h-3.5"
+                        style={{ color: 'var(--color-warning)' }}
+                      />
+                      <span
+                        className="text-xs font-medium"
+                        style={{ color: 'var(--color-warning)' }}
+                      >
                         Changes
                       </span>
                     </>
@@ -236,7 +265,7 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
           )}
         </DialogHeader>
 
-        <div 
+        <div
           className="space-y-6 py-4"
           onClick={handleModalClick}
           onMouseDown={handleMouseDown}
@@ -256,7 +285,10 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
                   className="w-3 h-3 rounded-full"
                   style={{ background: 'var(--color-success)' }}
                 />
-                <span className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                <span
+                  className="text-xs font-medium"
+                  style={{ color: 'var(--color-text-secondary)' }}
+                >
                   Development Tasks ({devSubtasks.length})
                 </span>
               </div>
@@ -279,11 +311,11 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
             {/* QA Subtasks */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ background: '#a78bfa' }}
-                />
-                <span className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                <div className="w-3 h-3 rounded-full" style={{ background: '#a78bfa' }} />
+                <span
+                  className="text-xs font-medium"
+                  style={{ color: 'var(--color-text-secondary)' }}
+                >
                   QA Verification Tasks ({qaSubtasks.length})
                 </span>
               </div>
@@ -327,7 +359,10 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
               >
                 <div className="space-y-3">
                   <div>
-                    <h4 className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+                    <h4
+                      className="text-sm font-medium flex items-center gap-2"
+                      style={{ color: 'var(--color-text-primary)' }}
+                    >
                       <Eye className="w-4 h-4" />
                       Create Merge Request
                     </h4>
@@ -371,7 +406,10 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
               >
                 <div className="space-y-3">
                   <div>
-                    <h4 className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+                    <h4
+                      className="text-sm font-medium flex items-center gap-2"
+                      style={{ color: 'var(--color-text-primary)' }}
+                    >
                       <Code2 className="w-4 h-4" />
                       Review Changes Locally
                     </h4>
@@ -412,9 +450,13 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
               }}
             >
               <div className="flex gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--color-warning)' }} />
+                <AlertCircle
+                  className="w-4 h-4 flex-shrink-0 mt-0.5"
+                  style={{ color: 'var(--color-warning)' }}
+                />
                 <p className="text-xs" style={{ color: 'var(--color-text-primary)' }}>
-                  Git is not enabled for this project. Use the options below to navigate to the project and review changes manually.
+                  Git is not enabled for this project. Use the options below to navigate to the
+                  project and review changes manually.
                 </p>
               </div>
             </div>
@@ -442,7 +484,10 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
                 }}
               >
                 <div className="space-y-2">
-                  <h4 className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                  <h4
+                    className="text-xs font-medium"
+                    style={{ color: 'var(--color-text-primary)' }}
+                  >
                     VS Code
                   </h4>
                   <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
@@ -485,7 +530,10 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
                 }}
               >
                 <div className="space-y-2">
-                  <h4 className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                  <h4
+                    className="text-xs font-medium"
+                    style={{ color: 'var(--color-text-primary)' }}
+                  >
                     File Explorer
                   </h4>
                   <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
@@ -524,7 +572,7 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
           </div>
         </div>
 
-        <DialogFooter 
+        <DialogFooter
           className="gap-2"
           onClick={handleModalClick}
           onMouseDown={handleMouseDown}

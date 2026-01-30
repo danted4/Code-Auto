@@ -38,10 +38,7 @@ function escapeRegExp(s: string): string {
 
 function extractSection(md: string, heading: string): string | null {
   // Captures content under "## heading" until next "## " or end.
-  const re = new RegExp(
-    `^##\\s+${escapeRegExp(heading)}\\s*$([\\s\\S]*?)(?=^##\\s+|\\Z)`,
-    'im'
-  );
+  const re = new RegExp(`^##\\s+${escapeRegExp(heading)}\\s*$([\\s\\S]*?)(?=^##\\s+|\\Z)`, 'im');
   const m = md.match(re);
   return m ? m[1].trim() : null;
 }
@@ -159,4 +156,3 @@ export function generatePlanValidationFeedback(result: PlanValidationResult): st
 
   return parts.join('\n');
 }
-

@@ -6,7 +6,7 @@
  * Skips:
  * - Planning phase (no Q&A, no plan generation)
  * - Subtask generation (no breakdown)
- * 
+ *
  * Directly:
  * - Accepts a command/prompt
  * - Executes it in the task's worktree
@@ -14,36 +14,31 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { taskPersistence } from '@/lib/tasks/persistence';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
 import { startAgentForTask } from '@/lib/agents/registry';
+import { getProjectDir } from '@/lib/project-dir';
 import fs from 'fs/promises';
 import path from 'path';
 
 export async function POST(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
+
     const { taskId, command } = await req.json();
 
     if (!taskId) {
-      return NextResponse.json(
-        { error: 'taskId required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'taskId required' }, { status: 400 });
     }
 
     if (!command) {
-      return NextResponse.json(
-        { error: 'command required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'command required' }, { status: 400 });
     }
 
     // Load task
     const task = await taskPersistence.loadTask(taskId);
     if (!task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
     // Determine which CLI to use
@@ -56,7 +51,7 @@ export async function POST(req: NextRequest) {
     await taskPersistence.saveTask(task);
 
     // Create execution logs directory
-    const logsPath = `.code-auto/tasks/${taskId}/execution-logs.txt`;
+    const logsPath = path.join(projectDir, '.code-auto', 'tasks', taskId, 'execution-logs.txt');
     const logsDir = path.dirname(logsPath);
     await fs.mkdir(logsDir, { recursive: true });
 
@@ -64,12 +59,12 @@ export async function POST(req: NextRequest) {
     await fs.writeFile(
       logsPath,
       `Direct Execution for task: ${task.title}\n` +
-      `Task ID: ${taskId}\n` +
-      `CLI Tool: ${cliTool.toUpperCase()}\n` +
-      `Command: ${command}\n` +
-      `Started at: ${new Date().toISOString()}\n` +
-      `Working Directory: ${task.worktreePath || process.cwd()}\n` +
-      `${'='.repeat(80)}\n\n`,
+        `Task ID: ${taskId}\n` +
+        `CLI Tool: ${cliTool.toUpperCase()}\n` +
+        `Command: ${command}\n` +
+        `Started at: ${new Date().toISOString()}\n` +
+        `Working Directory: ${task.worktreePath || projectDir}\n` +
+        `${'='.repeat(80)}\n\n`,
       'utf-8'
     );
 
@@ -78,7 +73,11 @@ export async function POST(req: NextRequest) {
     // (per-task provider + cwd + Amp readiness).
 
     // Create completion handler
-    const onExecutionComplete = async (result: { success: boolean; output: string; error?: string }) => {
+    const onExecutionComplete = async (result: {
+      success: boolean;
+      output: string;
+      error?: string;
+    }) => {
       await fs.appendFile(
         logsPath,
         `\n${'='.repeat(80)}\n[Execution Completed] Success: ${result.success}\n${'='.repeat(80)}\n`,
@@ -112,12 +111,13 @@ export async function POST(req: NextRequest) {
     // Start agent with direct command
     console.log(`[Direct Execution] Starting ${cliTool.toUpperCase()} agent for task ${taskId}`);
     console.log(`[Direct Execution] Command: ${command}`);
-    console.log(`[Direct Execution] Working Dir: ${task.worktreePath || process.cwd()}`);
+    console.log(`[Direct Execution] Working Dir: ${task.worktreePath || projectDir}`);
 
     const { threadId } = await startAgentForTask({
       task,
       prompt: command,
-      workingDir: task.worktreePath || process.cwd(),
+      workingDir: task.worktreePath || projectDir,
+      projectDir,
       onComplete: onExecutionComplete,
     });
 

@@ -10,19 +10,18 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getWorktreeManager } from '@/lib/git/worktree';
+import { getProjectDir } from '@/lib/project-dir';
 
 export async function POST(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const manager = getWorktreeManager(projectDir);
+
     const { action, taskId, force } = await req.json();
 
     if (!taskId) {
-      return NextResponse.json(
-        { error: 'taskId is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'taskId is required' }, { status: 400 });
     }
-
-    const manager = getWorktreeManager();
 
     // Verify git is available
     const gitAvailable = await manager.verifyGitAvailable();
@@ -58,27 +57,22 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json(
-      { error: `Unknown action: ${action}` },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[Worktree API Error]', message);
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function GET(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const manager = getWorktreeManager(projectDir);
+
     const { searchParams } = new URL(req.url);
     const taskId = searchParams.get('taskId');
     const action = searchParams.get('action') || 'status';
-
-    const manager = getWorktreeManager();
 
     // Verify git is available
     const gitAvailable = await manager.verifyGitAvailable();
@@ -91,10 +85,7 @@ export async function GET(req: NextRequest) {
 
     if (action === 'status') {
       if (!taskId) {
-        return NextResponse.json(
-          { error: 'taskId is required for status check' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'taskId is required for status check' }, { status: 400 });
       }
 
       const status = await manager.getWorktreeStatus(taskId);
@@ -111,10 +102,7 @@ export async function GET(req: NextRequest) {
 
     if (action === 'info') {
       if (!taskId) {
-        return NextResponse.json(
-          { error: 'taskId is required for info' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'taskId is required for info' }, { status: 400 });
       }
 
       const mainRepo = await manager.getMainRepoPath();
@@ -130,16 +118,10 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json(
-      { error: `Unknown action: ${action}` },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[Worktree API Error]', message);
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

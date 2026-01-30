@@ -35,11 +35,11 @@ The `WorktreeManager` class in [src/lib/git/worktree.ts](../src/lib/git/worktree
 
 ```typescript
 interface WorktreeInfo {
-  path: string;        // Full path to worktree directory
-  branchName: string;  // Git branch name (code-auto/{task-id})
-  taskId: string;      // Unique task identifier
-  mainRepo: string;    // Path to main repository
-  mainBranch: string;  // Main branch name (main/master)
+  path: string; // Full path to worktree directory
+  branchName: string; // Git branch name (code-auto/{task-id})
+  taskId: string; // Unique task identifier
+  mainRepo: string; // Path to main repository
+  mainBranch: string; // Main branch name (main/master)
 }
 ```
 
@@ -51,20 +51,20 @@ interface WorktreeStatus {
   path?: string;
   branchName?: string;
   hasChanges?: boolean;
-  isDirty?: boolean;   // Has uncommitted changes
+  isDirty?: boolean; // Has uncommitted changes
   error?: string;
 }
 ```
 
 ### Core Methods
 
-| Method | Description |
-|--------|-------------|
-| `createWorktree(taskId)` | Creates a new worktree with dedicated branch |
-| `deleteWorktree(taskId, force?)` | Removes worktree and cleans up |
-| `getWorktreeStatus(taskId)` | Checks worktree existence and state |
-| `listWorktrees()` | Lists all active Code-Auto worktrees |
-| `cleanupAllWorktrees(force?)` | Removes all worktrees (cleanup/reset) |
+| Method                           | Description                                  |
+| -------------------------------- | -------------------------------------------- |
+| `createWorktree(taskId)`         | Creates a new worktree with dedicated branch |
+| `deleteWorktree(taskId, force?)` | Removes worktree and cleans up               |
+| `getWorktreeStatus(taskId)`      | Checks worktree existence and state          |
+| `listWorktrees()`                | Lists all active Code-Auto worktrees         |
+| `cleanupAllWorktrees(force?)`    | Removes all worktrees (cleanup/reset)        |
 
 ### Singleton Access
 
@@ -92,6 +92,7 @@ The worktree is created from the current main branch, ensuring a clean starting 
 ### 2. Usage
 
 During task execution:
+
 - The AI agent operates within the worktree directory
 - All subtasks for the same parent task share the worktree
 - Changes are committed to the task's branch
@@ -130,11 +131,13 @@ Each worktree contains a complete copy of the repository, linked to the main `.g
 ## Branch Naming Convention
 
 All task branches follow the pattern:
+
 ```
 code-auto/{task-id}
 ```
 
 This convention:
+
 - Clearly identifies AI-generated branches
 - Groups all automation branches together
 - Allows easy filtering in git tools

@@ -18,9 +18,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { taskPersistence } from '@/lib/tasks/persistence';
+import path from 'path';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
 import type { Task } from '@/lib/tasks/schema';
 import { getWorktreeManager } from '@/lib/git/worktree';
+import { getProjectDir } from '@/lib/project-dir';
 
 function getBaseUrl(req: NextRequest): string {
   const origin = req.headers.get('origin');
@@ -30,10 +32,18 @@ function getBaseUrl(req: NextRequest): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({} as any));
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
+    const manager = getWorktreeManager(projectDir);
 
-    const title = typeof body.title === 'string' && body.title.trim() ? body.title.trim() : undefined;
-    const description = typeof body.description === 'string' ? body.description : 'Seeded Amp task (planning → auto dev)';
+    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
+
+    const title =
+      typeof body.title === 'string' && body.title.trim() ? body.title.trim() : undefined;
+    const description =
+      typeof body.description === 'string'
+        ? body.description
+        : 'Seeded Amp task (planning → auto dev)';
     const mode = body.mode === 'smart' ? 'smart' : 'rush';
     const startPlanning = body.startPlanning !== false; // default true
     const resetFirst = !!body.resetFirst;
@@ -42,9 +52,12 @@ export async function POST(req: NextRequest) {
     const baseUrl = getBaseUrl(req);
 
     if (resetFirst) {
+      const projectPath = req.headers.get('X-Project-Path');
+      const fetchHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (projectPath) fetchHeaders['X-Project-Path'] = projectPath;
       const res = await fetch(`${baseUrl}/api/dev/reset`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: fetchHeaders,
         body: JSON.stringify({ force: forceReset }),
       });
       if (!res.ok) {
@@ -72,7 +85,7 @@ export async function POST(req: NextRequest) {
       planningStatus: 'not_started',
       planningData: undefined,
       planContent: undefined,
-      planningLogsPath: `.code-auto/tasks/${taskId}/planning-logs.txt`,
+      planningLogsPath: path.join(projectDir, '.code-auto', 'tasks', taskId, 'planning-logs.txt'),
 
       assignedAgent: undefined,
       worktreePath: undefined,
@@ -90,7 +103,6 @@ export async function POST(req: NextRequest) {
     await taskPersistence.saveTask(task);
 
     // Create worktree
-    const manager = getWorktreeManager();
     const gitAvailable = await manager.verifyGitAvailable();
     if (gitAvailable) {
       const wt = await manager.createWorktree(taskId);
@@ -101,9 +113,12 @@ export async function POST(req: NextRequest) {
 
     if (startPlanning) {
       // Mirror New Task modal behavior: start planning immediately
+      const projectPath = req.headers.get('X-Project-Path');
+      const fetchHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (projectPath) fetchHeaders['X-Project-Path'] = projectPath;
       const res = await fetch(`${baseUrl}/api/agents/start-planning`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: fetchHeaders,
         body: JSON.stringify({ taskId }),
       });
       if (!res.ok) {
@@ -126,4 +141,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

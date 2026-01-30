@@ -65,6 +65,9 @@ export interface Theme {
     agentActive: string;
     terminalBackground: string;
     terminalText: string;
+
+    /** Sidebar shadow (cast to the right) - theme-matched */
+    sidebarShadow: string;
   };
 }
 
@@ -119,6 +122,8 @@ export const themes: Record<ThemeName, Theme> = {
       agentActive: '#06b6d4',
       terminalBackground: '#0f172a',
       terminalText: '#e2e8f0',
+
+      sidebarShadow: 'rgba(0, 0, 0, 0.35)',
     },
   },
 
@@ -172,6 +177,8 @@ export const themes: Record<ThemeName, Theme> = {
       agentActive: '#0891b2',
       terminalBackground: '#f8fafc',
       terminalText: '#1e293b',
+
+      sidebarShadow: 'rgba(0, 0, 0, 0.1)',
     },
   },
 
@@ -225,6 +232,8 @@ export const themes: Record<ThemeName, Theme> = {
       agentActive: '#00ffff',
       terminalBackground: '#000000',
       terminalText: '#00ff00',
+
+      sidebarShadow: 'rgba(0, 255, 0, 0.12)',
     },
   },
 };

@@ -27,13 +27,13 @@ All file changes happen inside the task's dedicated worktree (`.code-auto/worktr
 
 Tasks progress through a structured pipeline:
 
-| Phase | Description |
-|-------|-------------|
-| **Planning** | AI generates questions, user provides answers, AI creates implementation plan |
-| **In Progress** | AI agents execute development subtasks in isolated worktree |
-| **AI Review** | Automated QA verification of implementation |
-| **Human Review** | Developer reviews and approves changes |
-| **Done** | Task complete, changes ready for merge |
+| Phase            | Description                                                                   |
+| ---------------- | ----------------------------------------------------------------------------- |
+| **Planning**     | AI generates questions, user provides answers, AI creates implementation plan |
+| **In Progress**  | AI agents execute development subtasks in isolated worktree                   |
+| **AI Review**    | Automated QA verification of implementation                                   |
+| **Human Review** | Developer reviews and approves changes                                        |
+| **Done**         | Task complete, changes ready for merge                                        |
 
 ### Git Worktree Isolation
 
@@ -48,13 +48,14 @@ Each task operates in complete isolation:
 
 Code-Auto uses a **pluggable adapter pattern** to abstract CLI tool interactions, enabling support for multiple AI coding assistants without modifying core orchestration logic.
 
-| Adapter | Provider | Description | Use Case |
-|---------|----------|-------------|----------|
-| **MockCLIAdapter** | `mock` | Simulated responses with configurable delays | Testing, UI development, E2E tests |
-| **AmpAdapter** | `amp` | Sourcegraph Amp SDK integration | Production AI execution with Amp |
-| **CursorAdapter** | `cursor` | Cursor Agent CLI integration | Production AI execution with Cursor |
+| Adapter            | Provider | Description                                  | Use Case                            |
+| ------------------ | -------- | -------------------------------------------- | ----------------------------------- |
+| **MockCLIAdapter** | `mock`   | Simulated responses with configurable delays | Testing, UI development, E2E tests  |
+| **AmpAdapter**     | `amp`    | Sourcegraph Amp SDK integration              | Production AI execution with Amp    |
+| **CursorAdapter**  | `cursor` | Cursor Agent CLI integration                 | Production AI execution with Cursor |
 
 **Key Capabilities:**
+
 - **Dynamic provider selection** — Each task can specify its own CLI provider via `task.cliTool`
 - **Thread management** — Create, resume, and stop isolated execution threads
 - **Context injection** — Memory patterns and project-specific knowledge injected into prompts
@@ -93,10 +94,10 @@ When a plan is approved:
 
 Two planning modes available:
 
-| Mode | Description |
-|------|-------------|
+| Mode                  | Description                                                                     |
+| --------------------- | ------------------------------------------------------------------------------- |
 | **With Human Review** | AI asks clarifying questions → User answers → AI generates plan → User approves |
-| **Auto-Plan** | AI generates plan and subtasks directly without user intervention |
+| **Auto-Plan**         | AI generates plan and subtasks directly without user intervention               |
 
 ### Concurrent Agent Management
 
@@ -129,26 +130,26 @@ stateDiagram-v2
 
 ### Phase Summary
 
-| Phase | Purpose | Entry Trigger | Exit Trigger | Automation |
-|-------|---------|---------------|--------------|------------|
-| **Planning** | Generate implementation plan via AI-assisted Q&A | Task created | User approves plan | AI generates questions → user answers → AI creates plan |
-| **In Progress** | Execute development subtasks in isolated worktree | Plan approved | All `dev` subtasks completed | Dev agent spawned; worktree created |
-| **AI Review** | Automated QA verification of implementation | Dev complete | All `qa` subtasks pass | QA agent auto-spawned |
-| **Human Review** | Developer inspects changes and approves/rejects | QA passes | User approves or merges PR | Notification sent |
-| **Done** | Task complete, branch ready for merge | Human approval | N/A (terminal) | Optional branch cleanup |
+| Phase            | Purpose                                           | Entry Trigger  | Exit Trigger                 | Automation                                              |
+| ---------------- | ------------------------------------------------- | -------------- | ---------------------------- | ------------------------------------------------------- |
+| **Planning**     | Generate implementation plan via AI-assisted Q&A  | Task created   | User approves plan           | AI generates questions → user answers → AI creates plan |
+| **In Progress**  | Execute development subtasks in isolated worktree | Plan approved  | All `dev` subtasks completed | Dev agent spawned; worktree created                     |
+| **AI Review**    | Automated QA verification of implementation       | Dev complete   | All `qa` subtasks pass       | QA agent auto-spawned                                   |
+| **Human Review** | Developer inspects changes and approves/rejects   | QA passes      | User approves or merges PR   | Notification sent                                       |
+| **Done**         | Task complete, branch ready for merge             | Human approval | N/A (terminal)               | Optional branch cleanup                                 |
 
 ### Planning Phase Sub-States
 
 The planning phase has internal states tracked by `planningStatus`:
 
-| Status | Description |
-|--------|-------------|
-| `not_started` | Task created, planning not initiated |
+| Status                 | Description                                                |
+| ---------------------- | ---------------------------------------------------------- |
+| `not_started`          | Task created, planning not initiated                       |
 | `generating_questions` | AI analyzing requirements, generating clarifying questions |
-| `waiting_for_answers` | Questions displayed, awaiting user input |
-| `generating_plan` | AI generating implementation plan from answers |
-| `plan_ready` | Plan generated, awaiting user approval |
-| `plan_approved` | User approved plan, ready to transition to `in_progress` |
+| `waiting_for_answers`  | Questions displayed, awaiting user input                   |
+| `generating_plan`      | AI generating implementation plan from answers             |
+| `plan_ready`           | Plan generated, awaiting user approval                     |
+| `plan_approved`        | User approved plan, ready to transition to `in_progress`   |
 
 ### Backward Transitions (Rework)
 
@@ -159,10 +160,10 @@ Tasks can move backward in the workflow when issues are found:
 
 ### Subtask Completion Rules
 
-| Parent Phase | Subtask Type | Completion Rule |
-|--------------|--------------|-----------------|
-| `in_progress` | `dev` | Task advances when ALL `dev` subtasks have `status: completed` |
-| `ai_review` | `qa` | Task advances when ALL `qa` subtasks have `status: completed` |
+| Parent Phase  | Subtask Type | Completion Rule                                                |
+| ------------- | ------------ | -------------------------------------------------------------- |
+| `in_progress` | `dev`        | Task advances when ALL `dev` subtasks have `status: completed` |
+| `ai_review`   | `qa`         | Task advances when ALL `qa` subtasks have `status: completed`  |
 
 For complete workflow state machine details, see [Architecture: Task Lifecycle](./ARCHITECTURE.md#5-phase-task-workflow).
 
@@ -189,31 +190,31 @@ src/
 
 ### Key Directories
 
-| Path | Purpose |
-|------|---------|
-| `src/app/` | Next.js App Router pages and API routes |
-| `src/app/api/` | REST API endpoints for tasks, agents, and git operations |
-| `src/components/` | React UI components (Kanban board, task cards, modals) |
-| `src/lib/cli/` | CLI adapter implementations (Mock, Amp) |
-| `src/lib/agents/` | Agent orchestration and session management |
-| `src/lib/git/` | WorktreeManager for git worktree operations |
-| `src/lib/tasks/` | Task schema, validation, and persistence |
-| `src/store/` | Zustand state stores for client-side state |
-| `.code-auto/tasks/` | Task JSON files (file-based persistence) |
-| `.code-auto/worktrees/` | Per-task git worktrees for isolation |
+| Path                    | Purpose                                                  |
+| ----------------------- | -------------------------------------------------------- |
+| `src/app/`              | Next.js App Router pages and API routes                  |
+| `src/app/api/`          | REST API endpoints for tasks, agents, and git operations |
+| `src/components/`       | React UI components (Kanban board, task cards, modals)   |
+| `src/lib/cli/`          | CLI adapter implementations (Mock, Amp)                  |
+| `src/lib/agents/`       | Agent orchestration and session management               |
+| `src/lib/git/`          | WorktreeManager for git worktree operations              |
+| `src/lib/tasks/`        | Task schema, validation, and persistence                 |
+| `src/store/`            | Zustand state stores for client-side state               |
+| `.code-auto/tasks/`     | Task JSON files (file-based persistence)                 |
+| `.code-auto/worktrees/` | Per-task git worktrees for isolation                     |
 
 ### API Overview
 
 The application exposes a REST API for programmatic control. Key endpoint groups:
 
-| API Group | Key Endpoints | Description |
-|-----------|---------------|-------------|
-| **Agents** | `POST /api/agents/start-planning`<br>`POST /api/agents/start-development`<br>`POST /api/agents/start-review`<br>`POST /api/agents/stop` | Manage AI agent lifecycle—start planning, development, or review phases; stop running agents |
-| **Tasks** | `POST /api/tasks/create`<br>`GET /api/tasks/list`<br>`POST /api/tasks/update`<br>`DELETE /api/tasks/delete` | CRUD operations for tasks; move, archive, and manage task state |
-| **Subtasks** | `POST /api/tasks/add-subtask`<br>`POST /api/tasks/reorder-subtasks`<br>`POST /api/tasks/skip-subtask` | Add, reorder, skip, or delete subtasks within a task |
-| **Git** | `GET /api/git/changes`<br>`POST /api/git/commit` | View uncommitted changes and commit from the worktree |
-| **Streaming** | `GET /api/agents/stream` | Server-Sent Events for real-time agent log streaming |
-| **CLI** | `GET /api/amp/preflight` | Check Amp SDK availability and configuration |
+| API Group     | Key Endpoints                                                                                                                           | Description                                                                                  |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Agents**    | `POST /api/agents/start-planning`<br>`POST /api/agents/start-development`<br>`POST /api/agents/start-review`<br>`POST /api/agents/stop` | Manage AI agent lifecycle—start planning, development, or review phases; stop running agents |
+| **Tasks**     | `POST /api/tasks/create`<br>`GET /api/tasks/list`<br>`POST /api/tasks/update`<br>`DELETE /api/tasks/delete`                             | CRUD operations for tasks; move, archive, and manage task state                              |
+| **Subtasks**  | `POST /api/tasks/add-subtask`<br>`POST /api/tasks/reorder-subtasks`<br>`POST /api/tasks/skip-subtask`                                   | Add, reorder, skip, or delete subtasks within a task                                         |
+| **Git**       | `GET /api/git/changes`<br>`POST /api/git/commit`                                                                                        | View uncommitted changes and commit from the worktree                                        |
+| **Streaming** | `GET /api/agents/stream`                                                                                                                | Server-Sent Events for real-time agent log streaming                                         |
+| **CLI**       | `GET /api/amp/preflight`                                                                                                                | Check Amp SDK availability and configuration                                                 |
 
 All endpoints return JSON and follow consistent error handling with appropriate HTTP status codes (400, 404, 409, 500).
 

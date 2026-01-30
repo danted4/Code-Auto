@@ -6,12 +6,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { taskPersistence } from '@/lib/tasks/persistence';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
 import { Task } from '@/lib/tasks/schema';
 import { getWorktreeManager } from '@/lib/git/worktree';
+import { getProjectDir } from '@/lib/project-dir';
 
 export async function POST(req: NextRequest) {
   try {
+    const projectDir = await getProjectDir(req);
+    const taskPersistence = getTaskPersistence(projectDir);
     const body = await req.json();
 
     // Generate task ID
@@ -38,7 +41,9 @@ export async function POST(req: NextRequest) {
       planningStatus: body.planningStatus || 'not_started',
       planningData: body.planningData,
       planContent: body.planContent,
-      planningLogsPath: body.planningLogsPath ? body.planningLogsPath.replace('{task-id}', taskId) : `.code-auto/tasks/${taskId}/planning-logs.txt`,
+      planningLogsPath: body.planningLogsPath
+        ? body.planningLogsPath.replace('{task-id}', taskId)
+        : `.code-auto/tasks/${taskId}/planning-logs.txt`,
 
       // Execution
       worktreePath: body.worktreePath,
@@ -60,7 +65,7 @@ export async function POST(req: NextRequest) {
     // If worktree creation fails, we don't fail the task creation
     // (user can still work with task, but won't have isolated branch)
     try {
-      const manager = getWorktreeManager();
+      const manager = getWorktreeManager(projectDir);
       const gitAvailable = await manager.verifyGitAvailable();
 
       if (gitAvailable) {

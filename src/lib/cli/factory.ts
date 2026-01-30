@@ -5,7 +5,6 @@
  * Makes it easy to swap between amp, Cursor, and other CLIs in the future.
  */
 
-import { spawnSync } from 'child_process';
 import { CLIAdapter } from './base';
 import { AmpAdapter } from './amp';
 import { MockCLIAdapter } from './mock';
@@ -39,8 +38,8 @@ export class CLIFactory {
 
   /**
    * Check if a provider is available
-   * 
-   * Note: Returns true if provider is recognized, actual availability 
+   *
+   * Note: Returns true if provider is recognized, actual availability
    * (CLI installed, authenticated) is checked via preflight during execution
    */
   static isProviderAvailable(provider: string): provider is CLIProvider {

@@ -18,7 +18,9 @@ export async function GET() {
         try {
           const cursorAdapter = new CursorAdapter();
           // Prefetch models (warms cache)
-          await (cursorAdapter as any).fetchAvailableModels();
+          await (
+            cursorAdapter as unknown as { fetchAvailableModels: () => Promise<void> }
+          ).fetchAvailableModels();
         } catch (err) {
           console.warn('[API] Failed to prefetch Cursor models:', err);
         }
@@ -28,25 +30,24 @@ export async function GET() {
     await Promise.all(prefetchPromises);
 
     // Get config schema for each adapter (now Cursor will have cached models)
-    const adaptersWithSchemas = adapters.map(adapter => {
-      try {
-        const adapterInstance = CLIFactory.create(adapter.name as any);
-        return {
-          name: adapter.name,
-          displayName: adapter.displayName,
-          configSchema: adapterInstance.getConfigSchema(),
-        };
-      } catch (error) {
-        console.error(`Failed to load adapter ${adapter.name}:`, error);
-        return null;
-      }
-    }).filter(Boolean);
+    const adaptersWithSchemas = adapters
+      .map((adapter) => {
+        try {
+          const adapterInstance = CLIFactory.create(adapter.name as 'amp' | 'mock' | 'cursor');
+          return {
+            name: adapter.name,
+            displayName: adapter.displayName,
+            configSchema: adapterInstance.getConfigSchema(),
+          };
+        } catch (err) {
+          console.error(`Failed to load adapter ${adapter.name}:`, err);
+          return null;
+        }
+      })
+      .filter(Boolean);
 
     return NextResponse.json(adaptersWithSchemas);
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to load CLI adapters' },
-      { status: 500 }
-    );
+  } catch (_error) {
+    return NextResponse.json({ error: 'Failed to load CLI adapters' }, { status: 500 });
   }
 }

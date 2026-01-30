@@ -200,6 +200,7 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isSkipping, setIsSkipping] = useState<string | null>(null);
   const [isSkippingCurrent, setIsSkippingCurrent] = useState(false);
+  const [isCopyButtonHovered, setIsCopyButtonHovered] = useState(false);
   const [subtasks, setSubtasks] = useState<Subtask[]>(task.subtasks);
   const [agentLogs, setAgentLogs] = useState<AgentLog[]>([]);
   const [logStatus, setLogStatus] = useState<
@@ -971,7 +972,6 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
-                    variant="secondary"
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -979,6 +979,15 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
                     }}
                     disabled={!agentLogs.length}
                     title={!agentLogs.length ? 'No logs to copy yet' : 'Copy logs to clipboard'}
+                    style={{
+                      backgroundColor: isCopyButtonHovered
+                        ? 'var(--color-background)'
+                        : 'var(--color-surface-hover)',
+                      color: 'var(--color-text-primary)',
+                      border: '1px solid var(--color-border)',
+                    }}
+                    onMouseEnter={() => setIsCopyButtonHovered(true)}
+                    onMouseLeave={() => setIsCopyButtonHovered(false)}
                   >
                     Copy logs
                   </Button>

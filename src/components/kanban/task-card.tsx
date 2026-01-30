@@ -12,12 +12,13 @@ import { Task } from '@/lib/tasks/schema';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Play, PauseCircle, GitBranch } from 'lucide-react';
+import { Play, PauseCircle, GitBranch, Trash2 } from 'lucide-react';
 import { QAStepperModal } from '@/components/tasks/qa-stepper-modal';
 import { PlanReviewModal } from '@/components/tasks/plan-review-modal';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { HumanReviewModal } from '@/components/tasks/human-review-modal';
 import { PlanningLogsModal } from '@/components/tasks/planning-logs-modal';
+import { DeleteTaskModal } from '@/components/tasks/delete-task-modal';
 import { toast } from 'sonner';
 import { useTaskStore } from '@/store/task-store';
 
@@ -33,6 +34,8 @@ export function TaskCard({ task }: TaskCardProps) {
   const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
   const [showHumanReviewModal, setShowHumanReviewModal] = useState(false);
   const [showPlanningLogsModal, setShowPlanningLogsModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isModalClosing, setIsModalClosing] = useState(false);
   const { loadTasks } = useTaskStore();
 
@@ -108,6 +111,34 @@ export function TaskCard({ task }: TaskCardProps) {
     }
   };
 
+  const handleDeleteIconClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteTask = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/tasks/delete?taskId=${task.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to delete task');
+      } else {
+        toast.success('Task deleted successfully');
+        setShowDeleteModal(false);
+        await loadTasks();
+      }
+    } catch (error) {
+      toast.error('Failed to delete task');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleAnswerQuestions = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowQAModal(true);
@@ -172,6 +203,11 @@ export function TaskCard({ task }: TaskCardProps) {
       return;
     }
 
+    // Prevent opening if delete modal is open
+    if (showDeleteModal) {
+      return;
+    }
+
     // Planning mode: open live planning logs when an agent is running
     if (task.phase === 'planning' && task.status === 'planning' && task.assignedAgent) {
       setShowPlanningLogsModal(true);
@@ -227,6 +263,7 @@ export function TaskCard({ task }: TaskCardProps) {
         background: 'var(--color-surface)',
         borderColor: 'var(--color-border)',
         cursor: isClickable ? 'pointer' : undefined,
+        position: 'relative',
       }}
       {...listeners}
       {...attributes}
@@ -253,16 +290,28 @@ export function TaskCard({ task }: TaskCardProps) {
           >
             {task.title}
           </CardTitle>
-          <Badge
-            data-testid="task-status"
-            className="whitespace-nowrap shrink-0"
-            style={{
-              background: getStatusColors(task.status).bg,
-              color: getStatusColors(task.status).text,
-            }}
-          >
-            {task.status.replace('_', ' ')}
-          </Badge>
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge
+              data-testid="task-status"
+              className="whitespace-nowrap"
+              style={{
+                background: getStatusColors(task.status).bg,
+                color: getStatusColors(task.status).text,
+              }}
+            >
+              {task.status.replace('_', ' ')}
+            </Badge>
+            {/* Delete Icon Button */}
+            <button
+              onClick={handleDeleteIconClick}
+              className="p-1 rounded hover:opacity-70 transition-opacity"
+              style={{ color: 'var(--color-destructive)' }}
+              aria-label="Delete task"
+              data-testid="delete-task-button"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
         {task.description && (
           <CardDescription
@@ -719,6 +768,15 @@ export function TaskCard({ task }: TaskCardProps) {
           threadId={task.assignedAgent}
         />
       )}
+
+      {/* Delete Task Modal */}
+      <DeleteTaskModal
+        open={showDeleteModal}
+        onOpenChange={setShowDeleteModal}
+        task={task}
+        onConfirmDelete={handleDeleteTask}
+        isDeleting={isDeleting}
+      />
     </Card>
   );
 }

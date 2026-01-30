@@ -34,6 +34,7 @@ export function PlanningLogsModal({
 }: PlanningLogsModalProps) {
   const [logs, setLogs] = useState<AgentLog[]>([]);
   const [status, setStatus] = useState<string>('connecting');
+  const [isCopyButtonHovered, setIsCopyButtonHovered] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -147,7 +148,6 @@ export function PlanningLogsModal({
           </div>
           <div className="flex items-center gap-2">
             <Button
-              variant="secondary"
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
@@ -155,6 +155,15 @@ export function PlanningLogsModal({
               }}
               disabled={logs.length === 0}
               title={logs.length === 0 ? 'No logs to copy yet' : 'Copy logs to clipboard'}
+              style={{
+                backgroundColor: isCopyButtonHovered
+                  ? 'var(--color-background)'
+                  : 'var(--color-surface-hover)',
+                color: 'var(--color-text-primary)',
+                border: '1px solid var(--color-border)',
+              }}
+              onMouseEnter={() => setIsCopyButtonHovered(true)}
+              onMouseLeave={() => setIsCopyButtonHovered(false)}
             >
               Copy logs
             </Button>
@@ -205,7 +214,21 @@ export function PlanningLogsModal({
           className="pt-4 flex justify-end gap-2 border-t"
           style={{ borderColor: 'var(--color-border)' }}
         >
-          <Button variant="destructive" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            style={{
+              background: 'var(--color-surface-hover)',
+              color: 'var(--color-text-primary)',
+              borderColor: 'var(--color-border)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--color-background)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--color-surface-hover)';
+            }}
+          >
             Close
           </Button>
         </div>

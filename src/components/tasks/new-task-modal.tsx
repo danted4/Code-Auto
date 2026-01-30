@@ -531,7 +531,21 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
         </div>
 
         <DialogFooter>
-          <Button variant="destructive" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            style={{
+              background: 'var(--color-surface-hover)',
+              color: 'var(--color-text-primary)',
+              borderColor: 'var(--color-border)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--color-background)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--color-surface-hover)';
+            }}
+          >
             Cancel
           </Button>
           <Button

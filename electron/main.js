@@ -19,7 +19,7 @@ const fs = require('fs');
 const os = require('os');
 const http = require('http');
 const net = require('net');
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 
 const isDev = !app.isPackaged;
 const DEFAULT_PORT = parseInt(process.env.PORT || '3000', 10);

@@ -94,7 +94,7 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
         const adapters = await response.json();
         setAvailableAdapters(adapters);
 
-        // Set default CLI tool and config
+        // Set default CLI tool and config (first adapter; Mock is hidden in packaged app)
         if (adapters.length > 0) {
           const defaultAdapter = adapters[0];
           setCliTool(defaultAdapter.name);

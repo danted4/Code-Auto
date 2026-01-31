@@ -105,6 +105,27 @@ export function KanbanBoard() {
         console.error('Failed to auto-start agent:', error);
       }
     }
+
+    // Auto-start AI review when moving to "AI Review" phase (manual drag or automatic)
+    if (
+      newPhase === 'ai_review' &&
+      !task.assignedAgent &&
+      task.subtasks?.some((s) => s.type === 'qa')
+    ) {
+      try {
+        const response = await apiFetch('/api/agents/start-review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taskId: task.id }),
+        });
+
+        if (response.ok) {
+          loadTasks();
+        }
+      } catch (error) {
+        console.error('Failed to auto-start AI review:', error);
+      }
+    }
   };
 
   return (

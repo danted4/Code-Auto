@@ -51,12 +51,15 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
   const isFirstQuestion = currentQuestionIndex === 0;
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
+  // Toggle: click same option again to clear (like checkbox but single selection)
   const handleOptionChange = (option: string) => {
+    const current = answers[currentQuestion.id]?.selectedOption;
+    const newValue = current === option ? '' : option;
     setAnswers((prev) => ({
       ...prev,
       [currentQuestion.id]: {
         ...prev[currentQuestion.id],
-        selectedOption: option,
+        selectedOption: newValue,
       },
     }));
   };
@@ -103,16 +106,22 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
     setCurrentQuestionIndex(index);
   };
 
+  // A question is answered if: radio selected OR additional text filled (no need to force radio)
+  const isQuestionAnswered = (q: PlanningQuestion) => {
+    const a = answers[q.id];
+    return !!(a?.selectedOption?.trim() || a?.additionalText?.trim());
+  };
+
   const canSubmit = () => {
-    // Check if ALL questions (required or optional) are either answered or skipped
-    return questions.every((q) => answers[q.id]?.selectedOption || skippedQuestions.has(q.id));
+    // Check if ALL questions are either answered (radio OR additional text) or skipped
+    return questions.every((q) => isQuestionAnswered(q) || skippedQuestions.has(q.id));
   };
 
   const handleSubmit = async () => {
     // Validate using canSubmit
     if (!canSubmit()) {
       const unanswered = questions.filter(
-        (q) => !answers[q.id]?.selectedOption && !skippedQuestions.has(q.id)
+        (q) => !isQuestionAnswered(q) && !skippedQuestions.has(q.id)
       );
       alert(
         `Please answer or skip all questions. Missing: ${unanswered.map((q) => `Q${q.order}`).join(', ')}`
@@ -172,7 +181,7 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
           </div>
           <div className="flex gap-2 flex-wrap">
             {questions.map((q, index) => {
-              const isAnswered = answers[q.id]?.selectedOption;
+              const isAnswered = isQuestionAnswered(q);
               const isSkipped = skippedQuestions.has(q.id);
               const isCurrent = index === currentQuestionIndex;
 
@@ -232,15 +241,35 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
               </div>
             </div>
 
-            {/* MCQ Options */}
-            <RadioGroup value={currentAnswer.selectedOption} onValueChange={handleOptionChange}>
+            {/* MCQ Options - click same option again to clear (toggle behavior) */}
+            <RadioGroup
+              value={currentAnswer.selectedOption || undefined}
+              onValueChange={handleOptionChange}
+            >
               <div className="space-y-2">
                 {currentQuestion.options.map((option, idx) => (
-                  <div key={idx} className="flex items-center space-x-2">
+                  <div
+                    key={idx}
+                    role="button"
+                    tabIndex={0}
+                    className="flex items-center space-x-2 cursor-pointer rounded p-1 -m-1"
+                    style={{ color: 'var(--color-text-secondary)' }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleOptionChange(option);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleOptionChange(option);
+                      }
+                    }}
+                  >
                     <RadioGroupItem value={option} id={`option-${idx}`} />
                     <Label
                       htmlFor={`option-${idx}`}
-                      className="cursor-pointer font-normal"
+                      className="cursor-pointer font-normal flex-1"
                       style={{ color: 'var(--color-text-secondary)' }}
                     >
                       {option}
@@ -257,7 +286,7 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
                 className="text-sm"
                 style={{ color: 'var(--color-text-muted)' }}
               >
-                Additional notes or custom answer (optional)
+                Additional notes or text-only answer (radio optional)
               </Label>
               <Textarea
                 id="additional-text"
@@ -297,11 +326,11 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
           </button>
 
           <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            {questions.filter((q) => answers[q.id]?.selectedOption).length} answered,{' '}
+            {questions.filter((q) => isQuestionAnswered(q)).length} answered,{' '}
             {skippedQuestions.size} skipped
             {' · '}
             {questions.length -
-              questions.filter((q) => answers[q.id]?.selectedOption || skippedQuestions.has(q.id))
+              questions.filter((q) => isQuestionAnswered(q) || skippedQuestions.has(q.id))
                 .length}{' '}
             remaining
           </div>

@@ -17,13 +17,49 @@ const {
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { execSync, spawn } = require('child_process');
+const http = require('http');
+const net = require('net');
+const { execSync } = require('child_process');
 
-const isDev = process.env.NODE_ENV !== 'production';
-const PORT = process.env.PORT || 3000;
-const URL = isDev ? `http://localhost:${PORT}` : `http://localhost:${PORT}`;
+const isDev = !app.isPackaged;
+const DEFAULT_PORT = parseInt(process.env.PORT || '3000', 10);
+const PORT_RANGE = 10; // try 3000..3009 if default is busy
 
 let mainWindow = null;
+let nextServer = null;
+let serverPort = DEFAULT_PORT;
+let appUrl = null; // Reuse same URL when reopening window (keeps localStorage)
+
+/**
+ * Check if a port is available.
+ * @param {number} port
+ * @returns {Promise<boolean>}
+ */
+function isPortAvailable(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', () => resolve(false));
+    server.once('listening', () => {
+      server.close();
+      resolve(true);
+    });
+    server.listen(port, '127.0.0.1');
+  });
+}
+
+/**
+ * Find first available port in range [start, start + count).
+ * @param {number} start
+ * @param {number} count
+ * @returns {Promise<number|null>}
+ */
+async function findAvailablePort(start, count) {
+  for (let i = 0; i < count; i++) {
+    const port = start + i;
+    if (await isPortAvailable(port)) return port;
+  }
+  return null;
+}
 
 function getIconPath() {
   const base = path.join(app.getAppPath(), 'public');
@@ -36,6 +72,107 @@ function getIconPath() {
   if (fs.existsSync(fallbackPath)) return fallbackPath;
   return path.resolve(__dirname, '..', 'public', fallbackIcon);
 }
+
+/**
+ * Wait for Next.js server to be ready.
+ * @param {string} url
+ * @param {number} timeoutMs
+ * @returns {Promise<boolean>}
+ */
+function waitForServer(url, timeoutMs = 30000) {
+  const start = Date.now();
+  return new Promise((resolve) => {
+    function tryConnect() {
+      const req = http.get(url, (res) => {
+        res.resume();
+        resolve(true);
+      });
+      req.on('error', () => {
+        if (Date.now() - start > timeoutMs) {
+          resolve(false);
+          return;
+        }
+        setTimeout(tryConnect, 200);
+      });
+      req.setTimeout(1000, () => {
+        req.destroy();
+        if (Date.now() - start > timeoutMs) {
+          resolve(false);
+          return;
+        }
+        setTimeout(tryConnect, 200);
+      });
+    }
+    tryConnect();
+  });
+}
+
+/**
+ * Start Next.js server in-process (no subprocess, no extra Dock icon).
+ * Uses first available port in range [DEFAULT_PORT, DEFAULT_PORT + PORT_RANGE) if 3000 is busy.
+ */
+async function startNextServerInBackground() {
+  const appPath = app.getAppPath();
+  const port = await findAvailablePort(DEFAULT_PORT, PORT_RANGE);
+  if (port === null) {
+    showLoadingError(
+      `Ports ${DEFAULT_PORT}-${DEFAULT_PORT + PORT_RANGE - 1} are in use. Please free one and try again.`
+    );
+    return;
+  }
+  serverPort = port;
+  const url = `http://localhost:${port}`;
+  appUrl = url;
+  try {
+    const next = require('next');
+    const nextApp = next({ dev: false, dir: appPath });
+    const handle = nextApp.getRequestHandler();
+    await nextApp.prepare();
+    nextServer = http.createServer((req, res) => handle(req, res));
+    nextServer.listen(port, '127.0.0.1', () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.loadURL(url);
+      }
+    });
+    nextServer.on('error', (err) => {
+      console.error('Next.js server error:', err);
+      showLoadingError('Failed to start server.');
+    });
+  } catch (err) {
+    console.error('Next.js init error:', err);
+    showLoadingError(err?.message || 'Failed to start server.');
+  }
+}
+
+/**
+ * Show error state on the loading page.
+ * @param {string} message
+ */
+function showLoadingError(message) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents
+    .executeJavaScript(
+      `
+    (function() {
+      var el = document.getElementById('error');
+      var spinner = document.getElementById('spinner');
+      var msg = document.getElementById('message');
+      if (el) { el.textContent = ${JSON.stringify(message)}; el.classList.add('visible'); }
+      if (spinner) spinner.style.display = 'none';
+      if (msg) msg.textContent = 'Something went wrong';
+    })();
+  `
+    )
+    .catch(() => {});
+}
+
+const LOADING_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Code-Auto</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem}.container{text-align:center;max-width:320px}.logo{font-size:1.75rem;font-weight:700;color:#fbbf24;margin-bottom:1.5rem;letter-spacing:-.02em}.spinner{width:40px;height:40px;margin:0 auto 1.5rem;border:3px solid #334155;border-top-color:#fbbf24;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.message{color:#94a3b8;font-size:.9375rem;line-height:1.5}.error{display:none;color:#ef4444;font-size:.875rem;margin-top:1rem;padding:.75rem 1rem;background:rgba(239,68,68,.1);border-radius:.5rem}.error.visible{display:block}</style>
+</head>
+<body><div class="container"><div class="logo">Code-Auto</div><div class="spinner" id="spinner"></div><p class="message" id="message">Starting application…</p><p class="error" id="error"></p></div></body></html>`;
 
 function createWindow() {
   const iconPath = getIconPath();
@@ -51,7 +188,15 @@ function createWindow() {
     },
   });
 
-  mainWindow.loadURL(URL);
+  if (isDev) {
+    const devPort = process.env.PORT || DEFAULT_PORT;
+    mainWindow.loadURL(`http://localhost:${devPort}`);
+  } else if (appUrl) {
+    mainWindow.loadURL(appUrl);
+  } else {
+    mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(LOADING_HTML));
+    startNextServerInBackground();
+  }
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -281,6 +426,13 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+app.on('before-quit', () => {
+  if (nextServer) {
+    nextServer.close();
+    nextServer = null;
   }
 });
 

@@ -389,5 +389,6 @@ Return your subtasks in the following JSON format:
   ]
 }
 
-IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or additional text.`;
+IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or additional text.
+Do NOT create or write any files in the workspace. Return only the JSON in your response.`;
 }

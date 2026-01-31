@@ -94,7 +94,8 @@ Return your updated plan in the following JSON format:
   "plan": "# Implementation Plan\\n\\n## Overview\\n...full updated markdown plan here..."
 }
 
-IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting around the JSON.`;
+IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting around the JSON.
+Do NOT create or write any files in the workspace. Return only the JSON in your response.`;
 
       // Create completion handler
       const onComplete = async (result: { success: boolean; output: string; error?: string }) => {

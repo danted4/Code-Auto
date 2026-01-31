@@ -441,7 +441,6 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
                   </Button>
                 </div>
               </Card>
-
             </div>
           ) : (
             <div
@@ -505,7 +504,10 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
                   </p>
                 </div>
                 {editorsLoading ? (
-                  <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                  <div
+                    className="flex items-center gap-2 text-xs"
+                    style={{ color: 'var(--color-text-secondary)' }}
+                  >
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Detecting editors…
                   </div>
@@ -533,14 +535,20 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
                     {availableEditors.length > 1 ? (
                       <Select
                         value={selectedEditorId ?? ''}
-                        onValueChange={(v) => setSelectedEditorId(v === 'cursor' || v === 'vscode' ? v : null)}
+                        onValueChange={(v) =>
+                          setSelectedEditorId(v === 'cursor' || v === 'vscode' ? v : null)
+                        }
                       >
                         <SelectTrigger className="w-full sm:w-[180px] h-9 text-xs">
                           <SelectValue placeholder="Choose editor" />
                         </SelectTrigger>
                         <SelectContent>
                           {availableEditors.map((e) => (
-                            <SelectItem key={e.id} value={e.id} className="text-xs flex items-center gap-2">
+                            <SelectItem
+                              key={e.id}
+                              value={e.id}
+                              className="text-xs flex items-center gap-2"
+                            >
                               <Code2 className="w-3.5 h-3.5" />
                               {e.label}
                             </SelectItem>
@@ -548,7 +556,13 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
                         </SelectContent>
                       </Select>
                     ) : (
-                      <div className="flex items-center gap-2 px-2 py-1.5 rounded text-xs" style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-primary)' }}>
+                      <div
+                        className="flex items-center gap-2 px-2 py-1.5 rounded text-xs"
+                        style={{
+                          background: 'var(--color-surface-hover)',
+                          color: 'var(--color-text-primary)',
+                        }}
+                      >
                         <Code2 className="w-3.5 h-3.5" />
                         {selectedEditor?.label ?? 'Editor'}
                       </div>
@@ -590,10 +604,7 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
               }}
             >
               <div className="space-y-2">
-                <h4
-                  className="text-xs font-medium"
-                  style={{ color: 'var(--color-text-primary)' }}
-                >
+                <h4 className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>
                   File Explorer
                 </h4>
                 <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>

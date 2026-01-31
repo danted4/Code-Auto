@@ -441,6 +441,8 @@ Return your questions in the following JSON format:
   ]
 }
 
+Do NOT create or write any files in the workspace. Return only the JSON in your response.
+
 ====================
 CRITICAL FINAL INSTRUCTION:
 ====================
@@ -480,6 +482,8 @@ Return your plan in the following JSON format:
 {
   "plan": "# Implementation Plan\\n\\n## Overview\\n...full markdown plan here..."
 }
+
+Do NOT create or write any files in the workspace. Return only the JSON in your response.
 
 ====================
 CRITICAL FINAL INSTRUCTION:
@@ -524,7 +528,8 @@ Regenerate the plan so it passes validation.
 
 IMPORTANT:
 - Return ONLY valid JSON, no markdown fences, no extra text.
-- Output shape must be: { "plan": "<markdown>" }`;
+- Output shape must be: { "plan": "<markdown>" }
+- Do NOT create or write any files in the workspace. Return only the JSON in your response.`;
 }
 
 /**

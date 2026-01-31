@@ -5,7 +5,15 @@
  * Exposes native APIs (e.g. folder picker) via preload.
  */
 
-const { app, BrowserWindow, ipcMain, dialog, nativeImage, nativeTheme, shell } = require('electron');
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  nativeImage,
+  nativeTheme,
+  shell,
+} = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -186,7 +194,9 @@ function isPathUnderSafeBase(resolvedPath, projectPath) {
   }
   if (projectPath) {
     try {
-      const projectReal = fs.realpathSync.native ? fs.realpathSync.native(projectPath) : fs.realpathSync(projectPath);
+      const projectReal = fs.realpathSync.native
+        ? fs.realpathSync.native(projectPath)
+        : fs.realpathSync(projectPath);
       if (resolvedPath === projectReal || resolvedPath.startsWith(projectReal + path.sep)) {
         return true;
       }

@@ -203,7 +203,8 @@ Rules:
 - Include at least 2 QA subtasks (type: "qa") for verification/testing
 - Escape any quotes inside strings (use \\" for literal quotes)
 - Do not wrap the JSON in \`\`\`json code blocks
-- Return nothing else - only the JSON object`;
+- Return nothing else - only the JSON object
+- Do NOT create or write any files in the workspace. Return only the JSON in your response.`;
 
             const currentTask = await taskPersistence.loadTask(taskId);
             if (!currentTask) return;
@@ -339,6 +340,8 @@ Return your subtasks in the following JSON format:
     }
   ]
 }
+
+Do NOT create or write any files in the workspace. Return only the JSON in your response.
 
 ====================
 CRITICAL FINAL INSTRUCTION:

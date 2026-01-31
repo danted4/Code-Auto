@@ -133,7 +133,7 @@ export function TaskCard({ task, onEditBlockedTask }: TaskCardProps) {
         setShowDeleteModal(false);
         await loadTasks();
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to delete task');
     } finally {
       setIsDeleting(false);

@@ -4,6 +4,8 @@
   <img src="./public/c_auto.png" alt="Code-Auto logo" />
 </p>
 
+<video src="./public/ca.mp4" controls="controls" autoplay loop muted playsinline></video>
+
 A Next.js ( Electron Desktop ) application for orchestrating AI coding tasks through a structured 5-phase Kanban workflow, with isolated git worktrees per task.
 
 ## Table of Contents

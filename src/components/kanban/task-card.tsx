@@ -174,30 +174,6 @@ export function TaskCard({ task, onEditBlockedTask }: TaskCardProps) {
     }
   };
 
-  const handleStartReview = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsStarting(true);
-    try {
-      const response = await fetch('/api/agents/start-review', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taskId: task.id }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to start review');
-      } else {
-        toast.success('AI Review started successfully');
-        await loadTasks();
-      }
-    } catch (_error) {
-      toast.error('Failed to start review');
-    } finally {
-      setIsStarting(false);
-    }
-  };
-
   const handleCardClick = (_e: React.MouseEvent) => {
     // Prevent opening if modal is currently closing (prevents event propagation issues)
     if (isModalClosing) {
@@ -581,66 +557,17 @@ export function TaskCard({ task, onEditBlockedTask }: TaskCardProps) {
                   {isStopping ? 'Pausing...' : 'Pause'}
                 </Button>
               </div>
-            ) : // No-human-review tasks auto-start QA shortly after entering ai_review.
-            // Avoid briefly flashing "Start Review" while the background trigger spins up.
-            !task.requiresHumanReview ? (
-              Date.now() - task.updatedAt > 10_000 ? (
-                <Button
-                  data-testid="start-review-button"
-                  size="sm"
-                  variant="outline"
-                  onClick={handleStartReview}
-                  disabled={isStarting}
-                  className="w-full text-xs"
-                  style={{
-                    background: 'var(--color-primary)',
-                    color: 'var(--color-primary-text)',
-                    borderColor: 'var(--color-primary)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'var(--color-primary-hover)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'var(--color-primary)';
-                  }}
-                >
-                  <Play className="w-4 h-4" strokeWidth={2.5} />
-                  {isStarting ? 'Starting...' : 'Retry Auto-Start'}
-                </Button>
-              ) : (
-                <div
-                  className="w-full text-xs py-2 px-3 rounded text-center"
-                  style={{
-                    background: 'var(--color-surface-hover)',
-                    color: 'var(--color-text-secondary)',
-                  }}
-                >
-                  🤖 Auto-starting QA…
-                </div>
-              )
             ) : (
-              <Button
-                data-testid="start-review-button"
-                size="sm"
-                variant="outline"
-                onClick={handleStartReview}
-                disabled={isStarting}
-                className="w-full text-xs"
+              // QA auto-starts when dev completes. Never show Start Review button to avoid flash.
+              <div
+                className="w-full text-xs py-2 px-3 rounded text-center"
                 style={{
-                  background: 'var(--color-primary)',
-                  color: 'var(--color-primary-text)',
-                  borderColor: 'var(--color-primary)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--color-primary-hover)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'var(--color-primary)';
+                  background: 'var(--color-surface-hover)',
+                  color: 'var(--color-text-secondary)',
                 }}
               >
-                <Play className="w-4 h-4" strokeWidth={2.5} />
-                {isStarting ? 'Starting...' : 'Start Review'}
-              </Button>
+                🤖 Auto-starting QA…
+              </div>
             )}
           </>
         ) : task.phase === 'human_review' ? (

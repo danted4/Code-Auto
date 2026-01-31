@@ -1020,8 +1020,8 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
 
         {/* Footer with progress */}
         <div className="pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
-          <div className="flex items-center justify-between text-sm gap-3">
-            <div style={{ color: 'var(--color-text-secondary)' }}>
+          <div className="flex items-center text-sm gap-3">
+            <div className="flex-1 text-left" style={{ color: 'var(--color-text-secondary)' }}>
               Progress:{' '}
               {(() => {
                 const relevantSubtasks =
@@ -1033,23 +1033,28 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
                 return `${relevantSubtasks.filter((s) => s.status === 'completed').length}/${relevantSubtasks.length} completed`;
               })()}
             </div>
-            {currentSubtask && (
-              <button
-                onClick={handleSkipCurrentSubtask}
-                disabled={isSkippingCurrent}
-                className="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
-                style={{
-                  background: 'var(--color-warning)',
-                  color: '#000000',
-                  opacity: isSkippingCurrent ? 0.6 : 1,
-                  whiteSpace: 'nowrap',
-                }}
-                title="Skip the currently running subtask (stops the agent)"
-              >
-                {isSkippingCurrent ? 'Skipping…' : 'Skip current'}
-              </button>
-            )}
-            <div className="text-lg font-semibold" style={{ color: 'var(--color-info)' }}>
+            <div className="flex-1 flex justify-center">
+              {currentSubtask && (
+                <button
+                  onClick={handleSkipCurrentSubtask}
+                  disabled={isSkippingCurrent}
+                  className="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+                  style={{
+                    background: 'var(--color-warning)',
+                    color: '#000000',
+                    opacity: isSkippingCurrent ? 0.6 : 1,
+                    whiteSpace: 'nowrap',
+                  }}
+                  title="Skip the currently running subtask (stops the agent)"
+                >
+                  {isSkippingCurrent ? 'Skipping…' : 'Skip current'}
+                </button>
+              )}
+            </div>
+            <div
+              className="flex-1 text-right text-lg font-semibold"
+              style={{ color: 'var(--color-info)' }}
+            >
               {(() => {
                 const relevantSubtasks =
                   task.phase === 'in_progress'

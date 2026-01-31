@@ -154,7 +154,8 @@ Required format:
 Rules:
 - Escape any quotes inside the plan string (use \\" for literal quotes)
 - Do not wrap the JSON in \`\`\`json code blocks
-- Return nothing else - only the JSON object`;
+- Return nothing else - only the JSON object
+- Do NOT create or write any files in the workspace. Return only the JSON in your response.`;
 
             const currentTask = await taskPersistence.loadTask(taskId);
             if (!currentTask) return;
@@ -268,7 +269,8 @@ Return your plan in the following JSON format:
   "plan": "# Implementation Plan\\n\\n## Overview\\n...full markdown plan here..."
 }
 
-IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting around the JSON.`;
+IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting around the JSON.
+Do NOT create or write any files in the workspace. Return only the JSON in your response.`;
 
   return basePrompt;
 }

@@ -53,8 +53,6 @@ export function Sidebar() {
         style={{
           background: 'var(--color-surface)',
           color: 'var(--color-foreground)',
-          boxShadow:
-            '8px 0 32px -4px var(--color-sidebar-shadow), 4px 0 12px -2px var(--color-sidebar-shadow)',
         }}
       >
         {/* Header */}
@@ -222,6 +220,18 @@ export function Sidebar() {
             </Button>
           </div>
         </div>
+
+        {/* Soft shadow - gradient overlays content area only, no hard edge on sidebar */}
+        <div
+          className="absolute top-0 bottom-0 pointer-events-none"
+          style={{
+            left: '100%',
+            width: 24,
+            background:
+              'linear-gradient(to right, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.06) 50%, transparent 100%)',
+          }}
+          aria-hidden
+        />
       </aside>
 
       {/* New Task Modal */}

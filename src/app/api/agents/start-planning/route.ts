@@ -16,6 +16,7 @@ import {
   validatePlanMarkdown,
 } from '@/lib/validation/plan-validator';
 import { cleanPlanningArtifactsFromWorktree } from '@/lib/worktree/cleanup';
+import { getPlanGenerationPrompt } from '@/lib/prompts/loader';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -68,8 +69,10 @@ export async function POST(req: NextRequest) {
       'utf-8'
     );
 
-    // Build planning prompt
-    const prompt = buildPlanningPrompt(task);
+    // Build planning prompt (custom prompts for direct plan; hardcoded for questions)
+    const prompt = task.requiresHumanReview
+      ? buildPlanningPrompt(task)
+      : await getPlanGenerationPrompt(task, undefined, projectDir);
     let planFormatAttempts = 0;
 
     // Create completion handler

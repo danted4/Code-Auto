@@ -27,8 +27,21 @@ test.describe('Kanban Board', () => {
     await expect(sidebarHeader).toContainText('Code-Auto');
     await expect(sidebarHeader).toContainText('Autonomous AI agents');
 
+    // Sidebar header must show version (e.g. v2.1.1 from package.json)
+    const sidebarVersion = page.getByTestId('sidebar-version');
+    await expect(sidebarVersion).toBeVisible();
+    await expect(sidebarVersion).toHaveText(/v\d+\.\d+(\.\d+)?/);
+
     // Take screenshot of full dashboard
     await page.screenshot({ path: 'e2e/screenshots/01-dashboard.png', fullPage: true });
+  });
+
+  test('sidebar header shows version', async ({ page }) => {
+    const sidebarHeader = page.getByTestId('sidebar-header');
+    await expect(sidebarHeader).toBeVisible();
+    const versionEl = page.getByTestId('sidebar-version');
+    await expect(versionEl).toBeVisible();
+    await expect(versionEl).toHaveText(/v\d+\.\d+(\.\d+)?/);
   });
 
   test('should display all navigation sections', async ({ page }) => {

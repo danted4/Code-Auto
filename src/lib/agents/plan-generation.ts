@@ -135,8 +135,7 @@ ${result.output}
 ---
 
 Your task: Output ONLY valid JSON. The system ONLY captures your text output - we cannot read files.
-
-If you wrote the plan to implementation-plan.json or implementation_plan.json, read that file and output its contents wrapped as: {"plan": "<content>"}. Otherwise, extract the plan from the output above.
+Prefer extracting the plan from the output above. If you previously wrote to implementation-plan.json, you may read it and output its contents wrapped as: {"plan": "<content>"} - but do NOT write new files to the worktree.
 
 Required format:
 {
@@ -145,6 +144,7 @@ Required format:
 
 Rules:
 - You MUST output the raw JSON as plain text in your message - writing to a file does NOT work.
+- Do NOT create implementation-plan.json or similar in your working directory - they pollute the worktree.
 - Escape any quotes inside the plan string (use \\" for literal quotes)
 - Do not wrap the JSON in markdown code fences
 - Your final message must be ONLY the JSON object`;

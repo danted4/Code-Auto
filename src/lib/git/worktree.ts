@@ -15,12 +15,45 @@ import { execSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 
+/**
+ * Recursively compute directory size in bytes. Skips symlinks and ignores errors (e.g. permission).
+ */
+function getDirectorySizeBytes(dirPath: string): number {
+  let total = 0;
+  try {
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry.name);
+      try {
+        const stat = fs.statSync(fullPath);
+        if (stat.isDirectory() && !stat.isSymbolicLink()) {
+          total += getDirectorySizeBytes(fullPath);
+        } else if (stat.isFile()) {
+          total += stat.size;
+        }
+      } catch {
+        // Skip inaccessible entries
+      }
+    }
+  } catch {
+    // Directory not readable
+  }
+  return total;
+}
+
 export interface WorktreeInfo {
   path: string;
   branchName: string;
   taskId: string;
   mainRepo: string;
   mainBranch: string;
+  /** True if the worktree has uncommitted changes (from getWorktreeStatus). */
+  isDirty?: boolean;
+}
+
+export interface WorktreeDiskUsage {
+  totalBytes: number;
+  perWorktree: Record<string, number>;
 }
 
 export interface WorktreeStatus {
@@ -30,6 +63,18 @@ export interface WorktreeStatus {
   hasChanges?: boolean;
   isDirty?: boolean; // Has uncommitted changes
   error?: string;
+}
+
+/**
+ * Enriched worktree list item with status and disk usage.
+ * Use listWorktreesEnriched() to get this shape; listWorktrees() returns WorktreeInfo[] for compatibility.
+ */
+export interface WorktreeListItem {
+  taskId: string;
+  path: string;
+  branchName: string;
+  isDirty: boolean;
+  diskUsageBytes: number;
 }
 
 export class WorktreeManager {
@@ -113,19 +158,19 @@ export class WorktreeManager {
   }
 
   /**
-   * Get the worktree base directory path
+   * Get the worktree base directory path (absolute).
    */
   async getWorktreeBasePath(): Promise<string> {
     const mainRepo = await this.getMainRepoPath();
-    return path.join(mainRepo, '.code-auto', 'worktrees');
+    return path.resolve(mainRepo, '.code-auto', 'worktrees');
   }
 
   /**
-   * Get the path for a specific task's worktree
+   * Get the absolute path for a specific task's worktree.
    */
   async getWorktreePath(taskId: string): Promise<string> {
     const basePath = await this.getWorktreeBasePath();
-    return path.join(basePath, taskId);
+    return path.resolve(basePath, taskId);
   }
 
   /**
@@ -173,7 +218,7 @@ export class WorktreeManager {
       console.log(`✓ Branch: ${branchName}`);
 
       return {
-        path: worktreePath,
+        path: path.resolve(worktreePath),
         branchName,
         taskId,
         mainRepo,
@@ -215,7 +260,7 @@ export class WorktreeManager {
 
         return {
           exists: true,
-          path: worktreePath,
+          path: path.resolve(worktreePath),
           branchName,
           hasChanges,
           isDirty: hasChanges,
@@ -224,7 +269,7 @@ export class WorktreeManager {
         // Path exists but not a valid git repo
         return {
           exists: true,
-          path: worktreePath,
+          path: path.resolve(worktreePath),
           error: 'Directory exists but is not a valid git worktree',
         };
       }
@@ -240,23 +285,41 @@ export class WorktreeManager {
    * Delete a worktree
    * - Optionally force delete if it has uncommitted changes
    * - Will not delete if MR/PR exists (manual cleanup required)
+   * - When alsoDeleteBranch is true, runs `git branch -D code-auto/{taskId}` in the main repo after removal
+   * - When alsoDeleteFromRemote is true, runs `git push origin --delete code-auto/{taskId}` after local branch removal
    *
    * @param taskId - Task ID whose worktree to delete
    * @param force - Force delete even with uncommitted changes
+   * @param alsoDeleteBranch - If true, delete the local branch code-auto/{taskId} after removing the worktree
+   * @param alsoDeleteFromRemote - If true, delete the branch from origin (remote) as well
+   * @param worktreePathOverride - When provided, use this path instead of getWorktreePath(taskId). Use the actual path from git worktree list to avoid projectDir mismatch.
    */
-  async deleteWorktree(taskId: string, force: boolean = false): Promise<void> {
+  async deleteWorktree(
+    taskId: string,
+    force: boolean = false,
+    alsoDeleteBranch?: boolean,
+    alsoDeleteFromRemote?: boolean,
+    worktreePathOverride?: string
+  ): Promise<void> {
     try {
       const mainRepo = await this.getMainRepoPath();
-      const worktreePath = await this.getWorktreePath(taskId);
+      const worktreePath = worktreePathOverride ?? (await this.getWorktreePath(taskId));
 
-      const status = await this.getWorktreeStatus(taskId);
-      if (!status.exists) {
+      // When using override (actual path from git), skip getWorktreeStatus - it may use wrong path
+      const status = worktreePathOverride
+        ? { exists: fs.existsSync(worktreePath), isDirty: false }
+        : await this.getWorktreeStatus(taskId);
+
+      // For prunable worktrees (override + dir gone): git still has the reference.
+      // Don't return early - try git worktree remove anyway; it cleans up stale refs.
+      if (!status.exists && !worktreePathOverride) {
+        // No override and path doesn't exist - nothing to do
         console.log(`Worktree does not exist: ${worktreePath}`);
         return;
       }
 
-      // Check for uncommitted changes
-      if (status.isDirty && !force) {
+      // Check for uncommitted changes (only when we have full status and dir exists)
+      if (!worktreePathOverride && status.exists && status.isDirty && !force) {
         throw new Error(
           `Worktree has uncommitted changes. Use force=true to delete anyway, or commit changes first.`
         );
@@ -264,17 +327,65 @@ export class WorktreeManager {
 
       // Delete worktree
       const forceFlag = force ? '--force' : '';
-      execSync(`git worktree remove "${worktreePath}" ${forceFlag}`, {
-        cwd: mainRepo,
-        stdio: 'pipe',
-      });
+      try {
+        execSync(`git worktree remove "${worktreePath}" ${forceFlag}`.trim(), {
+          cwd: mainRepo,
+          stdio: 'pipe',
+        });
+      } catch (removeError) {
+        // Fallback for prunable/broken worktrees (e.g. "gitdir file points to non-existent")
+        // Remove directory manually and prune stale references
+        try {
+          if (fs.existsSync(worktreePath)) {
+            fs.rmSync(worktreePath, { recursive: true, force: true });
+          }
+          execSync('git worktree prune', { cwd: mainRepo, stdio: 'pipe' });
+          console.log(`✓ Worktree removed (fallback prune): ${worktreePath}`);
+        } catch (fallbackError) {
+          const origMsg = removeError instanceof Error ? removeError.message : String(removeError);
+          const fallbackMsg =
+            fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+          throw new Error(
+            `Failed to delete worktree for task ${taskId}: ${origMsg}. Fallback also failed: ${fallbackMsg}`
+          );
+        }
+      }
 
-      // Clean up directory if still exists
+      // Clean up directory if still exists (e.g. remove didn't delete it)
       if (fs.existsSync(worktreePath)) {
         fs.rmSync(worktreePath, { recursive: true, force: true });
       }
 
       console.log(`✓ Worktree deleted: ${worktreePath}`);
+
+      const branchName = `code-auto/${taskId}`;
+      if (alsoDeleteBranch) {
+        try {
+          execSync(`git branch -D "${branchName}"`, {
+            cwd: mainRepo,
+            stdio: 'pipe',
+          });
+          console.log(`✓ Branch deleted (local): ${branchName}`);
+        } catch (branchError) {
+          // Branch may already be deleted or not exist; log but don't fail
+          console.warn(`Could not delete local branch ${branchName}:`, branchError);
+        }
+      }
+      if (alsoDeleteFromRemote) {
+        try {
+          execSync(`git push origin --delete "${branchName}"`, {
+            cwd: mainRepo,
+            stdio: 'pipe',
+          });
+          console.log(`✓ Branch deleted (remote): ${branchName}`);
+        } catch (remoteError) {
+          const msg = remoteError instanceof Error ? remoteError.message : String(remoteError);
+          // "remote ref does not exist" is expected when branch was never pushed - silently ignore
+          if (!msg.includes('remote ref does not exist') && !msg.includes('unable to delete')) {
+            console.warn(`Could not delete remote branch ${branchName}:`, remoteError);
+          }
+        }
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to delete worktree for task ${taskId}: ${message}`);
@@ -282,7 +393,8 @@ export class WorktreeManager {
   }
 
   /**
-   * List all active worktrees
+   * List all active worktrees (paths are normalized to absolute).
+   * Each entry includes isDirty from getWorktreeStatus.
    */
   async listWorktrees(): Promise<WorktreeInfo[]> {
     try {
@@ -299,20 +411,32 @@ export class WorktreeManager {
       for (const line of output.split('\n')) {
         if (!line.trim()) continue;
 
-        const parts = line.split(' ');
-        const worktreePath = parts[0];
+        // Porcelain format: "worktree /path/to/worktree" (key space value)
+        const spaceIdx = line.indexOf(' ');
+        if (spaceIdx === -1) continue;
+        const key = line.slice(0, spaceIdx);
+        const value = line.slice(spaceIdx + 1).trim();
+        if (key !== 'worktree') continue;
+
+        const rawPath = value;
 
         // Extract task ID from path (expects .code-auto/worktrees/{task-id})
-        if (worktreePath.includes('.code-auto/worktrees/')) {
-          const taskId = path.basename(worktreePath);
+        const pathNorm = rawPath.replace(/\\/g, '/');
+        if (pathNorm.includes('.code-auto/worktrees/')) {
+          const taskId = path.basename(path.normalize(rawPath));
           const branchName = `code-auto/${taskId}`;
+          const absolutePath = path.isAbsolute(rawPath)
+            ? path.normalize(rawPath)
+            : path.resolve(mainRepo, rawPath);
 
+          const status = await this.getWorktreeStatus(taskId);
           worktrees.push({
-            path: worktreePath,
+            path: absolutePath,
             branchName,
             taskId,
             mainRepo,
             mainBranch,
+            isDirty: status.isDirty,
           });
         }
       }
@@ -321,6 +445,46 @@ export class WorktreeManager {
     } catch (error) {
       throw new Error(`Failed to list worktrees: ${error}`);
     }
+  }
+
+  /**
+   * List all worktrees with enriched fields: isDirty (from getWorktreeStatus) and diskUsageBytes (from getDiskUsage).
+   * Use this when you need status and size per worktree; listWorktrees() remains for callers that need WorktreeInfo (e.g. mainRepo, mainBranch).
+   */
+  async listWorktreesEnriched(): Promise<WorktreeListItem[]> {
+    const [worktrees, usage] = await Promise.all([this.listWorktrees(), this.getDiskUsage()]);
+    return worktrees.map((wt) => ({
+      taskId: wt.taskId,
+      path: wt.path,
+      branchName: wt.branchName,
+      isDirty: wt.isDirty ?? false,
+      diskUsageBytes: usage.perWorktree[wt.taskId] ?? 0,
+    }));
+  }
+
+  /**
+   * Compute total and per-worktree disk usage for .code-auto/worktrees.
+   */
+  async getDiskUsage(): Promise<WorktreeDiskUsage> {
+    const basePath = await this.getWorktreeBasePath();
+    const perWorktree: Record<string, number> = {};
+    let totalBytes = 0;
+
+    if (!fs.existsSync(basePath) || !fs.statSync(basePath).isDirectory()) {
+      return { totalBytes: 0, perWorktree };
+    }
+
+    const entries = fs.readdirSync(basePath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const taskId = entry.name;
+      const dirPath = path.resolve(basePath, taskId);
+      const size = getDirectorySizeBytes(dirPath);
+      perWorktree[taskId] = size;
+      totalBytes += size;
+    }
+
+    return { totalBytes, perWorktree };
   }
 
   /**

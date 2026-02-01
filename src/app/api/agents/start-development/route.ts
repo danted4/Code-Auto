@@ -211,6 +211,7 @@ Rules:
 - Include at least 2 QA subtasks (type: "qa") for verification/testing
 - Escape any quotes inside strings (use \\" for literal quotes)
 - You MUST output the raw JSON as plain text in your message - writing to a file does NOT work.
+- Do NOT create subtasks.json or similar in your working directory - they pollute the worktree.
 - Your final message must be ONLY the JSON object`;
 
             const currentTask = await taskPersistence.loadTask(taskId);

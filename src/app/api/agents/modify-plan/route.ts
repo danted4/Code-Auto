@@ -95,7 +95,8 @@ Return your updated plan in the following JSON format:
   "plan": "# Implementation Plan\\n\\n## Overview\\n...full updated markdown plan here..."
 }
 
-CRITICAL: The system ONLY captures your text output. You MUST output the raw JSON as plain text in your message - writing to a file does NOT work. No markdown fences, no extra text.`;
+CRITICAL: The system ONLY captures your text output. You MUST output the raw JSON as plain text in your message - writing to a file does NOT work.
+Do NOT create implementation-plan.json or similar in your working directory - they pollute the worktree. No markdown fences, no extra text.`;
 
       // Create completion handler
       const onComplete = async (result: { success: boolean; output: string; error?: string }) => {

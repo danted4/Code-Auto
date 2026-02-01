@@ -24,6 +24,11 @@ Create a detailed plan in EXACTLY this structure (required headings):
 
 Format your plan in Markdown with clear headings and bullet points.`;
 
+/** Shared instruction: do not write planning/subtask artifacts to the worktree. */
+export const OUTPUT_NO_FILES_IN_WORKTREE = `
+Do NOT create implementation-plan.json, planning-questions.json, plan.md, subtasks.json, or similar files in your working directory - they pollute the worktree and we cannot read them.
+If you must write to a file for your workflow, use ONLY ../../scratch/ (relative to cwd - outside the worktree). You must still output the JSON in your chat message.`;
+
 export const PLAN_GENERATION_SUFFIX = `
 
 Return your plan in the following JSON format:
@@ -36,7 +41,8 @@ CRITICAL - Your response MUST contain the raw JSON as plain text in your message
 - You MUST output the JSON directly in your final message - writing to a file does NOT work.
 - No markdown code fences, no explanatory text before or after the JSON.
 - After your analysis, you MUST OUTPUT TEXT - do not just stop thinking.
-- Your last message must be the raw JSON object, e.g. {"plan":"# Implementation Plan\\n\\n## Overview\\n..."}`;
+- Your last message must be the raw JSON object, e.g. {"plan":"# Implementation Plan\\n\\n## Overview\\n..."}
+${OUTPUT_NO_FILES_IN_WORKTREE}`;
 
 /** Content injected for {{user_answers}} when generating plan from Q&A (internal, not user-editable) */
 export const PLAN_USER_ANSWERS_INTRO = `Based on the user's answers above, create a comprehensive implementation plan that addresses their specific requirements and preferences.
@@ -107,4 +113,5 @@ CRITICAL - Your response MUST contain the raw JSON as plain text in your message
 - The system ONLY captures your text/chat output. We cannot read files you create.
 - You MUST output the JSON directly in your final message - writing to a file does NOT work.
 - No markdown code fences, no explanatory text before or after.
-- Your last message must be the raw JSON object, e.g. {"subtasks":[{"id":"subtask-1","content":"...","label":"...","activeForm":"...","type":"dev"}]}`;
+- Your last message must be the raw JSON object, e.g. {"subtasks":[{"id":"subtask-1","content":"...","label":"...","activeForm":"...","type":"dev"}]}
+${OUTPUT_NO_FILES_IN_WORKTREE}`;

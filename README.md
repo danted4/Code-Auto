@@ -4,6 +4,14 @@
   <img src="./public/c_auto.png" alt="Code-Auto logo" />
 </a>
 
+#
+
+<p style="font-size:18px"><i>"Ever since the first MVP was shipped, Code-Auto has started modifying its <b>own code</b>..."</i></p><p style="style=font-size:16px">It felt weird at first, but it is fun to watch it ship its own features one by one to production. That's the power of a clean workflow design !</p>
+
+#
+
+### What is Code-Auto ?
+
 A Next.js ( Electron Desktop ) application for orchestrating AI coding tasks through a structured 5-phase Kanban workflow, with isolated git worktrees per task.
 
 ## Table of Contents

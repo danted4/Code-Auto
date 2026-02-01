@@ -346,7 +346,9 @@ Guidelines:
 - Include relevant technical details
 - Consider dependencies and order of execution
 
-Return your plan as clear markdown. Do NOT return JSON. Format it nicely with headers and bullet points.`;
+Return your plan as clear markdown. Do NOT return JSON. Format it nicely with headers and bullet points.
+
+Do NOT create implementation-plan.json, plan.md, or similar in your working directory - they pollute the worktree. If you must write to a file, use ONLY ../../scratch/ (outside the worktree).`;
 }
 
 /**
@@ -400,5 +402,6 @@ Return your subtasks in the following JSON format:
   ]
 }
 
-CRITICAL: The system ONLY captures your text output. You MUST output the raw JSON as plain text in your message - writing to a file does NOT work. No markdown fences, no extra text.`;
+CRITICAL: The system ONLY captures your text output. You MUST output the raw JSON as plain text in your message - writing to a file does NOT work.
+Do NOT create subtasks.json or similar in your working directory - they pollute the worktree. If you must write to a file, use ONLY ../../scratch/ (outside the worktree). No markdown fences, no extra text.`;
 }

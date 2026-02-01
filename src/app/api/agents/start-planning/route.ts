@@ -299,7 +299,9 @@ Markdown must include required headings:
 - ## Files to Modify (bullet list of file paths)
 - ## Testing Strategy
 - ## Potential Issues
-- ## Success Criteria`;
+- ## Success Criteria
+
+Do NOT create implementation-plan.json or similar in your working directory - output the JSON in your chat message only.`;
 
             const { threadId: retryThreadId } = await startAgentForTask({
               task: currentTask,
@@ -460,6 +462,8 @@ Return your questions in the following JSON format:
 CRITICAL - Your response MUST contain the raw JSON as plain text in your message:
 - The system ONLY captures your text/chat output. We cannot read files you create.
 - You MUST output the JSON directly in your final message - writing to a file does NOT work.
+- Do NOT create planning-questions.json or similar in your working directory - they pollute the worktree.
+- If you must write to a file, use ONLY ../../scratch/ (outside the worktree). You must still output the JSON in your chat.
 - No markdown code fences, no explanatory text before or after.
 - Your last message must be the raw JSON object, e.g. {"questions":[{"id":"q1","question":"...","options":[...],"required":true,"order":1}]}`
     );
@@ -490,6 +494,8 @@ Return your plan in the following JSON format:
 CRITICAL - Your response MUST contain the raw JSON as plain text in your message:
 - The system ONLY captures your text/chat output. We cannot read files you create.
 - You MUST output the JSON directly in your final message - writing to a file does NOT work.
+- Do NOT create implementation-plan.json, plan.md, or similar in your working directory - they pollute the worktree.
+- If you must write to a file, use ONLY ../../scratch/ (outside the worktree). You must still output the JSON in your chat.
 - No markdown code fences, no explanatory text before or after.
 - After your analysis, you MUST OUTPUT TEXT - do not just stop thinking.
 - Your last message must be the raw JSON object, e.g. {"plan":"# Implementation Plan\\n\\n## Overview\\n..."}`
@@ -514,7 +520,8 @@ ${feedback}
 
 Regenerate the plan so it passes validation.
 
-IMPORTANT: The system ONLY captures your text output. You MUST output the raw JSON as plain text in your message - writing to a file does NOT work.`;
+IMPORTANT: The system ONLY captures your text output. You MUST output the raw JSON as plain text in your message - writing to a file does NOT work.
+Do NOT create implementation-plan.json or similar in your working directory - they pollute the worktree.`;
 }
 
 /**

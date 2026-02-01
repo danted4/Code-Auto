@@ -66,7 +66,9 @@ function availableEditorsSorted(editors: AvailableEditor[]): AvailableEditor[] {
 }
 
 export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isCreatingMR, setIsCreatingMR] = useState(false);
+  const [isOpeningEditor, setIsOpeningEditor] = useState(false);
+  const [isMovingToDone, setIsMovingToDone] = useState(false);
   const [mrUrl, setMrUrl] = useState<string | null>(task.mergeRequestUrl || null);
   const [gitStatus, setGitStatus] = useState<{
     hasChanges: boolean;
@@ -137,7 +139,7 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
       window.open(mrUrl, '_blank', 'noopener,noreferrer');
       return;
     }
-    setIsLoading(true);
+    setIsCreatingMR(true);
     try {
       const response = await apiFetch('/api/git/create-mr', {
         method: 'POST',
@@ -164,13 +166,13 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
       console.error('Failed to create MR:', error);
       toast.error('Failed to create MR');
     } finally {
-      setIsLoading(false);
+      setIsCreatingMR(false);
     }
   };
 
   const handleMoveToDone = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsLoading(true);
+    setIsMovingToDone(true);
     try {
       const response = await apiFetch('/api/tasks/update', {
         method: 'PATCH',
@@ -196,7 +198,7 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
       console.error('Failed to move task to Done:', error);
       toast.error('Failed to move task to Done');
     } finally {
-      setIsLoading(false);
+      setIsMovingToDone(false);
     }
   };
 
@@ -213,7 +215,7 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
       toast.error(`Worktree not found at ${worktreePath}`);
       return;
     }
-    setIsLoading(true);
+    setIsOpeningEditor(true);
     try {
       const result = await window.electron.openEditorAtPath(worktreePath, selectedEditorId);
       if (result.success) {
@@ -227,7 +229,7 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
       console.error('Failed to open editor:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to open editor');
     } finally {
-      setIsLoading(false);
+      setIsOpeningEditor(false);
     }
   };
 
@@ -424,7 +426,7 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
                   </div>
                   <Button
                     onClick={handleCreateMR}
-                    disabled={isLoading}
+                    disabled={isCreatingMR}
                     size="sm"
                     className="w-full text-xs"
                     style={{
@@ -438,7 +440,7 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
                       e.currentTarget.style.background = 'var(--color-primary)';
                     }}
                   >
-                    {isLoading ? 'Creating...' : mrUrl ? 'View MR' : 'Create MR'}
+                    {isCreatingMR ? 'Creating MR…' : mrUrl ? 'View MR' : 'Create MR'}
                   </Button>
                 </div>
               </Card>
@@ -570,7 +572,7 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
                     )}
                     <Button
                       onClick={handleOpenInEditor}
-                      disabled={isLoading || !canUseLocalActions || !selectedEditorId}
+                      disabled={isOpeningEditor || !canUseLocalActions || !selectedEditorId}
                       size="sm"
                       className="flex-1 sm:flex-initial text-xs"
                       style={{
@@ -584,7 +586,9 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
                         e.currentTarget.style.background = 'var(--color-primary)';
                       }}
                     >
-                      {isLoading ? 'Opening…' : `Open in ${selectedEditor?.label ?? 'Editor'}`}
+                      {isOpeningEditor
+                        ? 'Opening…'
+                        : `Open in ${selectedEditor?.label ?? 'Editor'}`}
                     </Button>
                   </div>
                 )}
@@ -677,9 +681,9 @@ export function HumanReviewModal({ open, onOpenChange, task }: HumanReviewModalP
             }}
             className="text-xs"
             onClick={handleMoveToDone}
-            disabled={isLoading}
+            disabled={isMovingToDone}
           >
-            {isLoading ? 'Moving...' : 'Move to Done'}
+            {isMovingToDone ? 'Moving…' : 'Move to Done'}
           </Button>
         </DialogFooter>
       </DialogContent>

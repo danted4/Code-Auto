@@ -20,9 +20,23 @@ import { useTaskStore } from '@/store/task-store';
 import { useProjectStore } from '@/store/project-store';
 import { apiFetch } from '@/lib/api-client';
 import { WORKFLOW_PHASES, WorkflowPhase, Task } from '@/lib/tasks/schema';
+import { toast } from 'sonner';
 import { KanbanColumn } from './column';
 import { TaskCard } from './task-card';
 import { EditTaskModal } from '@/components/tasks/edit-task-modal';
+
+/** Forbidden drag transitions: In Progress and AI Review are one-way states. */
+const FORBIDDEN_TRANSITIONS: Array<{ from: WorkflowPhase; to: WorkflowPhase }> = [
+  { from: 'ai_review', to: 'in_progress' },
+  { from: 'done', to: 'ai_review' },
+  { from: 'done', to: 'in_progress' },
+  { from: 'human_review', to: 'ai_review' },
+  { from: 'human_review', to: 'in_progress' },
+];
+
+function isTransitionAllowed(from: WorkflowPhase, to: WorkflowPhase): boolean {
+  return !FORBIDDEN_TRANSITIONS.some((t) => t.from === from && t.to === to);
+}
 
 export function KanbanBoard() {
   const { tasks, loadTasks, updateTaskPhase } = useTaskStore();
@@ -81,6 +95,13 @@ export function KanbanBoard() {
     const task = tasks.find((t) => t.id === taskId);
 
     if (!task || task.phase === newPhase) return;
+
+    if (!isTransitionAllowed(task.phase, newPhase)) {
+      toast.error(
+        'Cannot move task backwards to In Progress or AI Review. Use Planning or Replanning to redo work.'
+      );
+      return;
+    }
 
     // Update task phase (optimistic update happens in store)
     await updateTaskPhase(taskId, newPhase);

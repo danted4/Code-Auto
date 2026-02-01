@@ -11,7 +11,7 @@ const http = require('http');
 const path = require('path');
 
 const DEFAULT_PORT = 3000;
-const PORT_RANGE = 10;
+const PORT_RANGE = 50; // Try 3000-3049 so start succeeds even with other dev servers
 
 function isPortAvailable(port) {
   return new Promise((resolve) => {
@@ -65,7 +65,8 @@ async function main() {
   const port = await findAvailablePort(DEFAULT_PORT, PORT_RANGE);
   if (port === null) {
     console.error(
-      `Ports ${DEFAULT_PORT}-${DEFAULT_PORT + PORT_RANGE - 1} are in use. Please free one and try again.`
+      `Ports ${DEFAULT_PORT}-${DEFAULT_PORT + PORT_RANGE - 1} are in use. ` +
+        `Free a port (e.g. kill processes: lsof -i :3000) or stop other dev servers, then try again.`
     );
     process.exit(1);
   }

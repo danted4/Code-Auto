@@ -419,7 +419,13 @@ export function TaskCard({ task, onEditBlockedTask }: TaskCardProps) {
                   className="text-xs flex-1"
                   style={{ color: 'var(--color-info)' }}
                 >
-                  🤖 Planning in progress
+                  {task.planApproved && task.subtasks.length === 0
+                    ? '🤖 Generating subtasks...'
+                    : task.planningStatus === 'generating_questions'
+                      ? '🤖 Generating questions...'
+                      : task.planningStatus === 'generating_plan'
+                        ? '🤖 Generating plan...'
+                        : '🤖 Generating plan...'}
                 </div>
                 <Button
                   data-testid="pause-planning-button"

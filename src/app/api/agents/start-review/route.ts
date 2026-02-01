@@ -13,6 +13,7 @@ import { Subtask } from '@/lib/tasks/schema';
 import { startAgentForTask } from '@/lib/agents/registry';
 import { getProjectDir } from '@/lib/project-dir';
 import { cleanPlanningArtifactsFromWorktree } from '@/lib/worktree/cleanup';
+import { buildQASubtaskPrompt } from '@/lib/agents/qa-subtask-prompt';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -155,13 +156,8 @@ async function executeQASubtasksSequentially(
     task.subtasks[taskSubtaskIndex].status = 'in_progress';
     await taskPersistence.saveTask(task);
 
-    // Execute subtask
-    const prompt = `Execute the following QA verification subtask:
-
-**QA Subtask:** ${subtask.label}
-**Details:** ${subtask.content}
-
-Please verify and test this thoroughly following best practices.`;
+    // Execute subtask (manual QA subtasks get constrained prompt: 1 doc in manual-qa-required/)
+    const prompt = buildQASubtaskPrompt(subtask);
 
     // Create completion handler for this subtask
     const onSubtaskComplete = async (result: {

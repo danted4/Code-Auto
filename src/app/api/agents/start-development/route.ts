@@ -18,6 +18,8 @@ import {
   validateSubtasks,
 } from '@/lib/validation/subtask-validator';
 import { cleanPlanningArtifactsFromWorktree } from '@/lib/worktree/cleanup';
+import { getSubtaskGenerationPrompt } from '@/lib/prompts/loader';
+import { buildQASubtaskPrompt } from '@/lib/agents/qa-subtask-prompt';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -64,8 +66,8 @@ export async function POST(req: NextRequest) {
       'utf-8'
     );
 
-    // Build subtask generation prompt
-    const prompt = buildSubtaskGenerationPrompt(task);
+    // Build subtask generation prompt (custom prompts supported)
+    const prompt = await getSubtaskGenerationPrompt(task, projectDir);
 
     // Create completion handler with parse-retry loop (fix agent when JSON/validation fails)
     const createOnSubtasksGenerated = (parseAttempt: number) => {
@@ -283,76 +285,6 @@ Rules:
   }
 }
 
-/**
- * Build prompt for subtask generation
- */
-function buildSubtaskGenerationPrompt(task: {
-  title: string;
-  description: string;
-  planContent?: string;
-}): string {
-  return `You are an AI development assistant. Your task is to break down an implementation plan into actionable subtasks.
-
-**Task:** ${task.title}
-**Description:** ${task.description}
-
-**Approved Implementation Plan:**
-${task.planContent}
-
-# SUBTASK GENERATION
-
-Your goal is to break down this plan into 5-15 concrete, actionable subtasks that can be executed sequentially.
-
-For each subtask, provide:
-- **id**: Unique identifier (e.g., "subtask-1", "subtask-2")
-- **content**: Detailed description of what needs to be done (be specific about files, logic, etc.)
-- **label**: Short label (3-5 words) for UI display (e.g., "Create API endpoint", "Add validation logic")
-- **activeForm**: Present continuous form for progress display (e.g., "Creating API endpoint", "Adding validation logic")
-- **type**: Either "dev" or "qa"
-
-**Guidelines:**
-1. Break down complex steps into smaller, manageable subtasks
-2. Each subtask should be completable independently
-3. Order subtasks logically (dependencies first)
-4. Be specific about files, functions, and changes needed
-5. Cap at 15 subtasks maximum
-6. Include at least 2 QA subtasks ("type": "qa") that ONLY verify/test (e.g. run build/tests, validate docs/links/diagrams)
-7. Put verification steps (build/test/lint/validate/verify) under QA, not dev
-
-Return your subtasks in the following JSON format:
-{
-  "subtasks": [
-    {
-      "id": "subtask-1",
-      "content": "Create the API route file at src/app/api/example/route.ts with POST endpoint handler",
-      "label": "Create API endpoint",
-      "activeForm": "Creating API endpoint",
-      "type": "dev"
-    },
-    {
-      "id": "subtask-2",
-      "content": "Add input validation using Zod schema for request body parameters",
-      "label": "Add input validation",
-      "activeForm": "Adding input validation",
-      "type": "dev"
-    },
-    {
-      "id": "subtask-qa-1",
-      "content": "Run the build and verify there are no errors; if there are, report them clearly without changing code",
-      "label": "Verify build",
-      "activeForm": "Verifying build",
-      "type": "qa"
-    }
-  ]
-}
-
-CRITICAL - Your response MUST contain the raw JSON as plain text in your message:
-- The system ONLY captures your text/chat output. We cannot read files you create.
-- You MUST output the JSON directly in your final message - writing to a file does NOT work.
-- No markdown code fences, no explanatory text before or after.
-- Your last message must be the raw JSON object, e.g. {"subtasks":[{"id":"subtask-1","content":"...","label":"...","activeForm":"...","type":"dev"}]}`;
-}
-
 function inferSubtaskType(subtask: Partial<Subtask>): 'dev' | 'qa' {
   if (subtask.type === 'qa') return 'qa';
   if (subtask.type === 'dev') return 'dev';
@@ -496,6 +428,7 @@ Please implement this subtask following best practices.`;
         if (allDevCompleted && currentTask.phase === 'in_progress') {
           currentTask.phase = 'ai_review'; // Move to AI review phase
           currentTask.assignedAgent = undefined; // Clear agent
+          currentTask.updatedAt = Date.now(); // Start 15s grace period for "Auto-starting QA" (prevents brief "Retry AI Review" flash)
           await fs.appendFile(
             logsPath,
             `\n${'='.repeat(80)}\n[ALL DEV SUBTASKS COMPLETED - Moving to AI Review]\n${'='.repeat(80)}\n`,
@@ -729,13 +662,8 @@ async function executeQASubtasksSequentially(
     task.subtasks[taskSubtaskIndex].status = 'in_progress';
     await taskPersistence.saveTask(task);
 
-    // Execute subtask
-    const prompt = `Execute the following QA verification subtask:
-
-**QA Subtask:** ${subtask.label}
-**Details:** ${subtask.content}
-
-Please verify and test this thoroughly following best practices.`;
+    // Execute subtask (manual QA subtasks get constrained prompt: 1 doc in manual-qa-required/)
+    const prompt = buildQASubtaskPrompt(subtask);
 
     // Create completion handler for this subtask
     const onSubtaskComplete = async (result: {

@@ -6,6 +6,7 @@ import type { Task } from '@/lib/tasks/schema';
 import { getTaskPersistence } from '@/lib/tasks/persistence';
 import { startAgentForTask } from '@/lib/agents/registry';
 import { cleanPlanningArtifactsFromWorktree } from '@/lib/worktree/cleanup';
+import { getPlanGenerationPrompt } from '@/lib/prompts/loader';
 import { extractAndValidateJSON } from '@/lib/validation/subtask-validator';
 import fs from 'fs/promises';
 import path from 'path';
@@ -16,59 +17,6 @@ export type PlanGenerationAnswers = Record<
   string,
   { selectedOption?: string; additionalText?: string }
 >;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildPlanGenerationPrompt(task: any, answers: PlanGenerationAnswers): string {
-  return `You are an AI planning assistant. Your task is to create a detailed implementation plan based on the task requirements and the user's answers to your questions.
-
-Title: ${task.title}
-Description: ${task.description}
-
-CLI Tool: ${task.cliTool || 'Not specified'}
-${task.cliConfig ? `CLI Config: ${JSON.stringify(task.cliConfig, null, 2)}` : ''}
-
-# User Answers to Planning Questions
-
-${task.planningData?.questions
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  .map((q: any) => {
-    const answer = answers[q.id];
-    const radioAnswer = answer?.selectedOption?.trim();
-    const textAnswer = answer?.additionalText?.trim();
-    const answerStr =
-      radioAnswer && textAnswer
-        ? `${radioAnswer}\nAdditional notes: ${textAnswer}`
-        : radioAnswer || textAnswer || 'Not answered';
-    return `Q${q.order ?? '?'}: ${q.question}\nA: ${answerStr}`;
-  })
-  .join('\n\n')}
-
-# PLANNING PHASE: Generate Implementation Plan
-
-Based on the user's answers above, create a comprehensive implementation plan that addresses their specific requirements and preferences.
-
-Your plan should include:
-1. **Overview**: Brief summary incorporating user preferences
-2. **Technical Approach**: Architecture decisions based on user's choices
-3. **Implementation Steps**: Numbered, actionable steps
-4. **Files to Modify**: List of files to create/change
-5. **Testing Strategy**: How to verify it works (considering user's testing preference)
-6. **Potential Issues**: Known gotchas specific to chosen approach
-7. **Success Criteria**: Clear completion criteria
-
-Format your plan in Markdown with clear headings and bullet points.
-
-Return your plan in the following JSON format:
-{
-  "plan": "# Implementation Plan\\n\\n## Overview\\n...full markdown plan here..."
-}
-
-CRITICAL - Your response MUST contain the raw JSON as plain text in your message:
-- The system ONLY captures your text/chat output. We cannot read files you create.
-- You MUST output the JSON directly in your final message - writing to a file does NOT work.
-- Do not wrap in markdown code fences. No explanatory text before or after the JSON.
-- Your last message must be the raw JSON object, e.g. {"plan":"# Implementation Plan\\n\\n## Overview\\n..."}`;
-}
 
 export interface StartPlanGenerationParams {
   taskId: string;
@@ -88,7 +36,7 @@ export async function startPlanGeneration(params: StartPlanGenerationParams): Pr
 }> {
   const { taskId, task, answers, projectDir, logsPath, taskPersistence } = params;
 
-  const prompt = buildPlanGenerationPrompt(task, answers);
+  const prompt = await getPlanGenerationPrompt(task, answers, projectDir);
 
   const createOnComplete = (parseAttempt: number) => {
     return async (result: { success: boolean; output: string; error?: string }) => {

@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
       task.phase = 'ai_review';
       task.status = 'in_progress'; // Keep in_progress since QA phase is still WIP
       task.assignedAgent = undefined;
+      task.updatedAt = Date.now(); // Start 15s grace period for "Auto-starting QA"
     }
 
     await taskPersistence.saveTask(task);

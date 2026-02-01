@@ -242,10 +242,17 @@ export function QAStepperModal({ open, onOpenChange, taskId, questions }: QAStep
             </div>
 
             {/* MCQ Options - click same option again to clear (toggle behavior) */}
+            {/* Radix RadioGroup doesn't support empty value to unselect - use hidden sentinel item */}
             <RadioGroup
-              value={currentAnswer.selectedOption || undefined}
-              onValueChange={handleOptionChange}
+              value={currentAnswer.selectedOption || '__none__'}
+              onValueChange={(v) => handleOptionChange(v === '__none__' ? '' : v)}
             >
+              <RadioGroupItem
+                value="__none__"
+                className="sr-only"
+                aria-hidden="true"
+                tabIndex={-1}
+              />
               <div className="space-y-2">
                 {currentQuestion.options.map((option, idx) => (
                   <div

@@ -4,7 +4,7 @@
  * Defines available themes and their color palettes
  */
 
-export type ThemeName = 'dark' | 'light' | 'retro';
+export type ThemeName = 'dark' | 'light' | 'retro' | 'ocean' | 'forest' | 'sunset';
 
 export interface Theme {
   name: ThemeName;
@@ -234,6 +234,171 @@ export const themes: Record<ThemeName, Theme> = {
       terminalText: '#00ff00',
 
       sidebarShadow: 'rgba(0, 255, 0, 0.12)',
+    },
+  },
+
+  ocean: {
+    name: 'ocean',
+    displayName: 'Ocean',
+    description: 'Deep ocean blue and cyan palette',
+    colors: {
+      background: '#0c1929',
+      foreground: '#f8fafc',
+
+      surface: '#132f4c',
+      surfaceHover: '#1e4976',
+
+      border: '#1e4976',
+      borderHover: '#2d5a87',
+
+      textPrimary: '#f1f5f9',
+      textSecondary: '#b8d4e8',
+      textMuted: '#7ea3c2',
+
+      primary: '#06b6d4',
+      primaryHover: '#0891b2',
+      primaryText: '#0c1929',
+
+      secondary: '#1e4976',
+      secondaryHover: '#2d5a87',
+      secondaryText: '#e0f2fe',
+
+      destructive: '#ef4444',
+      destructiveHover: '#dc2626',
+      destructiveText: '#ffffff',
+
+      success: '#10b981',
+      warning: '#f59e0b',
+      error: '#ef4444',
+      info: '#22d3ee',
+
+      phaseDiscovery: '#818cf8',
+      phaseRequirements: '#6366f1',
+      phaseContext: '#3b82f6',
+      phaseSpec: '#06b6d4',
+      phasePlanning: '#14b8a6',
+      phaseValidate: '#f59e0b',
+
+      statusPending: '#64748b',
+      statusInProgress: '#0ea5e9',
+      statusCompleted: '#10b981',
+      statusBlocked: '#ef4444',
+
+      agentActive: '#22d3ee',
+      terminalBackground: '#0c1929',
+      terminalText: '#e0f2fe',
+
+      sidebarShadow: 'rgba(12, 25, 41, 0.55)',
+    },
+  },
+
+  forest: {
+    name: 'forest',
+    displayName: 'Forest',
+    description: 'Dark green and slate base with emerald and teal',
+    colors: {
+      background: '#0f1d14',
+      foreground: '#ecfdf5',
+
+      surface: '#14532d',
+      surfaceHover: '#166534',
+
+      border: '#166534',
+      borderHover: '#15803d',
+
+      textPrimary: '#f0fdf4',
+      textSecondary: '#a7f3d0',
+      textMuted: '#6ee7b7',
+
+      primary: '#10b981',
+      primaryHover: '#059669',
+      primaryText: '#022c22',
+
+      secondary: '#14532d',
+      secondaryHover: '#166534',
+      secondaryText: '#d1fae5',
+
+      destructive: '#ef4444',
+      destructiveHover: '#dc2626',
+      destructiveText: '#ffffff',
+
+      success: '#10b981',
+      warning: '#eab308',
+      error: '#ef4444',
+      info: '#14b8a6',
+
+      phaseDiscovery: '#34d399',
+      phaseRequirements: '#14b8a6',
+      phaseContext: '#0d9488',
+      phaseSpec: '#0d9488',
+      phasePlanning: '#059669',
+      phaseValidate: '#eab308',
+
+      statusPending: '#64748b',
+      statusInProgress: '#14b8a6',
+      statusCompleted: '#10b981',
+      statusBlocked: '#ef4444',
+
+      agentActive: '#2dd4bf',
+      terminalBackground: '#0f1d14',
+      terminalText: '#d1fae5',
+
+      sidebarShadow: 'rgba(15, 29, 20, 0.55)',
+    },
+  },
+
+  sunset: {
+    name: 'sunset',
+    displayName: 'Sunset',
+    description: 'Warm dark sunset palette with amber and coral',
+    colors: {
+      background: '#1c1614',
+      foreground: '#fef3e2',
+
+      surface: '#2d221c',
+      surfaceHover: '#3d3028',
+
+      border: '#4a3c32',
+      borderHover: '#5c4a3d',
+
+      textPrimary: '#fef3e2',
+      textSecondary: '#e8d5c4',
+      textMuted: '#b8a090',
+
+      primary: '#f59e0b',
+      primaryHover: '#d97706',
+      primaryText: '#1c1614',
+
+      secondary: '#3d3028',
+      secondaryHover: '#4a3c32',
+      secondaryText: '#fef3e2',
+
+      destructive: '#ef4444',
+      destructiveHover: '#dc2626',
+      destructiveText: '#ffffff',
+
+      success: '#10b981',
+      warning: '#f59e0b',
+      error: '#ef4444',
+      info: '#0ea5e9',
+
+      phaseDiscovery: '#d97706',
+      phaseRequirements: '#ea580c',
+      phaseContext: '#f97316',
+      phaseSpec: '#fb923c',
+      phasePlanning: '#10b981',
+      phaseValidate: '#eab308',
+
+      statusPending: '#78716c',
+      statusInProgress: '#f59e0b',
+      statusCompleted: '#10b981',
+      statusBlocked: '#ef4444',
+
+      agentActive: '#fb923c',
+      terminalBackground: '#1c1614',
+      terminalText: '#e8d5c4',
+
+      sidebarShadow: 'rgba(28, 22, 20, 0.55)',
     },
   },
 };

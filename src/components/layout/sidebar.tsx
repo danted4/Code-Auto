@@ -99,8 +99,15 @@ export function Sidebar() {
           className="p-4 border-b"
           style={{ borderColor: 'var(--color-border)' }}
         >
-          <h1 className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>
+          <h1 className="text-lg font-bold flex items-baseline gap-1.5 flex-wrap" style={{ color: 'var(--color-text-primary)' }}>
             Code-Auto
+            <span
+              data-testid="sidebar-version"
+              className="text-xs font-normal"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              v{process.env.NEXT_PUBLIC_APP_VERSION ?? '0.0.0'}
+            </span>
           </h1>
           <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
             Autonomous AI agents

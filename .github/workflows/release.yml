@@ -33,10 +33,14 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build macOS (Intel)
-        run: yarn build:mac:x64
+        run: |
+          # Unset empty signing vars so electron-builder skips signing (avoids "not a file" error)
+          for var in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            [ -z "${!var}" ] && unset $var
+          done
+          export CSC_IDENTITY_AUTO_DISCOVERY=false
+          yarn build:mac:x64
         env:
-          # Disable keychain auto-discovery when secrets aren't set (avoids "not a file" / empty password errors)
-          CSC_IDENTITY_AUTO_DISCOVERY: false
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -65,10 +69,14 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build macOS (Apple Silicon)
-        run: yarn build:mac:arm64
+        run: |
+          # Unset empty signing vars so electron-builder skips signing (avoids "not a file" error)
+          for var in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            [ -z "${!var}" ] && unset $var
+          done
+          export CSC_IDENTITY_AUTO_DISCOVERY=false
+          yarn build:mac:arm64
         env:
-          # Disable keychain auto-discovery when secrets aren't set (avoids "not a file" / empty password errors)
-          CSC_IDENTITY_AUTO_DISCOVERY: false
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}

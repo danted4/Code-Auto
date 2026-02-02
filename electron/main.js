@@ -594,6 +594,7 @@ function isPathUnderSafeBase(resolvedPath, projectPath) {
 /**
  * Open worktree in Cursor or VS Code.
  * @param {{ worktreePath: string, editorId: 'cursor'|'vscode', projectPath?: string }} payload
+ *   projectPath - Project root; when provided, worktree may be under this (allows projects outside home)
  * @returns {{ success: boolean, error?: string }}
  */
 ipcMain.handle('review-locally:open-editor', async (_event, payload) => {

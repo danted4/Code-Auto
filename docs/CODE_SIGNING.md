@@ -79,10 +79,12 @@ env:
 
 ## Without code signing
 
-If you don't have an Apple Developer account, builds will use ad-hoc signing. Users must run:
+**macOS:** Builds use ad-hoc signing. Users must run:
 
 ```bash
 xattr -cr /Applications/Code-Auto.app
 ```
 
-Document this in your release notes.
+**Windows:** SmartScreen may block unsigned `.exe` files. Users must click **More info** → **Run anyway** when opening the installer or portable exe.
+
+Document these workarounds in your release notes.

@@ -64,7 +64,7 @@ Add these as **repository secrets** for automated releases:
 | `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password                               |
 | `APPLE_TEAM_ID`               | Team ID                                             |
 
-**Note:** The release workflow sets `CSC_IDENTITY_AUTO_DISCOVERY: false` so builds succeed without signing. When you add the secrets above, signing should work. If signing is skipped despite having secrets, you may need to remove or override `CSC_IDENTITY_AUTO_DISCOVERY` in the workflow.
+**Note:** The release workflow unsets empty signing env vars and sets `CSC_IDENTITY_AUTO_DISCOVERY: false` so macOS builds succeed without Apple Developer secrets. When you add the secrets above, signing should work. If signing is skipped despite having secrets, you may need to adjust the workflow's build step.
 
 Then update `.github/workflows/release.yml` to pass them:
 

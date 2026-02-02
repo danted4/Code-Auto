@@ -34,7 +34,7 @@ A Next.js ( Electron Desktop ) application for orchestrating AI coding tasks thr
 
 Code-Auto automates AI-driven coding tasks by managing them through a Kanban-style workflow. Each task runs in an isolated git worktree with its own branch, ensuring clean separation between concurrent tasks.
 
-Code-Auto runs as a **desktop app** (Electron) on macOS, Windows, and Linux. On startup, you select a **project folder** to work with; tasks, worktrees, and agent logs are scoped to that project. The selected path is persisted for future sessions.
+Code-Auto runs as a **desktop app** (Electron) on macOS, Windows, and Linux. On startup, you select a **project folder** to work with; tasks, worktrees, and agent logs are scoped to that project. The selected path is persisted for future sessions. Any absolute path works (e.g. `D:\repos\project` on Windows, `/mnt/projects` on Linux).
 
 ## Features
 
@@ -148,7 +148,7 @@ The `yarn build` script:
 1. Builds platform icons (Windows .ico, Linux PNGs)
 2. Runs `next build` with `output: 'standalone'` (minimal traced dependencies)
 3. Copies `public` and `.next/static` into `.next/standalone/` (required for static assets)
-4. Runs electron-builder for the current platform (macOS: DMG/ZIP; Linux: AppImage/deb; Windows: NSIS/portable)
+4. Runs electron-builder for the current platform (macOS: DMG/ZIP; Linux: AppImage/deb/Flatpak; Windows: NSIS/portable). Uses `--publish never` so builds work without GH_TOKEN.
 5. Uses an `afterPack` hook to:
    - Copy `.next/standalone/node_modules` into the app (electron-builder excludes nested node_modules)
    - Remove broken symlinks (e.g. amp-sdk's `.bin/amp` → missing `@sourcegraph/amp`) that cause xattr/codesign to fail
@@ -176,7 +176,7 @@ Pre-built packages are available in [GitHub Releases](https://github.com/danted4
 | `Code-Auto-*-win32-x64.exe`         | Windows (x64)         | NSIS installer / portable         |
 | `checksums.sha256`                  | All                   | SHA256 checksums for verification |
 
-**Installation:** Download the package for your platform. The app requires **Node.js** to be installed — it spawns the Next.js server as a subprocess. On macOS use Homebrew, nvm, Volta, or fnm; on Linux use your distro's package manager or nvm; on Windows use the official installer or nvm-windows.
+**Installation:** Download the package for your platform. The app requires **Node.js** to be installed — it spawns the Next.js server as a subprocess. On macOS use Homebrew, nvm, Volta, or fnm; on Linux use your distro's package manager or nvm; on Windows use the official installer or nvm-windows. **Project path:** Any absolute path works (e.g. `D:\repos\project` on Windows).
 
 ### macOS: "Damaged" App Fix
 

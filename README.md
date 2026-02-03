@@ -1,11 +1,8 @@
 <div align="center">
   <h2 style="display: inline-flex; align-items: center; gap: 10px; margin: 0;">
     <img src="./public/rm.png" alt="code-automata™ logo" height="40" style="display: block;"/>
-  </h2>
-</div>
-<div align="center">
-  <h2 style="display: inline-flex; align-items: center; gap: 10px; margin: 0;">
-    code-automata™
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;code-automata ™ </p>
+    <p></p>
   </h2>
 </div>
 

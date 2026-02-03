@@ -52,10 +52,10 @@ interface HumanReviewModalProps {
   task: Task;
 }
 
-/** Build worktree path without Node path in client (projectPath/.code-auto/worktrees/taskId). */
+/** Build worktree path without Node path in client (projectPath/.code-automata/worktrees/taskId). */
 function buildWorktreePath(projectPath: string | null, taskId: string): string | null {
   if (!projectPath) return null;
-  const parts = [projectPath.replace(/\/$/, ''), '.code-auto', 'worktrees', taskId];
+  const parts = [projectPath.replace(/\/$/, ''), '.code-automata', 'worktrees', taskId];
   return parts.join('/');
 }
 

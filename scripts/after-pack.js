@@ -25,7 +25,7 @@ function removeBrokenSymlinks(dir) {
 }
 
 function getDestPath(appOutDir, electronPlatformName, productFilename) {
-  const base = productFilename || 'Code-Auto';
+  const base = productFilename || 'Code-Automata';
   const unpacked = path.join('app.asar.unpacked', '.next', 'standalone', 'node_modules');
 
   if (electronPlatformName === 'darwin') {

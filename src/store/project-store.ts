@@ -40,7 +40,7 @@ export const useProjectStore = create<ProjectStore>()(
         set((s) => ({ worktreeRefreshKey: (s.worktreeRefreshKey ?? 0) + 1 })),
     }),
     {
-      name: 'code-auto-project',
+      name: 'code-automata-project',
       partialize: (state) => ({
         projectPath: state.projectPath,
         recentPaths: state.recentPaths,

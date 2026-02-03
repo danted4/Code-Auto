@@ -1,6 +1,6 @@
 # Kanban Workflow Guide
 
-This document walks through the Code-Auto Kanban workflow using screenshots. Tasks progress through five phases: **Planning** → **In Progress** → **AI Review** → **Human Review** → **Done**.
+This document walks through the Code-Automata Kanban workflow using screenshots. Tasks progress through five phases: **Planning** → **In Progress** → **AI Review** → **Human Review** → **Done**.
 
 ---
 
@@ -89,7 +89,7 @@ In the Human Review modal, you can:
 
 ## 11. GitHub Merge Request
 
-After creating a merge request, the branch is pushed to GitHub. The PR can be reviewed, discussed, and merged. The branch name follows the pattern `code-auto/task-{id}`.
+After creating a merge request, the branch is pushed to GitHub. The PR can be reviewed, discussed, and merged. The branch name follows the pattern `code-automata/task-{id}`.
 
 ![GitHub Merge Request](../public/10-github-merge-request.png)
 

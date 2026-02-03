@@ -15,8 +15,12 @@ export class TaskPersistence {
 
   constructor(projectDir: string = process.cwd()) {
     this.projectDir = projectDir;
-    this.tasksDir = path.join(projectDir, '.code-auto', 'tasks');
-    this.implementationPlanPath = path.join(projectDir, '.code-auto', 'implementation_plan.json');
+    this.tasksDir = path.join(projectDir, '.code-automata', 'tasks');
+    this.implementationPlanPath = path.join(
+      projectDir,
+      '.code-automata',
+      'implementation_plan.json'
+    );
   }
 
   /**
@@ -34,7 +38,7 @@ export class TaskPersistence {
     const filePath = path.join(this.tasksDir, `${task.id}.json`);
     await fs.writeFile(filePath, JSON.stringify(task, null, 2));
 
-    // Also update implementation_plan.json for Code-Auto compatibility
+    // Also update implementation_plan.json for Code-Automata compatibility
     await this.updateImplementationPlan();
   }
 
@@ -117,7 +121,7 @@ export class TaskPersistence {
   }
 
   /**
-   * Update implementation_plan.json (Code-Auto compatibility)
+   * Update implementation_plan.json (Code-Automata compatibility)
    */
   private async updateImplementationPlan(): Promise<void> {
     const tasks = await this.listTasks();

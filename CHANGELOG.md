@@ -1,6 +1,18 @@
 # Changelog
 
-All notable changes to Code-Auto are documented here.
+All notable changes to Code-Automata are documented here.
+
+---
+
+## 2.2.3
+
+### New logo
+
+- **App and branding** — New minimalist logo (flowchart-style icon: triangle, nodes, and arrow) used for the app icon, dock/taskbar, loading screen, and README. Single design used for both light and dark variants. Replaces previous logo assets.
+
+### Documentation
+
+- Documentation and doc references updated across the repo for consistency.
 
 ---
 
@@ -9,7 +21,7 @@ All notable changes to Code-Auto are documented here.
 ### New Features
 
 - **Multi-platform builds** — Native builds for macOS (Intel & Apple Silicon), Linux (AppImage, deb, Flatpak), and Windows (NSIS, portable exe). Each platform builds on its own CI runner (no cross-compilation).
-- **Git worktrees** — Complete worktree feature with sidebar integration. Per-task isolated worktrees in `.code-auto/worktrees/{taskId}` with branch `code-auto/{taskId}`.
+- **Git worktrees** — Complete worktree feature with sidebar integration. Per-task isolated worktrees in `.code-automata/worktrees/{taskId}` with branch `code-automata/{taskId}`.
 - **3 new themes** — Additional theme options for the UI.
 - **App version display** — Version number shown in the app UI.
 - **Custom prompts** — Support for custom prompts with bug fixes.

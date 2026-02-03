@@ -5,8 +5,8 @@
  * for task execution. Each task gets its own worktree with a unique branch.
  *
  * Architecture:
- * - One worktree per task at `.code-auto/worktrees/{task-id}/`
- * - One branch per task: `code-auto/{task-id}`
+ * - One worktree per task at `.code-automata/worktrees/{task-id}/`
+ * - One branch per task: `code-automata/{task-id}`
  * - All subtasks for a task work in the same worktree
  * - Multiple concurrent worktrees support parallel task execution
  */
@@ -162,7 +162,7 @@ export class WorktreeManager {
    */
   async getWorktreeBasePath(): Promise<string> {
     const mainRepo = await this.getMainRepoPath();
-    return path.resolve(mainRepo, '.code-auto', 'worktrees');
+    return path.resolve(mainRepo, '.code-automata', 'worktrees');
   }
 
   /**
@@ -175,8 +175,8 @@ export class WorktreeManager {
 
   /**
    * Create a new worktree for a task
-   * - Creates branch: code-auto/{task-id}
-   * - Creates worktree at: .code-auto/worktrees/{task-id}/
+   * - Creates branch: code-automata/{task-id}
+   * - Creates worktree at: .code-automata/worktrees/{task-id}/
    * - Branch auto-commits changes after each subtask
    *
    * @returns WorktreeInfo with paths and branch info
@@ -186,7 +186,7 @@ export class WorktreeManager {
       const mainRepo = await this.getMainRepoPath();
       const mainBranch = await this.getMainBranch();
       const worktreePath = await this.getWorktreePath(taskId);
-      const branchName = `code-auto/${taskId}`;
+      const branchName = `code-automata/${taskId}`;
 
       // Ensure base directory exists
       const basePath = await this.getWorktreeBasePath();
@@ -285,12 +285,12 @@ export class WorktreeManager {
    * Delete a worktree
    * - Optionally force delete if it has uncommitted changes
    * - Will not delete if MR/PR exists (manual cleanup required)
-   * - When alsoDeleteBranch is true, runs `git branch -D code-auto/{taskId}` in the main repo after removal
-   * - When alsoDeleteFromRemote is true, runs `git push origin --delete code-auto/{taskId}` after local branch removal
+   * - When alsoDeleteBranch is true, runs `git branch -D code-automata/{taskId}` in the main repo after removal
+   * - When alsoDeleteFromRemote is true, runs `git push origin --delete code-automata/{taskId}` after local branch removal
    *
    * @param taskId - Task ID whose worktree to delete
    * @param force - Force delete even with uncommitted changes
-   * @param alsoDeleteBranch - If true, delete the local branch code-auto/{taskId} after removing the worktree
+   * @param alsoDeleteBranch - If true, delete the local branch code-automata/{taskId} after removing the worktree
    * @param alsoDeleteFromRemote - If true, delete the branch from origin (remote) as well
    * @param worktreePathOverride - When provided, use this path instead of getWorktreePath(taskId). Use the actual path from git worktree list to avoid projectDir mismatch.
    */
@@ -358,7 +358,7 @@ export class WorktreeManager {
 
       console.log(`✓ Worktree deleted: ${worktreePath}`);
 
-      const branchName = `code-auto/${taskId}`;
+      const branchName = `code-automata/${taskId}`;
       if (alsoDeleteBranch) {
         try {
           execSync(`git branch -D "${branchName}"`, {
@@ -420,11 +420,11 @@ export class WorktreeManager {
 
         const rawPath = value;
 
-        // Extract task ID from path (expects .code-auto/worktrees/{task-id})
+        // Extract task ID from path (expects .code-automata/worktrees/{task-id})
         const pathNorm = rawPath.replace(/\\/g, '/');
-        if (pathNorm.includes('.code-auto/worktrees/')) {
+        if (pathNorm.includes('.code-automata/worktrees/')) {
           const taskId = path.basename(path.normalize(rawPath));
-          const branchName = `code-auto/${taskId}`;
+          const branchName = `code-automata/${taskId}`;
           const absolutePath = path.isAbsolute(rawPath)
             ? path.normalize(rawPath)
             : path.resolve(mainRepo, rawPath);
@@ -463,7 +463,7 @@ export class WorktreeManager {
   }
 
   /**
-   * Compute total and per-worktree disk usage for .code-auto/worktrees.
+   * Compute total and per-worktree disk usage for .code-automata/worktrees.
    */
   async getDiskUsage(): Promise<WorktreeDiskUsage> {
     const basePath = await this.getWorktreeBasePath();
@@ -489,7 +489,7 @@ export class WorktreeManager {
 
   /**
    * Clean up all worktrees (useful for testing/reset)
-   * Be careful: this will delete ALL worktrees in .code-auto/worktrees/
+   * Be careful: this will delete ALL worktrees in .code-automata/worktrees/
    */
   async cleanupAllWorktrees(force: boolean = false): Promise<void> {
     try {

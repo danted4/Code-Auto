@@ -13,7 +13,7 @@ const eslintConfig = [
       'dist/**',
       'dist-electron/**',
       'build/**',
-      '.code-auto/**',
+      '.code-automata/**',
       'next-env.d.ts',
       '*.config.js',
       '*.config.mjs',

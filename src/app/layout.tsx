@@ -7,7 +7,7 @@ import { OpenProjectGate } from '@/components/project/open-project-gate';
 import { Toaster } from '@/components/ui/sonner';
 
 export const metadata: Metadata = {
-  title: 'Code-Auto',
+  title: 'Code-Automata',
   description: 'Autonomous AI agents for developers',
   icons: {
     icon: [{ url: '/icon.png', type: 'image/png' }],

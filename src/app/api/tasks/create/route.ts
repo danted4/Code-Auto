@@ -43,11 +43,11 @@ export async function POST(req: NextRequest) {
       planContent: body.planContent,
       planningLogsPath: body.planningLogsPath
         ? body.planningLogsPath.replace('{task-id}', taskId)
-        : `.code-auto/tasks/${taskId}/planning-logs.txt`,
+        : `.code-automata/tasks/${taskId}/planning-logs.txt`,
 
       // Execution
       worktreePath: body.worktreePath,
-      branchName: body.branchName || `code-auto/${taskId}`,
+      branchName: body.branchName || `code-automata/${taskId}`,
 
       // Integrations
       githubIssue: body.githubIssue,

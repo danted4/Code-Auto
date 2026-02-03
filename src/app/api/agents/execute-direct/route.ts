@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     await taskPersistence.saveTask(task);
 
     // Create execution logs directory
-    const logsPath = path.join(projectDir, '.code-auto', 'tasks', taskId, 'execution-logs.txt');
+    const logsPath = path.join(projectDir, '.code-automata', 'tasks', taskId, 'execution-logs.txt');
     const logsDir = path.dirname(logsPath);
     await fs.mkdir(logsDir, { recursive: true });
 

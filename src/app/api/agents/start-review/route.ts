@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Ensure review logs directory exists
-    const logsPath = path.join(projectDir, '.code-auto', 'tasks', taskId, 'review-logs.txt');
+    const logsPath = path.join(projectDir, '.code-automata', 'tasks', taskId, 'review-logs.txt');
     const logsDir = path.dirname(logsPath);
     await fs.mkdir(logsDir, { recursive: true });
 
@@ -257,7 +257,7 @@ async function waitForSubtaskCompletion(
 ): Promise<void> {
   return new Promise((resolve) => {
     let elapsed = 0;
-    const configured = Number(process.env.CODE_AUTO_SUBTASK_WAIT_MS || '');
+    const configured = Number(process.env.CODE_AUTOMATA_SUBTASK_WAIT_MS || '');
     const maxWait = Number.isFinite(configured) && configured > 0 ? configured : 30 * 60 * 1000; // 30 min default
 
     const interval = setInterval(async () => {

@@ -1,6 +1,6 @@
 # Packaged App Considerations
 
-This document describes differences between running Code-Auto via `yarn start` (development) vs. the packaged DMG/app (production), and how we handle them.
+This document describes differences between running Code-Automata via `yarn start` (development) vs. the packaged DMG/app (production), and how we handle them.
 
 ## Architecture: Next.js Standalone + Electron
 
@@ -47,9 +47,9 @@ When spawning the Next.js server, the main process resolves the Node binary from
 
 The server may run on port 3001, 3002, etc. if 3000 is busy. API routes that call back to the app (e.g. `start-planning` → `start-development`) use `NEXT_PUBLIC_APP_URL`. We set `process.env.NEXT_PUBLIC_APP_URL = url` before starting the Next.js server so callbacks hit the correct port.
 
-### 4. Packaged Detection (`CODE_AUTO_PACKAGED`)
+### 4. Packaged Detection (`CODE_AUTOMATA_PACKAGED`)
 
-The spawn env includes `CODE_AUTO_PACKAGED=1`. API routes (e.g. `/api/cli/adapters`) use this to hide the Mock CLI in the packaged app, since the Next.js server runs in a Node subprocess (not Electron) and `process.versions.electron` is undefined.
+The spawn env includes `CODE_AUTOMATA_PACKAGED=1`. API routes (e.g. `/api/cli/adapters`) use this to hide the Mock CLI in the packaged app, since the Next.js server runs in a Node subprocess (not Electron) and `process.versions.electron` is undefined.
 
 ### 5. Project Path
 
@@ -106,7 +106,7 @@ Uses `--publish never` so builds succeed without GH_TOKEN (release job handles p
 
 1. Ensure Node.js is installed (Homebrew, nvm, Volta, or fnm on macOS/Linux; official installer or nvm-windows on Windows)
 2. Build: `yarn build` (or `yarn build:mac`, `yarn build:win`, `yarn build:linux` for a single platform)
-3. Run the app: macOS `dist-electron/*.dmg` or `*.app`; Windows `dist-electron\win-unpacked\Code-Auto.exe` or `*.exe` installer; Linux `dist-electron/*.AppImage` or `*.deb`
+3. Run the app: macOS `dist-electron/*.dmg` or `*.app`; Windows `dist-electron\win-unpacked\Code-Automata.exe` or `*.exe` installer; Linux `dist-electron/*.AppImage` or `*.deb`
 4. Open a project (any absolute path, e.g. `D:\repos\project` on Windows) and verify:
    - Cursor/Amp readiness shows correctly (Mock is hidden in packaged app)
    - Creating a task and starting development works

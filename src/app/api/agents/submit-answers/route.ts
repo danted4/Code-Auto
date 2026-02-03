@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       ? path.isAbsolute(task.planningLogsPath)
         ? task.planningLogsPath
         : path.join(projectDir, task.planningLogsPath)
-      : path.join(projectDir, '.code-auto', 'tasks', taskId, 'planning-logs.txt');
+      : path.join(projectDir, '.code-automata', 'tasks', taskId, 'planning-logs.txt');
     await fs.appendFile(
       logsPath,
       `\n${'='.repeat(80)}\n` +

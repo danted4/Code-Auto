@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Dev script: finds an available port, starts Next.js on it, waits for readiness,
- * then starts Electron. Ensures Code-Auto always loads its own app, not another
+ * then starts Electron. Ensures Code-Automata always loads its own app, not another
  * service that might be on port 3000.
  */
 
@@ -71,7 +71,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`[Code-Auto] Using port ${port} (ensures our app loads, not another service)`);
+  console.log(`[Code-Automata] Using port ${port} (ensures our app loads, not another service)`);
 
   const cwd = path.resolve(__dirname, '..');
   const env = { ...process.env, PORT: String(port) };
@@ -90,7 +90,7 @@ async function main() {
   const ready = await waitForServer(apiUrl);
   if (!ready) {
     next.kill('SIGTERM');
-    console.error('[Code-Auto] Timeout waiting for Next.js. Exiting.');
+    console.error('[Code-Automata] Timeout waiting for Next.js. Exiting.');
     process.exit(1);
   }
 
@@ -115,6 +115,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('[Code-Auto] Dev script error:', err);
+  console.error('[Code-Automata] Dev script error:', err);
   process.exit(1);
 });

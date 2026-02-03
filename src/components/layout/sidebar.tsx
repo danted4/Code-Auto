@@ -3,7 +3,7 @@
 /**
  * Sidebar Navigation
  *
- * Left sidebar with project navigation and tools (matching Code-Auto)
+ * Left sidebar with project navigation and tools (matching Code-Automata)
  */
 
 import { useState, useEffect } from 'react';
@@ -103,7 +103,7 @@ export function Sidebar() {
             className="text-lg font-bold flex items-baseline gap-1.5 flex-wrap"
             style={{ color: 'var(--color-text-primary)' }}
           >
-            Code-Auto
+            Code-Automata
             <span
               data-testid="sidebar-version"
               className="text-xs font-normal"

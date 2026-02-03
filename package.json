@@ -1,9 +1,9 @@
 {
-  "name": "code-auto",
-  "version": "2.2.2",
+  "name": "code-automata",
+  "version": "2.2.3",
   "description": "Autonomous AI agents for developers - AI-driven development",
   "author": {
-    "name": "Code-Auto",
+    "name": "Code-Automata",
     "email": "kanvmukulxxsharma@gmail.com"
   },
   "private": true,
@@ -92,10 +92,10 @@
     ]
   },
   "build": {
-    "appId": "com.code-auto.app",
-    "productName": "Code-Auto",
+    "appId": "com.code-automata.app",
+    "productName": "Code-Automata",
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
-    "icon": "public/code-auto-dark.png",
+    "icon": "public/code-automata-dark.png",
     "asar": true,
     "npmRebuild": false,
     "mac": {

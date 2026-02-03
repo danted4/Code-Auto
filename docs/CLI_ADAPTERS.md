@@ -1,10 +1,10 @@
 # CLI Adapters
 
-This document describes the pluggable CLI adapter architecture used in Code-Auto, enabling support for multiple AI coding assistants.
+This document describes the pluggable CLI adapter architecture used in Code-Automata, enabling support for multiple AI coding assistants.
 
 ## Overview
 
-Code-Auto uses a **pluggable adapter pattern** to abstract CLI tool interactions. This allows the system to:
+Code-Automata uses a **pluggable adapter pattern** to abstract CLI tool interactions. This allows the system to:
 
 - Swap between different AI coding CLIs (Amp SDK, Cursor Agent CLI, etc.)
 - Use a mock adapter for testing without API costs
@@ -118,7 +118,7 @@ import { execute as ampExecute } from '@sourcegraph/amp-sdk';
 
 ### Mock Adapter ([src/lib/cli/mock.ts](../src/lib/cli/mock.ts))
 
-> **Packaged app:** Mock is hidden in the DMG/ZIP build. The `/api/cli/adapters` route filters it when `CODE_AUTO_PACKAGED=1` or `process.versions.electron` is set. Only Amp and Cursor are available in the packaged app.
+> **Packaged app:** Mock is hidden in the DMG/ZIP build. The `/api/cli/adapters` route filters it when `CODE_AUTOMATA_PACKAGED=1` or `process.versions.electron` is set. Only Amp and Cursor are available in the packaged app.
 
 Testing adapter that simulates CLI responses without API calls:
 
@@ -142,7 +142,7 @@ Production adapter that shells out to the Cursor Agent CLI:
 
 - Uses the `agent` binary discovered via `which agent` (or `CURSOR_AGENT_CMD` override).
 - Spawns a process in the task’s worktree directory and streams STDOUT back as `assistant` messages.
-- Treats each Code-Auto `threadId` as a single Cursor agent run; there is no cross-run resume yet.
+- Treats each Code-Automata `threadId` as a single Cursor agent run; there is no cross-run resume yet.
 
 **How it works:**
 
@@ -155,7 +155,7 @@ Production adapter that shells out to the Cursor Agent CLI:
 
 - Authentication via `agent login` (preferred) or `CURSOR_API_KEY` env var
 - Preflight check ensures CLI is installed and authenticated before tasks start
-- Use this adapter when you want to run Code-Auto tasks through Cursor instead of Amp
+- Use this adapter when you want to run Code-Automata tasks through Cursor instead of Amp
 
 ### Factory ([src/lib/cli/factory.ts](../src/lib/cli/factory.ts))
 

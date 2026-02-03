@@ -4,7 +4,7 @@
  * Next.js route handlers can have isolated module state during dev/HMR.
  * To make `/api/agents/stream` reliable, we persist per-thread logs to disk.
  *
- * Format: NDJSON lines written to `.code-auto/tasks/{taskId}/agent-stream-{threadId}.ndjson`
+ * Format: NDJSON lines written to `.code-automata/tasks/{taskId}/agent-stream-{threadId}.ndjson`
  */
 
 import fs from 'fs/promises';
@@ -21,7 +21,13 @@ export function getAgentStreamLogPath(
   threadId: string,
   projectDir: string = process.cwd()
 ): string {
-  return path.join(projectDir, '.code-auto', 'tasks', taskId, `agent-stream-${threadId}.ndjson`);
+  return path.join(
+    projectDir,
+    '.code-automata',
+    'tasks',
+    taskId,
+    `agent-stream-${threadId}.ndjson`
+  );
 }
 
 async function ensureDirForFile(filePath: string): Promise<void> {

@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Ensure logs directory exists
-    const logsPath = path.join(projectDir, '.code-auto', 'tasks', taskId, 'auto-plan-logs.txt');
+    const logsPath = path.join(projectDir, '.code-automata', 'tasks', taskId, 'auto-plan-logs.txt');
     const logsDir = path.dirname(logsPath);
     await fs.mkdir(logsDir, { recursive: true });
 

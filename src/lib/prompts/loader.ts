@@ -1,6 +1,6 @@
 /**
  * Prompt loader for customizable Plan and Subtask generation.
- * Reads from .code-auto/prompts.json; falls back to built-in defaults.
+ * Reads from .code-automata/prompts.json; falls back to built-in defaults.
  */
 
 import fs from 'fs/promises';
@@ -42,11 +42,11 @@ export interface TaskForPrompt {
 }
 
 /**
- * Load prompts from .code-auto/prompts.json.
+ * Load prompts from .code-automata/prompts.json.
  * Returns defaults if file missing or invalid.
  */
 export async function loadPrompts(projectDir: string): Promise<ProjectPrompts> {
-  const filePath = path.join(projectDir, '.code-auto', PROMPTS_FILE);
+  const filePath = path.join(projectDir, '.code-automata', PROMPTS_FILE);
   try {
     const data = await fs.readFile(filePath, 'utf-8');
     const parsed = JSON.parse(data) as ProjectPrompts;

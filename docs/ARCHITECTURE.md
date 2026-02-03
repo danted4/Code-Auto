@@ -1,10 +1,10 @@
-# Code-Auto Architecture
+# Code-Automata Architecture
 
 A Next.js + Electron desktop application that orchestrates AI coding tasks through a Kanban-style interface. The packaged app uses Next.js standalone output and spawns the server as a subprocess. See [PACKAGED_APP.md](./PACKAGED_APP.md) for packaging details.
 
 ## Project Purpose
 
-Code-Auto enables developers to run multiple AI agents in parallel, each working in isolated git worktrees. It provides:
+Code-Automata enables developers to run multiple AI agents in parallel, each working in isolated git worktrees. It provides:
 
 - **Kanban Board UI** - Visual task management across workflow phases
 - **Parallel Agent Execution** - Multiple concurrent AI agents via amp CLI
@@ -74,8 +74,8 @@ See [CLI_ADAPTERS.md](./CLI_ADAPTERS.md) for detailed documentation.
 
 Manages git worktrees for task isolation:
 
-- Create/delete worktrees at `.code-auto/worktrees/{task-id}`
-- Branch naming: `code-auto/{task-id}`
+- Create/delete worktrees at `.code-automata/worktrees/{task-id}`
+- Branch naming: `code-automata/{task-id}`
 - Auto-detect main branch and repo root
 
 See [WORKTREE.md](./WORKTREE.md) for detailed documentation.
@@ -97,7 +97,7 @@ Coordinates agent execution across task phases:
 
 File-based task persistence:
 
-- JSON storage at `.code-auto/tasks/`
+- JSON storage at `.code-automata/tasks/`
 - Task schema with phase, subtasks, worktree info
 - Zustand store for client state
 

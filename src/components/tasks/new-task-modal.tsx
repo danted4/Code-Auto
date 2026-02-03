@@ -282,7 +282,7 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
         requiresHumanReview,
         planApproved: false,
         planningStatus: 'not_started',
-        planningLogsPath: `.code-auto/tasks/{task-id}/planning-logs.txt`, // Will be updated with actual ID
+        planningLogsPath: `.code-automata/tasks/{task-id}/planning-logs.txt`, // Will be updated with actual ID
         metadata: {
           estimatedComplexity: 'medium',
         },

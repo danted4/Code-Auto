@@ -32,7 +32,7 @@ export const useThemeStore = create<ThemeStore>()(
         }),
     }),
     {
-      name: 'code-auto-theme',
+      name: 'code-automata-theme',
       partialize: (state) => ({ currentTheme: state.currentTheme }),
       merge: (persisted, current) => {
         const name = safeThemeName((persisted as { currentTheme?: unknown })?.currentTheme);

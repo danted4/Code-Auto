@@ -14,8 +14,8 @@ import * as path from 'path';
  */
 
 const REPO_ROOT = path.join(__dirname, '..');
-const WORKTREES_DIR = path.join(REPO_ROOT, '.code-auto', 'worktrees');
-const _ATTENDANCE_FILE = '.code-auto/subtask-attendance.txt';
+const WORKTREES_DIR = path.join(REPO_ROOT, '.code-automata', 'worktrees');
+const _ATTENDANCE_FILE = '.code-automata/subtask-attendance.txt';
 
 test.describe('Worktree Integration (Phase 3.3)', () => {
   test.beforeEach(async ({ page }) => {
@@ -25,7 +25,7 @@ test.describe('Worktree Integration (Phase 3.3)', () => {
 
   test('should create worktree when task is created', async ({ request }) => {
     // Get current task count
-    const tasksDir = path.join(REPO_ROOT, '.code-auto', 'tasks');
+    const tasksDir = path.join(REPO_ROOT, '.code-automata', 'tasks');
     const _initialCount = fs.readdirSync(tasksDir).filter((f) => f.endsWith('.json')).length;
 
     // Create a new task via API
@@ -61,7 +61,7 @@ test.describe('Worktree Integration (Phase 3.3)', () => {
     const taskPath = path.join(tasksDir, `${taskId}.json`);
     const savedTask = JSON.parse(fs.readFileSync(taskPath, 'utf-8'));
     expect(savedTask.worktreePath).toBeTruthy();
-    expect(savedTask.branchName).toMatch(/^code-auto\//);
+    expect(savedTask.branchName).toMatch(/^code-automata\//);
 
     console.log(`✓ Worktree created at: ${worktreePath}`);
   });
@@ -75,7 +75,7 @@ test.describe('Worktree Integration (Phase 3.3)', () => {
     await page.waitForTimeout(2000);
 
     // Check filesystem directly instead of relying on page reload
-    const tasksDir = path.join(REPO_ROOT, '.code-auto', 'tasks');
+    const tasksDir = path.join(REPO_ROOT, '.code-automata', 'tasks');
     const taskFiles = fs
       .readdirSync(tasksDir)
       .filter((f) => f.endsWith('.json'))
@@ -107,7 +107,7 @@ test.describe('Worktree Integration (Phase 3.3)', () => {
     await request.post('/api/tasks/seed-test');
 
     // Check task metadata from filesystem
-    const tasksDir = path.join(REPO_ROOT, '.code-auto', 'tasks');
+    const tasksDir = path.join(REPO_ROOT, '.code-automata', 'tasks');
     const taskFiles = fs
       .readdirSync(tasksDir)
       .filter((f) => f.endsWith('.json'))
@@ -126,12 +126,12 @@ test.describe('Worktree Integration (Phase 3.3)', () => {
 
       // Verify branch name follows convention
       if (task.branchName) {
-        expect(task.branchName).toMatch(/^code-auto\//);
+        expect(task.branchName).toMatch(/^code-automata\//);
       }
 
       // Verify worktree path is correct
       if (task.worktreePath) {
-        expect(task.worktreePath).toContain('.code-auto/worktrees');
+        expect(task.worktreePath).toContain('.code-automata/worktrees');
       }
     }
   });
@@ -141,7 +141,7 @@ test.describe('Worktree Integration (Phase 3.3)', () => {
     await request.post('/api/tasks/seed-test');
 
     // Check task metadata for unique branches
-    const tasksDir = path.join(REPO_ROOT, '.code-auto', 'tasks');
+    const tasksDir = path.join(REPO_ROOT, '.code-automata', 'tasks');
     const taskFiles = fs
       .readdirSync(tasksDir)
       .filter((f) => f.endsWith('.json'))

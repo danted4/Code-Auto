@@ -19,23 +19,23 @@ const PLANNING_ARTIFACTS = [
 
 /**
  * Get the scratch directory path (outside worktree).
- * - From worktree project/.code-auto/worktrees/task-xxx → project/.code-auto/scratch
- * - From project root project/ → project/.code-auto/scratch
+ * - From worktree project/.code-automata/worktrees/task-xxx → project/.code-automata/scratch
+ * - From project root project/ → project/.code-automata/scratch
  */
 function getScratchPath(worktreeOrProjectPath: string): string {
   const resolved = path.resolve(worktreeOrProjectPath.trim());
   const parts = resolved.split(path.sep);
-  if (parts.includes('.code-auto') && parts.includes('worktrees')) {
+  if (parts.includes('.code-automata') && parts.includes('worktrees')) {
     return path.join(path.dirname(path.dirname(resolved)), 'scratch');
   }
-  return path.join(resolved, '.code-auto', 'scratch');
+  return path.join(resolved, '.code-automata', 'scratch');
 }
 
 /**
  * Remove planning artifact files from the worktree and the scratch folder.
  * Safe to call multiple times; ignores missing files.
  *
- * @param worktreePath - Absolute path to the worktree (e.g. .code-auto/worktrees/task-xxx)
+ * @param worktreePath - Absolute path to the worktree (e.g. .code-automata/worktrees/task-xxx)
  */
 export async function cleanPlanningArtifactsFromWorktree(worktreePath: string): Promise<void> {
   if (!worktreePath || typeof worktreePath !== 'string') return;

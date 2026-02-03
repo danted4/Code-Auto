@@ -85,11 +85,17 @@ export async function POST(req: NextRequest) {
       planningStatus: 'not_started',
       planningData: undefined,
       planContent: undefined,
-      planningLogsPath: path.join(projectDir, '.code-auto', 'tasks', taskId, 'planning-logs.txt'),
+      planningLogsPath: path.join(
+        projectDir,
+        '.code-automata',
+        'tasks',
+        taskId,
+        'planning-logs.txt'
+      ),
 
       assignedAgent: undefined,
       worktreePath: undefined,
-      branchName: `code-auto/${taskId}`,
+      branchName: `code-automata/${taskId}`,
 
       githubIssue: undefined,
       gitlabIssue: undefined,

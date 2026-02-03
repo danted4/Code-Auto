@@ -190,8 +190,8 @@ async function findAvailablePort(start, count) {
 function getIconPath() {
   const base = path.join(app.getAppPath(), 'public');
   const useDark = nativeTheme.shouldUseDarkColors;
-  const dockIcon = useDark ? 'code-auto-dock.png' : 'code-auto-dock-light.png';
-  const fallbackIcon = useDark ? 'code-auto-dark.png' : 'code-auto-light.png';
+  const dockIcon = useDark ? 'code-automata-dock.png' : 'code-automata-dock-light.png';
+  const fallbackIcon = useDark ? 'code-automata-dark.png' : 'code-automata-light.png';
   const dockPath = path.join(base, dockIcon);
   const fallbackPath = path.join(base, fallbackIcon);
   if (fs.existsSync(dockPath)) return dockPath;
@@ -336,7 +336,12 @@ async function startNextServerInBackground() {
   try {
     nextServerProcess = spawn(nodeBin, ['server.js'], {
       cwd: standaloneDir,
-      env: { ...process.env, PORT: String(port), HOSTNAME: '127.0.0.1', CODE_AUTO_PACKAGED: '1' },
+      env: {
+        ...process.env,
+        PORT: String(port),
+        HOSTNAME: '127.0.0.1',
+        CODE_AUTOMATA_PACKAGED: '1',
+      },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     nextServerProcess.on('error', (err) => {
@@ -383,10 +388,10 @@ function showLoadingError(message) {
 const LOADING_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Code-Auto</title>
+<title>Code-Automata</title>
 <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem}.container{text-align:center;max-width:320px}.logo{font-size:1.75rem;font-weight:700;color:#fbbf24;margin-bottom:1.5rem;letter-spacing:-.02em}.spinner{width:40px;height:40px;margin:0 auto 1.5rem;border:3px solid #334155;border-top-color:#fbbf24;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.message{color:#94a3b8;font-size:.9375rem;line-height:1.5}.error{display:none;color:#ef4444;font-size:.875rem;margin-top:1rem;padding:.75rem 1rem;background:rgba(239,68,68,.1);border-radius:.5rem}.error.visible{display:block}</style>
 </head>
-<body><div class="container"><div class="logo">Code-Auto</div><div class="spinner" id="spinner"></div><p class="message" id="message">Starting application…</p><p class="error" id="error"></p></div></body></html>`;
+<body><div class="container"><div class="logo">Code-Automata</div><div class="spinner" id="spinner"></div><p class="message" id="message">Starting application…</p><p class="error" id="error"></p></div></body></html>`;
 
 function createWindow() {
   const iconPath = getIconPath();
@@ -657,7 +662,7 @@ function setDockIcon() {
 }
 
 app.whenReady().then(() => {
-  app.setName('Code-Auto');
+  app.setName('Code-Automata');
   enhanceEnvForPackagedApp();
   setDockIcon();
   nativeTheme.on('updated', setDockIcon);

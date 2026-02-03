@@ -1,7 +1,7 @@
 /**
  * Task Data Schema
  *
- * Simplified 5-phase workflow matching Code-Auto
+ * Simplified 5-phase workflow matching Code-Automata
  */
 
 export const WORKFLOW_PHASES = [
@@ -69,7 +69,7 @@ export interface Task {
   // Execution
   assignedAgent?: string; // Thread ID if agent is working on this
   worktreePath?: string;
-  branchName?: string; // code-auto/{task-name}
+  branchName?: string; // code-automata/{task-name}
 
   // Integrations
   githubIssue?: number;

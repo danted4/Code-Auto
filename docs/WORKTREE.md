@@ -1,12 +1,12 @@
 # Git Worktree Isolation Strategy
 
-Code-Auto uses Git worktrees to provide isolated execution environments for concurrent task execution. Each task operates in its own worktree with a dedicated branch, enabling parallel development without conflicts.
+Code-Automata uses Git worktrees to provide isolated execution environments for concurrent task execution. Each task operates in its own worktree with a dedicated branch, enabling parallel development without conflicts.
 
 ## Overview
 
 ```
 main-repo/
-├── .code-auto/
+├── .code-automata/
 │   └── worktrees/
 │       ├── task-1234567890-abc/    # Task 1 worktree
 │       ├── task-1234567891-def/    # Task 2 worktree
@@ -36,7 +36,7 @@ The `WorktreeManager` class in [src/lib/git/worktree.ts](../src/lib/git/worktree
 ```typescript
 interface WorktreeInfo {
   path: string; // Full path to worktree directory
-  branchName: string; // Git branch name (code-auto/{task-id})
+  branchName: string; // Git branch name (code-automata/{task-id})
   taskId: string; // Unique task identifier
   mainRepo: string; // Path to main repository
   mainBranch: string; // Main branch name (main/master)
@@ -63,7 +63,7 @@ interface WorktreeStatus {
 | `createWorktree(taskId)`         | Creates a new worktree with dedicated branch |
 | `deleteWorktree(taskId, force?)` | Removes worktree and cleans up               |
 | `getWorktreeStatus(taskId)`      | Checks worktree existence and state          |
-| `listWorktrees()`                | Lists all active Code-Auto worktrees         |
+| `listWorktrees()`                | Lists all active Code-Automata worktrees     |
 | `cleanupAllWorktrees(force?)`    | Removes all worktrees (cleanup/reset)        |
 
 ### Singleton Access
@@ -83,8 +83,8 @@ When a new task starts:
 ```typescript
 const worktree = await manager.createWorktree('task-1234567890-abc');
 // Creates:
-//   - Directory: .code-auto/worktrees/task-1234567890-abc/
-//   - Branch: code-auto/task-1234567890-abc
+//   - Directory: .code-automata/worktrees/task-1234567890-abc/
+//   - Branch: code-automata/task-1234567890-abc
 ```
 
 The worktree is created from the current main branch, ensuring a clean starting point.
@@ -117,7 +117,7 @@ if (status.isDirty) {
 ## Directory Structure
 
 ```
-.code-auto/
+.code-automata/
 └── worktrees/
     └── {task-id}/
         ├── .git                # Worktree git link
@@ -133,7 +133,7 @@ Each worktree contains a complete copy of the repository, linked to the main `.g
 All task branches follow the pattern:
 
 ```
-code-auto/{task-id}
+code-automata/{task-id}
 ```
 
 This convention:

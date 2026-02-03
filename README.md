@@ -1,17 +1,17 @@
-# Code-Auto 🔁
+# code-automata™
 
 <a href="https://youtu.be/jNYMC-HXDNA" target="_blank" rel="noopener noreferrer">
-  <img src="./public/c_auto.png" alt="Code-Auto logo" />
+  <img src="./public/code-automata-dark.png" alt="code-automata™ logo" width="160" />
 </a>
 
-_"Ever since the first MVP was shipped, Code-Auto has started modifying its **own code**..."_ — It felt weird at first, but it is fun to watch it ship its own features one by one to production. That's the power of a clean workflow design!
+_"Ever since the first MVP was shipped, code-automata™ has started modifying its **own code**..."_ — It felt weird at first, but it is fun to watch it ship its own features one by one to production. That's the power of a clean workflow design!
 
 ---
 
 ## Table of Contents
 
 - [1. Introduction](#1-introduction)
-  - [What is Code-Auto](#what-is-code-auto)
+  - [What is code-automata™](#what-is-code-automata)
   - [Features](#features)
   - [Architecture](#architecture)
   - [Workflow](#workflow)
@@ -40,9 +40,9 @@ _"Ever since the first MVP was shipped, Code-Auto has started modifying its **ow
 
 ## 1. Introduction
 
-### What is Code-Auto
+### What is code-automata™
 
-Code-Auto is a **desktop app** (Electron) for orchestrating AI coding tasks through a structured 5-phase Kanban workflow. Each task runs in an isolated git worktree with its own branch, ensuring clean separation between concurrent tasks.
+Code-Automata is a **desktop app** (Electron) for orchestrating AI coding tasks through a structured 5-phase Kanban workflow. Each task runs in an isolated git worktree with its own branch, ensuring clean separation between concurrent tasks.
 
 It runs on **macOS, Windows, and Linux**. On startup, you select a **project folder** to work with; tasks, worktrees, and agent logs are scoped to that project. The selected path is persisted for future sessions. Any absolute path works (e.g. `D:\repos\project` on Windows, `/mnt/projects` on Linux).
 
@@ -51,10 +51,10 @@ It runs on **macOS, Windows, and Linux**. On startup, you select a **project fol
 - **Desktop App**: Electron-based native app for macOS, Windows, and Linux with custom icons and theme-aware dock/tray icons
 - **Open Project**: Select any project folder on startup; tasks, worktrees, and agent logs are scoped to the selected project
 - **5-Phase Workflow**: Tasks progress through `planning → in_progress → ai_review → human_review → done`
-- **Git Isolation**: Per-task worktrees in `.code-auto/worktrees/{taskId}/` with branch `code-auto/{taskId}`
+- **Git Isolation**: Per-task worktrees in `.code-automata/worktrees/{taskId}/` with branch `code-automata/{taskId}`
 - **Pluggable Execution**: CLIAdapter layer supporting multiple AI backends (Mock, Amp SDK, Cursor Agent CLI)
 - **Live Streaming**: Agent output streamed to the UI via Server-Sent Events (SSE)
-- **File-Based Storage**: Tasks persisted as JSON in `.code-auto/tasks/`
+- **File-Based Storage**: Tasks persisted as JSON in `.code-automata/tasks/`
 - **Review Locally**: In Human Review phase, open Cursor or VS Code at the task worktree; open folder in file manager
 
 ### Architecture
@@ -125,30 +125,30 @@ See [docs/KANBAN_WORKFLOW.md](docs/KANBAN_WORKFLOW.md) for a step-by-step breakd
 
 ### Installation
 
-1. Go to [GitHub Releases](https://github.com/danted4/Code-Auto/releases)
+1. Go to [GitHub Releases](https://github.com/danted4/Code-Automata/releases)
 2. Download the package for your platform (see [Supported Platforms & Assets](#supported-platforms--assets) below)
 3. Install Node.js if not already installed
 4. Run the app — on first launch, select a project folder (git repository) to work with
 
 ### Supported Platforms & Assets
 
-| Asset                               | Platform              | Description                       |
-| ----------------------------------- | --------------------- | --------------------------------- |
-| `Code-Auto-*-darwin-x64.dmg`        | macOS (Intel)         | Disk image for installation       |
-| `Code-Auto-*-darwin-arm64.dmg`      | macOS (Apple Silicon) | Disk image for installation       |
-| `Code-Auto-*-darwin-*.zip`          | macOS                 | Zip archive                       |
-| `Code-Auto-*-linux-x86_64.AppImage` | Linux (x64)           | AppImage (portable)               |
-| `Code-Auto-*_amd64.deb`             | Linux (Debian/Ubuntu) | Debian package                    |
-| `Code-Auto-*-linux-x86_64.flatpak`  | Linux (Flatpak)       | Flatpak (sandboxed)               |
-| `Code-Auto-*-win32-x64.exe`         | Windows (x64)         | NSIS installer / portable         |
-| `checksums.sha256`                  | All                   | SHA256 checksums for verification |
+| Asset                                   | Platform              | Description                       |
+| --------------------------------------- | --------------------- | --------------------------------- |
+| `Code-Automata-*-darwin-x64.dmg`        | macOS (Intel)         | Disk image for installation       |
+| `Code-Automata-*-darwin-arm64.dmg`      | macOS (Apple Silicon) | Disk image for installation       |
+| `Code-Automata-*-darwin-*.zip`          | macOS                 | Zip archive                       |
+| `Code-Automata-*-linux-x86_64.AppImage` | Linux (x64)           | AppImage (portable)               |
+| `Code-Automata-*_amd64.deb`             | Linux (Debian/Ubuntu) | Debian package                    |
+| `Code-Automata-*-linux-x86_64.flatpak`  | Linux (Flatpak)       | Flatpak (sandboxed)               |
+| `Code-Automata-*-win32-x64.exe`         | Windows (x64)         | NSIS installer / portable         |
+| `checksums.sha256`                      | All                   | SHA256 checksums for verification |
 
 ### macOS: "Damaged" App Fix
 
-If macOS shows **"Code-Auto is damaged and can't be opened"** after downloading (common with unsigned apps from the internet), run in Terminal:
+If macOS shows **"Code-Automata is damaged and can't be opened"** after downloading (common with unsigned apps from the internet), run in Terminal:
 
 ```bash
-xattr -cr /Applications/Code-Auto.app
+xattr -cr /Applications/Code-Automata.app
 ```
 
 Then open the app again. This removes the quarantine flag that browsers add to downloaded files.
@@ -163,7 +163,7 @@ If Windows shows **"Windows protected your PC"** or **"SmartScreen prevented an 
 
 ### Configuring AI Agents
 
-Code-Auto supports multiple AI agent backends. Choose one to run tasks:
+Code-Automata supports multiple AI agent backends. Choose one to run tasks:
 
 **Option 1: Amp SDK**
 
@@ -203,8 +203,8 @@ git --version   # Should be 2.20.0 or higher
 ### Clone & Setup
 
 ```bash
-git clone https://github.com/danted4/Code-Auto.git
-cd Code-Auto
+git clone https://github.com/danted4/Code-Automata.git
+cd Code-Automata
 yarn install
 ```
 

@@ -249,7 +249,7 @@ export async function GET(req: NextRequest) {
         mainRepo,
         mainBranch,
         worktreePath,
-        branchName: `code-auto/${taskId}`,
+        branchName: `code-automata/${taskId}`,
       });
     }
 

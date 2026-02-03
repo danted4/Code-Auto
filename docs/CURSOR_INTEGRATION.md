@@ -1,10 +1,10 @@
 # Cursor Agent CLI Integration
 
-This document describes the full Cursor Agent CLI integration in Code-Auto, providing feature parity with the Amp SDK adapter.
+This document describes the full Cursor Agent CLI integration in Code-Automata, providing feature parity with the Amp SDK adapter.
 
 ## Overview
 
-The **CursorAdapter** enables Code-Auto to orchestrate tasks using the Cursor Agent CLI instead of (or alongside) the Amp SDK. Both adapters support the same 5-phase workflow, JSON-based planning/subtask generation, and validation feedback loops.
+The **CursorAdapter** enables Code-Automata to orchestrate tasks using the Cursor Agent CLI instead of (or alongside) the Amp SDK. Both adapters support the same 5-phase workflow, JSON-based planning/subtask generation, and validation feedback loops.
 
 ## Prerequisites
 
@@ -86,7 +86,7 @@ The CursorAdapter uses the following CLI flags to integrate seamlessly:
 **Without Human Review (Auto-Plan):**
 
 ```bash
-agent --print --output-format stream-json --mode plan --workspace .code-auto/worktrees/task-xxx "Generate implementation plan..."
+agent --print --output-format stream-json --mode plan --workspace .code-automata/worktrees/task-xxx "Generate implementation plan..."
 ```
 
 The agent returns JSON:
@@ -113,7 +113,7 @@ Then generates plan after user answers.
 ### Phase 2: Subtask Generation
 
 ```bash
-agent --print --output-format stream-json --workspace .code-auto/worktrees/task-xxx "SUBTASK GENERATION..."
+agent --print --output-format stream-json --workspace .code-automata/worktrees/task-xxx "SUBTASK GENERATION..."
 ```
 
 Returns:
@@ -142,7 +142,7 @@ Returns:
 For each dev subtask:
 
 ```bash
-agent --print --output-format stream-json --workspace .code-auto/worktrees/task-xxx --resume {chatId} "Execute subtask..."
+agent --print --output-format stream-json --workspace .code-automata/worktrees/task-xxx --resume {chatId} "Execute subtask..."
 ```
 
 Full write access enabled (no `--mode plan` flag).
@@ -152,7 +152,7 @@ Full write access enabled (no `--mode plan` flag).
 Same as development, but executes QA subtasks:
 
 ```bash
-agent --print --output-format stream-json --workspace .code-auto/worktrees/task-xxx --resume {chatId} "Execute QA verification..."
+agent --print --output-format stream-json --workspace .code-automata/worktrees/task-xxx --resume {chatId} "Execute QA verification..."
 ```
 
 ### Phase 5: Human Review
@@ -171,7 +171,7 @@ The Cursor CLI with `--output-format stream-json` emits newline-delimited JSON:
 {"type": "end"}
 ```
 
-The adapter maps these to Code-Auto's standard `StreamMessage` format:
+The adapter maps these to Code-Automata's standard `StreamMessage` format:
 
 - `text` → `assistant` message
 - `tool_call` / `tool_result` → `tool` message
@@ -232,7 +232,7 @@ Watch the logs to verify Cursor executes the task.
 
 ### 2. Full Workflow Test
 
-1. Open Code-Auto UI: `http://localhost:3000`
+1. Open Code-Automata UI: `http://localhost:3000`
 2. Click "New Task"
 3. Select "Cursor Agent (CLI)" from the dropdown
 4. Verify the "Cursor readiness" panel shows "Ready"
@@ -247,13 +247,13 @@ After a Cursor task completes:
 
 ```bash
 # Check the task's worktree
-ls .code-auto/worktrees/task-*/
+ls .code-automata/worktrees/task-*/
 
 # Verify changes are NOT in main repo
 git status  # Should be clean
 
 # Verify branch exists
-git branch -a | grep code-auto/task-
+git branch -a | grep code-automata/task-
 ```
 
 ## Troubleshooting
@@ -269,7 +269,7 @@ Error: Cursor not ready.
 
 1. Install Cursor from [cursor.sh](https://cursor.sh)
 2. Verify installation: `which agent`
-3. Restart Code-Auto: `yarn start`
+3. Restart Code-Automata: `yarn start`
 
 ### Authentication Failed
 
@@ -292,7 +292,7 @@ The adapter will automatically retry up to 3 times with validation feedback. If 
 
 **Manual Fix:**
 
-1. Check planning logs: `.code-auto/tasks/{taskId}/planning-logs.txt`
+1. Check planning logs: `.code-automata/tasks/{taskId}/planning-logs.txt`
 2. Review the validation errors
 3. Adjust the task description to be more specific
 4. Restart planning
@@ -310,13 +310,13 @@ If the Cursor agent process hangs:
 
 ### Thread Management
 
-- Each Code-Auto `threadId` maps to a Cursor chat session
+- Each Code-Automata `threadId` maps to a Cursor chat session
 - The adapter stores `threadId → chatId` mappings for resume support
 - When a thread is resumed, `--resume {chatId}` is passed to maintain context
 
 ### Working Directory Isolation
 
-- Each task's Cursor agent runs in its own worktree: `.code-auto/worktrees/{taskId}/`
+- Each task's Cursor agent runs in its own worktree: `.code-automata/worktrees/{taskId}/`
 - The `--workspace` flag ensures all file operations happen in the correct directory
 - Multiple tasks can execute concurrently without interfering with each other
 

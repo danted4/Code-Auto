@@ -1,10 +1,10 @@
 # Data Flow Documentation
 
-This document details how data flows through Code-Auto, from UI actions through API routes to file system operations.
+This document details how data flows through Code-Automata, from UI actions through API routes to file system operations.
 
 ## Overview
 
-Code-Auto uses a unidirectional data flow pattern:
+Code-Automata uses a unidirectional data flow pattern:
 
 ```
 UI Components → Zustand Store → API Routes → Core Libraries → File System/Git
@@ -45,7 +45,7 @@ Persists theme selection to localStorage:
 | `currentTheme` | `ThemeName` | Current theme identifier     |
 | `theme`        | `Theme`     | Resolved theme configuration |
 
-**Persistence:** Uses `zustand/middleware/persist` with key `code-auto-theme`.
+**Persistence:** Uses `zustand/middleware/persist` with key `code-automata-theme`.
 
 ## API Route Handlers
 
@@ -53,7 +53,7 @@ Persists theme selection to localStorage:
 
 | Endpoint            | Method | Handler        | Description                                  |
 | ------------------- | ------ | -------------- | -------------------------------------------- |
-| `/api/tasks/list`   | GET    | List all tasks | Reads from `.code-auto/tasks/*.json`         |
+| `/api/tasks/list`   | GET    | List all tasks | Reads from `.code-automata/tasks/*.json`     |
 | `/api/tasks/create` | POST   | Create task    | Creates JSON file + git worktree             |
 | `/api/tasks/update` | PATCH  | Update task    | Updates JSON file, handles phase transitions |
 | `/api/tasks/delete` | DELETE | Delete task    | Removes JSON file                            |
@@ -84,14 +84,14 @@ Persists theme selection to localStorage:
 ### File System Structure
 
 ```
-.code-auto/
+.code-automata/
 ├── tasks/                          # Task JSON files
 │   ├── task-{id}.json              # Individual task data
 │   └── ...
 ├── worktrees/                      # Git worktrees (one per task)
 │   ├── task-{id}/                  # Isolated working directory
 │   └── ...
-└── implementation_plan.json        # Code-Auto compatibility summary
+└── implementation_plan.json        # Code-Automata compatibility summary
 ```
 
 ### Task Persistence ([src/lib/tasks/persistence.ts](../src/lib/tasks/persistence.ts))
@@ -102,8 +102,8 @@ The `TaskPersistence` class provides CRUD operations:
 
 ```typescript
 class TaskPersistence {
-  saveTask(task: Task): Promise<void>; // Write to .code-auto/tasks/{id}.json
-  loadTask(taskId: string): Promise<Task>; // Read from .code-auto/tasks/{id}.json
+  saveTask(task: Task): Promise<void>; // Write to .code-automata/tasks/{id}.json
+  loadTask(taskId: string): Promise<Task>; // Read from .code-automata/tasks/{id}.json
   listTasks(): Promise<Task[]>; // List all .json files in tasks dir
   deleteTask(taskId: string): Promise<void>;
   updateTaskStatus(taskId: string, status: TaskStatus): Promise<void>;
@@ -113,7 +113,7 @@ class TaskPersistence {
 
 See [TYPE_REFERENCE.md](./TYPE_REFERENCE.md#task-types) for complete type definitions.
 
-**Code-Auto Compatibility:** After each save/delete, `updateImplementationPlan()` regenerates `implementation_plan.json` with a summary of all tasks grouped by phase.
+**Code-Automata Compatibility:** After each save/delete, `updateImplementationPlan()` regenerates `implementation_plan.json` with a summary of all tasks grouped by phase.
 
 ## Request Flow Diagrams
 
@@ -133,11 +133,11 @@ sequenceDiagram
     Store->>API: POST /api/tasks/create
     API->>API: Generate task ID
     API->>Persist: saveTask(task)
-    Persist->>FS: Write .code-auto/tasks/{id}.json
+    Persist->>FS: Write .code-automata/tasks/{id}.json
     Persist->>FS: Update implementation_plan.json
     API->>Git: createWorktree(taskId)
-    Git->>FS: mkdir .code-auto/worktrees/{id}
-    Git->>Git: git worktree add -b code-auto/{id}
+    Git->>FS: mkdir .code-automata/worktrees/{id}
+    Git->>Git: git worktree add -b code-automata/{id}
     Git-->>API: Return worktreeInfo
     API->>Persist: saveTask(task with worktreePath)
     API-->>Store: Return created task
@@ -162,11 +162,11 @@ sequenceDiagram
     Store->>Store: Optimistic update tasks[]
     Store->>API: PATCH {taskId, phase}
     API->>Persist: loadTask(taskId)
-    Persist->>FS: Read .code-auto/tasks/{id}.json
+    Persist->>FS: Read .code-automata/tasks/{id}.json
     FS-->>Persist: Task data
     API->>API: Merge updates
     API->>Persist: saveTask(updatedTask)
-    Persist->>FS: Write .code-auto/tasks/{id}.json
+    Persist->>FS: Write .code-automata/tasks/{id}.json
     Persist->>FS: Update implementation_plan.json
     API-->>Store: Return updated task
     Store-->>UI: Confirm update
@@ -243,7 +243,7 @@ sequenceDiagram
     Store->>Store: set isLoading=true
     Store->>API: GET /api/tasks/list
     API->>Persist: listTasks()
-    Persist->>FS: readdir .code-auto/tasks/
+    Persist->>FS: readdir .code-automata/tasks/
     FS-->>Persist: List of .json files
     loop Each task file
         Persist->>FS: Read {id}.json
@@ -293,5 +293,5 @@ try {
 | **Zustand Stores** | Client state, API calls       | `src/store/*.ts`                                    |
 | **API Routes**     | HTTP handlers, validation     | `src/app/api/**/*.ts`                               |
 | **Core Libraries** | Business logic                | `src/lib/tasks/`, `src/lib/agents/`, `src/lib/git/` |
-| **File System**    | Persistent storage            | `.code-auto/tasks/*.json`                           |
-| **Git**            | Worktree isolation            | `.code-auto/worktrees/`                             |
+| **File System**    | Persistent storage            | `.code-automata/tasks/*.json`                       |
+| **Git**            | Worktree isolation            | `.code-automata/worktrees/`                         |

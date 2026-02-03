@@ -1,6 +1,6 @@
 # macOS Code Signing & Notarization
 
-To eliminate the `xattr -cr` workaround for users downloading Code-Auto from GitHub releases, you need to **code sign and notarize** the app with an Apple Developer account.
+To eliminate the `xattr -cr` workaround for users downloading Code-Automata from GitHub releases, you need to **code sign and notarize** the app with an Apple Developer account.
 
 ## Prerequisites
 
@@ -82,7 +82,7 @@ env:
 **macOS:** Builds use ad-hoc signing. Users must run:
 
 ```bash
-xattr -cr /Applications/Code-Auto.app
+xattr -cr /Applications/Code-Automata.app
 ```
 
 **Windows:** SmartScreen may block unsigned `.exe` files. Users must click **More info** → **Run anyway** when opening the installer or portable exe.

@@ -1,8 +1,8 @@
-# Code-Auto Overview
+# Code-Automata Overview
 
 ## Overview
 
-Code-Auto is a Next.js (Electron desktop) application that orchestrates AI coding tasks through a structured 5-phase Kanban workflow. It runs on macOS, Windows, and Linux. It automates AI-driven development by managing tasks through planning, implementation, review, and completion phases—each running in an isolated git worktree with its own branch.
+Code-Automata is a Next.js (Electron desktop) application that orchestrates AI coding tasks through a structured 5-phase Kanban workflow. It runs on macOS, Windows, and Linux. It automates AI-driven development by managing tasks through planning, implementation, review, and completion phases—each running in an isolated git worktree with its own branch.
 
 The system acts as a bridge between developers and AI coding agents (like Amp), providing:
 
@@ -19,7 +19,7 @@ The system acts as a bridge between developers and AI coding agents (like Amp), 
 4. **AI Review phase** runs QA verification on the changes
 5. **Human Review phase** allows you to inspect, approve, and merge the work
 
-All file changes happen inside the task's dedicated worktree (`.code-auto/worktrees/{taskId}/`), keeping your main branch clean until you're ready to integrate.
+All file changes happen inside the task's dedicated worktree (`.code-automata/worktrees/{taskId}/`), keeping your main branch clean until you're ready to integrate.
 
 ## Features
 
@@ -39,14 +39,14 @@ Tasks progress through a structured pipeline:
 
 Each task operates in complete isolation:
 
-- **Dedicated worktree**: `.code-auto/worktrees/{taskId}/`
-- **Dedicated branch**: `code-auto/{taskId}`
+- **Dedicated worktree**: `.code-automata/worktrees/{taskId}/`
+- **Dedicated branch**: `code-automata/{taskId}`
 - **No cross-contamination**: Parallel tasks never interfere with each other
 - **Clean main branch**: Changes only merge when explicitly approved
 
 ### CLI Adapters
 
-Code-Auto uses a **pluggable adapter pattern** to abstract CLI tool interactions, enabling support for multiple AI coding assistants without modifying core orchestration logic.
+Code-Automata uses a **pluggable adapter pattern** to abstract CLI tool interactions, enabling support for multiple AI coding assistants without modifying core orchestration logic.
 
 | Adapter            | Provider | Description                                  | Use Case                            |
 | ------------------ | -------- | -------------------------------------------- | ----------------------------------- |
@@ -77,8 +77,8 @@ Agent output streams to the UI via Server-Sent Events (SSE):
 
 Simple, transparent storage model:
 
-- **Tasks**: `.code-auto/tasks/{taskId}.json`
-- **Logs**: `.code-auto/tasks/{taskId}/*-logs.txt`
+- **Tasks**: `.code-automata/tasks/{taskId}.json`
+- **Logs**: `.code-automata/tasks/{taskId}/*-logs.txt`
 - No database required—everything is version-controllable
 
 ### Automatic Subtask Generation
@@ -107,7 +107,7 @@ In the Human Review phase, you can:
 - **Open in File Explorer** — Opens the worktree folder in the system file manager (Finder, Explorer, etc.).
 - **Create MR** — Create a merge request for the task branch.
 
-Worktree path is derived from project root + `.code-auto/worktrees/{taskId}`. When not running in Electron (e.g. web), these actions are disabled with a "Use desktop app" message.
+Worktree path is derived from project root + `.code-automata/worktrees/{taskId}`. When not running in Electron (e.g. web), these actions are disabled with a "Use desktop app" message.
 
 ### Concurrent Agent Management
 
@@ -120,7 +120,7 @@ The AgentManager supports:
 
 ## Workflow
 
-Code-Auto implements a structured 5-phase workflow that guides tasks from initial planning through completion. Each phase has specific entry/exit conditions and automation triggers.
+Code-Automata implements a structured 5-phase workflow that guides tasks from initial planning through completion. Each phase has specific entry/exit conditions and automation triggers.
 
 ### Workflow State Diagram
 
@@ -200,18 +200,18 @@ src/
 
 ### Key Directories
 
-| Path                    | Purpose                                                  |
-| ----------------------- | -------------------------------------------------------- |
-| `src/app/`              | Next.js App Router pages and API routes                  |
-| `src/app/api/`          | REST API endpoints for tasks, agents, and git operations |
-| `src/components/`       | React UI components (Kanban board, task cards, modals)   |
-| `src/lib/cli/`          | CLI adapter implementations (Mock, Amp)                  |
-| `src/lib/agents/`       | Agent orchestration and session management               |
-| `src/lib/git/`          | WorktreeManager for git worktree operations              |
-| `src/lib/tasks/`        | Task schema, validation, and persistence                 |
-| `src/store/`            | Zustand state stores for client-side state               |
-| `.code-auto/tasks/`     | Task JSON files (file-based persistence)                 |
-| `.code-auto/worktrees/` | Per-task git worktrees for isolation                     |
+| Path                        | Purpose                                                  |
+| --------------------------- | -------------------------------------------------------- |
+| `src/app/`                  | Next.js App Router pages and API routes                  |
+| `src/app/api/`              | REST API endpoints for tasks, agents, and git operations |
+| `src/components/`           | React UI components (Kanban board, task cards, modals)   |
+| `src/lib/cli/`              | CLI adapter implementations (Mock, Amp)                  |
+| `src/lib/agents/`           | Agent orchestration and session management               |
+| `src/lib/git/`              | WorktreeManager for git worktree operations              |
+| `src/lib/tasks/`            | Task schema, validation, and persistence                 |
+| `src/store/`                | Zustand state stores for client-side state               |
+| `.code-automata/tasks/`     | Task JSON files (file-based persistence)                 |
+| `.code-automata/worktrees/` | Per-task git worktrees for isolation                     |
 
 ### API Overview
 

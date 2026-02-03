@@ -11,8 +11,8 @@ const path = require('path');
 const fs = require('fs');
 
 const ICONS = [
-  { input: 'code-auto-dark.png', output: 'code-auto-dock.png' },
-  { input: 'code-auto-light.png', output: 'code-auto-dock-light.png' },
+  { input: 'code-automata-dark.png', output: 'code-automata-dock.png' },
+  { input: 'code-automata-light.png', output: 'code-automata-dock-light.png' },
 ];
 
 const ZOOM = 1.25; // Scale up center content by 25%

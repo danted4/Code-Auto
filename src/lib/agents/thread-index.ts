@@ -9,7 +9,7 @@ import fs from 'fs/promises';
 import path from 'path';
 
 function getIndexPath(projectDir: string): string {
-  return path.join(projectDir, '.code-auto', 'thread-index.json');
+  return path.join(projectDir, '.code-automata', 'thread-index.json');
 }
 
 async function readIndex(projectDir: string): Promise<Record<string, string>> {

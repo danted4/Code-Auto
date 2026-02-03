@@ -1,6 +1,6 @@
 # Type Reference
 
-This document provides a comprehensive reference for the key TypeScript interfaces and types used throughout Code-Auto.
+This document provides a comprehensive reference for the key TypeScript interfaces and types used throughout Code-Automata.
 
 ## Task Types
 
@@ -37,7 +37,7 @@ interface Task {
   // Execution
   assignedAgent?: string; // Thread ID if agent is working on this
   worktreePath?: string; // Path to isolated worktree
-  branchName?: string; // code-auto/{task-id}
+  branchName?: string; // code-automata/{task-id}
 
   // Integrations
   githubIssue?: number;
@@ -348,7 +348,7 @@ Information about a created worktree.
 ```typescript
 interface WorktreeInfo {
   path: string; // Full path to worktree directory
-  branchName: string; // Git branch name (code-auto/{task-id})
+  branchName: string; // Git branch name (code-automata/{task-id})
   taskId: string; // Unique task identifier
   mainRepo: string; // Path to main repository
   mainBranch: string; // Main branch name (main/master)

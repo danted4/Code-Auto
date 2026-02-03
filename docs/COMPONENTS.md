@@ -1,6 +1,6 @@
 # UI Components
 
-This document describes the UI component hierarchy used in Code-Auto.
+This document describes the UI component hierarchy used in Code-Automata.
 
 ## Component Tree
 

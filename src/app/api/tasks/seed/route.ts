@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
       const task: Task = {
         ...taskData,
         id: taskId,
-        branchName: `code-auto/${taskId}`,
+        branchName: `code-automata/${taskId}`,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };

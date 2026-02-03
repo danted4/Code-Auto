@@ -2,7 +2,7 @@
  * Prompts API Route
  *
  * GET: Return current prompts (custom + template, or default template)
- * POST: Save custom prompts to .code-auto/prompts.json
+ * POST: Save custom prompts to .code-automata/prompts.json
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     const planGen = body.planGeneration as { template?: string } | undefined;
     const subtaskGen = body.subtaskGeneration as { template?: string } | undefined;
 
-    const codeAutoDir = path.join(projectDir, '.code-auto');
+    const codeAutoDir = path.join(projectDir, '.code-automata');
     await fs.mkdir(codeAutoDir, { recursive: true });
 
     const filePath = path.join(codeAutoDir, PROMPTS_FILE);

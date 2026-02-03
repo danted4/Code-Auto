@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { useProjectStore } from '@/store/project-store';
 import { OpenProjectModal } from './open-project-modal';
 
-const SESSION_DISMISSED_KEY = 'code-auto-open-project-dismissed';
+const SESSION_DISMISSED_KEY = 'code-automata-open-project-dismissed';
 
 export function OpenProjectGate({ children }: { children: React.ReactNode }) {
   const projectPath = useProjectStore((s) => s.projectPath);

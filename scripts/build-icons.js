@@ -1,19 +1,19 @@
 /**
  * Build platform-specific icons for electron-builder.
- * - Windows: build/icon.ico (from public/code-auto-dark.png)
+ * - Windows: build/icon.ico (from public/code-automata-dark.png)
  * - Linux: build/icons/*.png (16, 32, 48, 64, 128, 256, 512)
  */
 const path = require('path');
 const fs = require('fs');
 
 const cwd = path.resolve(__dirname, '..');
-const inputPng = path.join(cwd, 'public', 'code-auto-dark.png');
+const inputPng = path.join(cwd, 'public', 'code-automata-dark.png');
 const buildDir = path.join(cwd, 'build');
 const iconsDir = path.join(buildDir, 'icons');
 
 async function buildIcons() {
   if (!fs.existsSync(inputPng)) {
-    console.warn('Skipping icon build: public/code-auto-dark.png not found');
+    console.warn('Skipping icon build: public/code-automata-dark.png not found');
     return;
   }
 

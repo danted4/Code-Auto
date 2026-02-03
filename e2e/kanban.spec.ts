@@ -15,7 +15,7 @@ test.describe('Kanban Board', () => {
 
   test('should load the dashboard with sidebar and kanban board', async ({ page }) => {
     // Check if the page title is correct
-    await expect(page).toHaveTitle(/Code-Auto/i);
+    await expect(page).toHaveTitle(/Code-Automata/i);
 
     // Verify sidebar is visible using data-testid
     const sidebar = page.getByTestId('sidebar');
@@ -24,7 +24,7 @@ test.describe('Kanban Board', () => {
     // Verify sidebar header
     const sidebarHeader = page.getByTestId('sidebar-header');
     await expect(sidebarHeader).toBeVisible();
-    await expect(sidebarHeader).toContainText('Code-Auto');
+    await expect(sidebarHeader).toContainText('Code-Automata');
     await expect(sidebarHeader).toContainText('Autonomous AI agents');
 
     // Sidebar header must show version (e.g. v2.1.1 from package.json)

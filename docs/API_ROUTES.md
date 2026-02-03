@@ -1,6 +1,6 @@
 # API Routes Documentation
 
-This document describes all Next.js API routes in the Code-Auto application.
+This document describes all Next.js API routes in the Code-Automata application.
 
 ## Table of Contents
 
@@ -438,8 +438,8 @@ Manages git worktrees (create, delete, cleanup).
 {
   "success": true,
   "worktreeInfo": {
-    "path": "/path/to/.code-auto/worktrees/task-xxx",
-    "branchName": "code-auto/task-xxx"
+    "path": "/path/to/.code-automata/worktrees/task-xxx",
+    "branchName": "code-automata/task-xxx"
   },
   "message": "Worktree created at /path/to/..."
 }
@@ -515,8 +515,8 @@ Query worktree status and information.
 ```json
 {
   "worktrees": [
-    { "path": "/path/to/worktree1", "branch": "code-auto/task-1" },
-    { "path": "/path/to/worktree2", "branch": "code-auto/task-2" }
+    { "path": "/path/to/worktree1", "branch": "code-automata/task-1" },
+    { "path": "/path/to/worktree2", "branch": "code-automata/task-2" }
   ],
   "count": 2
 }
@@ -529,8 +529,8 @@ Query worktree status and information.
   "taskId": "task-xxx",
   "mainRepo": "/path/to/main/repo",
   "mainBranch": "main",
-  "worktreePath": "/path/to/.code-auto/worktrees/task-xxx",
-  "branchName": "code-auto/task-xxx"
+  "worktreePath": "/path/to/.code-automata/worktrees/task-xxx",
+  "branchName": "code-automata/task-xxx"
 }
 ```
 
@@ -575,8 +575,8 @@ Creates a new task with automatic git worktree setup.
   "phase": "planning",
   "status": "pending",
   "subtasks": [],
-  "worktreePath": "/path/to/.code-auto/worktrees/task-xxx",
-  "branchName": "code-auto/task-xxx",
+  "worktreePath": "/path/to/.code-automata/worktrees/task-xxx",
+  "branchName": "code-automata/task-xxx",
   "createdAt": 1234567890,
   "updatedAt": 1234567890
   /* ... other fields */

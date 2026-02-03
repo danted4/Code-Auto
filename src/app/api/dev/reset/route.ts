@@ -1,10 +1,10 @@
 /**
  * Local dev reset route
  *
- * Deletes Code-Auto local state under `.code-auto/`:
+ * Deletes Code-Automata local state under `.code-automata/`:
  * - tasks JSON
  * - implementation_plan.json
- * - git worktrees under `.code-auto/worktrees/*` (via git worktree remove)
+ * - git worktrees under `.code-automata/worktrees/*` (via git worktree remove)
  *
  * This is intended for local development only.
  */
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       worktreesCleaned = before.length;
     }
 
-    const base = path.join(projectDir, '.code-auto');
+    const base = path.join(projectDir, '.code-automata');
     await fs.rm(path.join(base, 'tasks'), { recursive: true, force: true });
     await fs.rm(path.join(base, 'implementation_plan.json'), { force: true });
     await fs.rm(path.join(base, 'thread-index.json'), { force: true });
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       worktreesCleaned,
-      message: 'Local Code-Auto state reset complete',
+      message: 'Local Code-Automata state reset complete',
     });
   } catch (error) {
     return NextResponse.json(

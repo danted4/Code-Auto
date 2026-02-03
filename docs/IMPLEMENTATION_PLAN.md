@@ -1,11 +1,11 @@
-# Code-Auto — Master Implementation Plan
+# Code-Automata — Master Implementation Plan
 
 **Last updated:** 2026-01-30  
 **Location:** `docs/IMPLEMENTATION_PLAN.md` — Master plan and backlog (single source of truth).
 
 ## What we're building
 
-Code-Auto is a Next.js app that turns a "task" into a Code-Auto style workflow:
+Code-Automata is a Next.js app that turns a "task" into a Code-Automata style workflow:
 
 - **Kanban workflow**: `planning → in_progress → ai_review → human_review → done`
 - **Isolated execution**: one **git worktree + branch per task**
@@ -18,11 +18,11 @@ Code-Auto is a Next.js app that turns a "task" into a Code-Auto style workflow:
 
 ### Working
 
-- **Electron desktop app**: Native macOS/Windows/Linux app with custom dock icon, app name ("Code-Auto"), and theme-aware icons (light/dark). Runs via `yarn start` (`electron/main.js`, `scripts/build-dock-icon.js`). Packaged app uses Next.js standalone output; spawns server as subprocess; requires Node.js (Homebrew/nvm/Volta/fnm on macOS/Linux; official installer or nvm-windows on Windows). Build: `yarn build` produces DMG/ZIP (macOS), AppImage/deb/Flatpak (Linux), NSIS/portable (Windows); `scripts/after-pack.js` copies node_modules; `--publish never` avoids GH_TOKEN requirement.
+- **Electron desktop app**: Native macOS/Windows/Linux app with custom dock icon, app name ("Code-Automata"), and theme-aware icons (light/dark). Runs via `yarn start` (`electron/main.js`, `scripts/build-dock-icon.js`). Packaged app uses Next.js standalone output; spawns server as subprocess; requires Node.js (Homebrew/nvm/Volta/fnm on macOS/Linux; official installer or nvm-windows on Windows). Build: `yarn build` produces DMG/ZIP (macOS), AppImage/deb/Flatpak (Linux), NSIS/portable (Windows); `scripts/after-pack.js` copies node_modules; `--publish never` avoids GH_TOKEN requirement.
 - **Open Project / folder selection**: Select project directory on startup; path persisted in localStorage. Any absolute path works (e.g. `D:\repos\project` on Windows). All API routes accept `X-Project-Path` header; tasks, worktrees, and agent logs are scoped to the selected project (`src/store/project-store.ts`, `src/lib/project-dir.ts`, `src/components/project/open-project-modal.tsx`, `src/components/project/open-project-gate.tsx`).
 - **Kanban UI + workflow plumbing**: task cards, phase transitions, modals (`src/components/**`)
-- **Task persistence**: file-based JSON in `.code-auto/tasks/` (`src/lib/tasks/persistence.ts`)
-- **Worktrees**: created on task create (best-effort), branch naming `code-auto/{taskId}` (`src/lib/git/worktree.ts`, `src/app/api/tasks/create/route.ts`)
+- **Task persistence**: file-based JSON in `.code-automata/tasks/` (`src/lib/tasks/persistence.ts`)
+- **Worktrees**: created on task create (best-effort), branch naming `code-automata/{taskId}` (`src/lib/git/worktree.ts`, `src/app/api/tasks/create/route.ts`)
 - **CLI adapters**: Amp (SDK), Cursor (CLI), and Mock providers with preflight checks and JSON validation (`src/lib/cli/*`, `src/lib/amp/preflight.ts`, `src/lib/cursor/preflight.ts`)
 - **Git status UI + API**: `/api/git/status` (`src/app/api/git/status/route.ts`)
 - **SSE agent log streaming**: `/api/agents/stream` + UI terminal (`src/app/api/agents/stream/route.ts`, `src/components/agents/terminal.tsx`)
@@ -35,7 +35,7 @@ Code-Auto is a Next.js app that turns a "task" into a Code-Auto style workflow:
 
 ### Implemented, but has correctness gaps (see "Known issues")
 
-- **Subtask wait timeout** is configurable via `CODE_AUTO_SUBTASK_WAIT_MS` (default 30 min); may need tuning for real agent runs.
+- **Subtask wait timeout** is configurable via `CODE_AUTOMATA_SUBTASK_WAIT_MS` (default 30 min); may need tuning for real agent runs.
 
 ### Not implemented yet (explicit TODOs in code)
 
@@ -48,14 +48,14 @@ Code-Auto is a Next.js app that turns a "task" into a Code-Auto style workflow:
 
 ### Data & persistence
 
-- **Tasks**: `.code-auto/tasks/{taskId}.json`
-- **Per-task logs**: `.code-auto/tasks/{taskId}/*-logs.txt` (planning/dev/review/auto-plan/direct execution)
-- **Code-Auto compatibility view**: `.code-auto/implementation_plan.json` (updated on every task save)
+- **Tasks**: `.code-automata/tasks/{taskId}.json`
+- **Per-task logs**: `.code-automata/tasks/{taskId}/*-logs.txt` (planning/dev/review/auto-plan/direct execution)
+- **Code-Automata compatibility view**: `.code-automata/implementation_plan.json` (updated on every task save)
 
 ### Git worktrees
 
-- Worktree base: `.code-auto/worktrees/{taskId}/`
-- Branch per task: `code-auto/{taskId}`
+- Worktree base: `.code-automata/worktrees/{taskId}/`
+- Branch per task: `code-automata/{taskId}`
 - Created in `POST /api/tasks/create` via `WorktreeManager.createWorktree()`
 
 ### Agent runtime
@@ -156,7 +156,7 @@ flowchart TD
 
 ### 1) 60s "wait for subtask completion" default
 
-- `waitForSubtaskCompletion()` and `waitForQASubtaskCompletion()` max wait is configurable via `CODE_AUTO_SUBTASK_WAIT_MS` (default 30 min).
+- `waitForSubtaskCompletion()` and `waitForQASubtaskCompletion()` max wait is configurable via `CODE_AUTOMATA_SUBTASK_WAIT_MS` (default 30 min).
 - **Impact**: real tasks may need longer; tune env var as needed.
 
 ### 2) SSE is in-memory only

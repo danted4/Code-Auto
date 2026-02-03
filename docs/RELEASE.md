@@ -62,6 +62,6 @@ If you must upload manually, `gh release upload` can corrupt large binary files 
 
 5. **Replacing corrupted assets** — If you already uploaded a corrupted file, delete it first:
    ```bash
-   gh release delete-asset v2.2.0 Code-Auto-2.2.0-darwin-arm64.dmg
+   gh release delete-asset v2.2.0 Code-Automata-2.2.0-darwin-arm64.dmg
    ```
    Then re-upload via GitHub Actions (delete release, re-tag, push) or curl with raw binary.

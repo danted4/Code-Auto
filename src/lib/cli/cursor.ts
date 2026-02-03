@@ -1,7 +1,7 @@
 /**
  * Cursor Agent CLI Adapter
  *
- * Integrates the Cursor Agent CLI into the Code-Auto workflow with full feature parity to Amp:
+ * Integrates the Cursor Agent CLI into the Code-Automata workflow with full feature parity to Amp:
  * - Structured JSON output for planning and subtask generation
  * - Read-only plan mode for planning phase
  * - Thread/session resume support

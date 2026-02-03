@@ -1,7 +1,7 @@
 /**
  * Plan Validator
  *
- * Validates that generated plans conform to the required "Code-Auto plan format".
+ * Validates that generated plans conform to the required "Code-Automata plan format".
  * This is intentionally lightweight and mirrors the style of `subtask-validator.ts`.
  */
 

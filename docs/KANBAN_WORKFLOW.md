@@ -54,15 +54,23 @@ The task modal shows development subtasks with their status (pending, in progres
 
 ## 7. AI Review (QA)
 
-When development subtasks complete, the task moves to **AI Review**. The AI runs QA checks (e.g., build verification, type checking, linting) on the changes.
+When development subtasks complete, the task moves to **AI Review**. The AI runs QA subtasks for code review and verification, then executes automated checks (typecheck, build, lint) in the worktree.
 
 ![AI Review QA](../public/06-ai-review-QA.png)
 
 ---
 
-## 8. AI QA Subtasks Execution
+## 8. AI QA Subtasks Execution + Automated Checks
 
-QA subtasks are executed similarly to development. The modal shows verification steps like "Verify build" and "Verify types and lint" with their completion status.
+QA subtasks are executed similarly to development. The modal shows verification steps with their completion status. After QA subtasks complete, automated checks run:
+
+- **Typecheck**: Runs `yarn/npm/pnpm typecheck` or `tsc --noEmit`
+- **Build** (if present): Runs `yarn/npm/pnpm build`
+- **Lint** (if present): Runs `yarn/npm/pnpm lint`
+
+**If checks pass**: Task moves to Human Review  
+**If checks fail** (and rework count < 2): Task moves back to In Progress with a rework subtask containing failure details. The orchestrator re-runs dev → QA → checks automatically.  
+**If at rework cap**: Task moves to Human Review with note "QA issues remain; please review manually"
 
 ![AI QA Subtasks Execution](../public/07-ai-qa-subtasks-execution.png)
 
@@ -113,10 +121,10 @@ Completed tasks remain in the Done column. Open any task to view its completed s
 
 ## Summary
 
-| Phase            | Description                                            |
-| ---------------- | ------------------------------------------------------ |
-| **Planning**     | Create task, answer questions, review and approve plan |
-| **In Progress**  | AI executes development subtasks in isolated worktree  |
-| **AI Review**    | AI runs QA checks (build, types, lint)                 |
-| **Human Review** | Review changes, create MR, or test locally             |
-| **Done**         | Task completed, ready for merge or archival            |
+| Phase            | Description                                                                             |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| **Planning**     | Create task, answer questions, review and approve plan                                  |
+| **In Progress**  | AI executes development subtasks in isolated worktree                                   |
+| **AI Review**    | AI runs QA subtasks + automated checks (typecheck/build/lint); loops on failure (max 2) |
+| **Human Review** | Review changes, create MR, or test locally                                              |
+| **Done**         | Task completed, ready for merge or archival                                             |

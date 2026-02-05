@@ -130,8 +130,10 @@ stateDiagram-v2
 
     planning --> in_progress: Plan Approved
     in_progress --> ai_review: Dev Subtasks Complete
-    ai_review --> human_review: QA Passes
-    ai_review --> in_progress: QA Fails (rework)
+    ai_review --> checks: QA Subtasks Complete
+    checks --> human_review: Automated Checks Pass
+    checks --> in_progress: Automated Checks Fail (rework, max 2 cycles)
+    checks --> human_review: At Rework Cap
     human_review --> done: Approved/Merged
     human_review --> in_progress: Changes Requested
 
@@ -140,13 +142,13 @@ stateDiagram-v2
 
 ### Phase Summary
 
-| Phase            | Purpose                                           | Entry Trigger                     | Exit Trigger                 | Automation                                                          |
-| ---------------- | ------------------------------------------------- | --------------------------------- | ---------------------------- | ------------------------------------------------------------------- |
-| **Planning**     | Generate implementation plan via AI-assisted Q&A  | Task created                      | User approves plan           | AI generates questions → user answers → AI creates plan             |
-| **In Progress**  | Execute development subtasks in isolated worktree | Plan approved; subtasks generated | All `dev` subtasks completed | Task stays in planning until subtasks ready; then dev agent spawned |
-| **AI Review**    | Automated QA verification of implementation       | Dev complete                      | All `qa` subtasks pass       | QA agent auto-spawned                                               |
-| **Human Review** | Developer inspects changes and approves/rejects   | QA passes                         | User approves or merges PR   | Review Locally (open Cursor/VS Code/folder)                         |
-| **Done**         | Task complete, branch ready for merge             | Human approval                    | N/A (terminal)               | Optional branch cleanup                                             |
+| Phase            | Purpose                                           | Entry Trigger                     | Exit Trigger                                    | Automation                                                         |
+| ---------------- | ------------------------------------------------- | --------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------ |
+| **Planning**     | Generate implementation plan via AI-assisted Q&A  | Task created                      | User approves plan                              | AI generates questions → user answers → AI creates plan            |
+| **In Progress**  | Execute development subtasks in isolated worktree | Plan approved; subtasks generated | All `dev` subtasks completed                    | Orchestrator runs dev agent sequentially for pending dev subtasks  |
+| **AI Review**    | Automated QA verification of implementation       | Dev complete                      | QA subtasks + automated checks pass (or at cap) | QA agent auto-spawned; typecheck/build/lint run after QA completes |
+| **Human Review** | Developer inspects changes and approves/rejects   | QA passes or rework cap reached   | User approves or merges PR                      | Review Locally (open Cursor/VS Code/folder)                        |
+| **Done**         | Task complete, branch ready for merge             | Human approval                    | N/A (terminal)                                  | Optional branch cleanup                                            |
 
 ### Planning Phase Sub-States
 
@@ -161,12 +163,22 @@ The planning phase has internal states tracked by `planningStatus`:
 | `plan_ready`           | Plan generated, awaiting user approval                     |
 | `plan_approved`        | User approved plan, ready to transition to `in_progress`   |
 
-### Backward Transitions (Rework)
+### Dev + QA Feedback Loop
 
-Tasks can move backward in the workflow when issues are found:
+The orchestrator automatically manages a rework cycle when automated checks fail:
 
-- **AI Review → In Progress**: QA subtask fails or reports issues → dev agent re-spawned for fixes
-- **Human Review → In Progress**: User requests changes → dev agent re-spawned
+1. **Dev → QA → Automated Checks**: After dev subtasks complete, QA subtasks run, then automated checks (typecheck/build/lint) execute in the worktree
+2. **On Check Failure**: If checks fail and rework count < 2:
+   - Task moves back to **In Progress** phase
+   - A rework dev subtask is added with failure details
+   - `qaFailureFeedback` field stores check output for dev agent context
+   - Orchestrator runs the rework subtask → QA → checks again
+3. **Rework Cap**: After 2 rework iterations, task moves to **Human Review** with note "QA issues remain"
+4. **On Check Pass**: Task moves to **Human Review**
+
+The orchestrator (`run-dev-qa-loop.ts`) handles this entire flow automatically. Manual intervention via Human Review "Request changes" is out of scope for the automated loop.
+
+For implementation details and testing guidance, see [docs/DEV_QA_FEEDBACK_LOOP_PLAN.md](./DEV_QA_FEEDBACK_LOOP_PLAN.md).
 
 ### Subtask Completion Rules
 

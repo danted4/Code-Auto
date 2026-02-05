@@ -20,30 +20,46 @@ import {
 import { cleanPlanningArtifactsFromWorktree } from '@/lib/worktree/cleanup';
 import { getSubtaskGenerationPrompt } from '@/lib/prompts/loader';
 import { buildQASubtaskPrompt } from '@/lib/agents/qa-subtask-prompt';
+import { runDevQALoop } from '@/lib/agents/run-dev-qa-loop';
+import { acquireOrchestratorLock, releaseOrchestratorLock } from '@/lib/agents/orchestrator-lock';
 import fs from 'fs/promises';
 import path from 'path';
 
 const MAX_PARSE_RETRIES = 2; // Initial parse + up to 2 fix-agent attempts
 
 export async function POST(req: NextRequest) {
+  let taskId: string | undefined;
+
   try {
     const projectDir = await getProjectDir(req);
     const taskPersistence = getTaskPersistence(projectDir);
 
-    const { taskId } = await req.json();
+    const body = await req.json();
+    taskId = body.taskId;
 
     if (!taskId) {
       return NextResponse.json({ error: 'taskId required' }, { status: 400 });
     }
 
+    // CRITICAL: Acquire in-memory lock FIRST before any file operations
+    // This prevents race conditions that file-based checks can't handle
+    if (!acquireOrchestratorLock(taskId, 'starting')) {
+      return NextResponse.json(
+        { error: 'Orchestrator is already starting/resuming for this task' },
+        { status: 409 }
+      );
+    }
+
     // Load task
     const task = await taskPersistence.loadTask(taskId);
     if (!task) {
+      releaseOrchestratorLock(taskId);
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
     // Check if task has approved plan
     if (!task.planApproved || !task.planContent) {
+      releaseOrchestratorLock(taskId);
       return NextResponse.json(
         { error: 'Task must have an approved plan before starting development' },
         { status: 400 }
@@ -161,20 +177,54 @@ export async function POST(req: NextRequest) {
             () => {}
           );
 
-          // Start sequential execution
+          // CRITICAL: Reload task to check for race conditions
+          const latestTask = await taskPersistence.loadTask(taskId);
+          if (!latestTask) {
+            await fs.appendFile(
+              logsPath,
+              `[Error] Task not found when starting orchestrator\n`,
+              'utf-8'
+            );
+            return;
+          }
+          if (latestTask.assignedAgent && latestTask.assignedAgent !== 'starting') {
+            await fs.appendFile(
+              logsPath,
+              `[Error] Another orchestrator already started\n`,
+              'utf-8'
+            );
+            return;
+          }
+
+          // Set temporary flag to prevent concurrent starts
+          currentTask.assignedAgent = 'starting';
+          await taskPersistence.saveTask(currentTask);
+
+          // Start orchestrator: runs dev → QA → checks → rework loop
           await fs.appendFile(
             logsPath,
-            `\n${'='.repeat(80)}\n[Starting Sequential Execution]\n${'='.repeat(80)}\n\n`,
+            `\n${'='.repeat(80)}\n[Starting Dev+QA Loop (Orchestrator)]\n${'='.repeat(80)}\n\n`,
             'utf-8'
           );
 
-          await executeSubtasksSequentially(
-            taskPersistence,
-            projectDir,
-            taskId,
-            devSubtasks,
-            logsPath
-          );
+          // Run the orchestrator (fire and forget - it will manage the entire loop and release the lock)
+          runDevQALoop(taskPersistence, projectDir, taskId).catch((error) => {
+            fs.appendFile(
+              logsPath,
+              `\n[Orchestrator Error] ${error instanceof Error ? error.message : 'Unknown error'}\n`,
+              'utf-8'
+            );
+            // Clear the flag on error
+            taskPersistence.loadTask(taskId).then((t) => {
+              if (t && (t.assignedAgent === 'starting' || t.assignedAgent === 'resuming')) {
+                t.assignedAgent = undefined;
+                t.status = 'blocked';
+                taskPersistence.saveTask(t);
+              }
+            });
+            // Release lock on error
+            releaseOrchestratorLock(taskId);
+          });
         } catch (parseError) {
           const errMsg = parseError instanceof Error ? parseError.message : 'Unknown error';
           await fs.appendFile(logsPath, `[Parse/Validation Error] ${errMsg}\n`, 'utf-8');
@@ -253,6 +303,8 @@ Rules:
               `[Max Parse Retries Reached] Task blocked. Subtasks could not be parsed/validated.\n`,
               'utf-8'
             );
+            // Release lock since task is blocked
+            releaseOrchestratorLock(taskId);
           }
         }
       };
@@ -283,6 +335,10 @@ Rules:
       message: 'Generating subtasks - task remains in planning until subtasks are ready',
     });
   } catch (error) {
+    // Release lock on any exception
+    if (taskId) {
+      releaseOrchestratorLock(taskId);
+    }
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -325,488 +381,4 @@ function inferSubtaskType(subtask: Partial<Subtask>): 'dev' | 'qa' {
   return 'dev';
 }
 
-/**
- * Execute subtasks sequentially
- */
-async function executeSubtasksSequentially(
-  taskPersistence: TaskPersistence,
-  projectDir: string,
-  taskId: string,
-  subtasks: Subtask[],
-  logsPath: string
-) {
-  for (let i = 0; i < subtasks.length; i++) {
-    const subtask = subtasks[i];
-
-    // Load fresh task data to check current status
-    const task = await taskPersistence.loadTask(taskId);
-    if (!task) return;
-
-    const taskSubtaskIndex = task.subtasks.findIndex((s) => s.id === subtask.id);
-    if (taskSubtaskIndex === -1) {
-      await fs.appendFile(
-        logsPath,
-        `\n${'='.repeat(80)}\n[Subtask ${i + 1}/${subtasks.length}] ${subtask.label} - SKIPPED (deleted)\n${'='.repeat(80)}\n\n`,
-        'utf-8'
-      );
-      continue;
-    }
-
-    // Safety: dev phase should only execute dev subtasks
-    if (task.subtasks[taskSubtaskIndex].type !== 'dev') {
-      await fs.appendFile(
-        logsPath,
-        `\n${'='.repeat(80)}\n[Subtask ${i + 1}/${subtasks.length}] ${subtask.label} - SKIPPED (not dev)\n${'='.repeat(80)}\n\n`,
-        'utf-8'
-      );
-      continue;
-    }
-
-    // Check if this subtask was already completed (e.g., skipped by user)
-    if (task.subtasks[taskSubtaskIndex].status === 'completed') {
-      await fs.appendFile(
-        logsPath,
-        `\n${'='.repeat(80)}\n[Subtask ${i + 1}/${subtasks.length}] ${subtask.label} - SKIPPED (already completed)\n${'='.repeat(80)}\n\n`,
-        'utf-8'
-      );
-      continue; // Skip to next subtask
-    }
-
-    await fs.appendFile(
-      logsPath,
-      `\n${'='.repeat(80)}\n[Subtask ${i + 1}/${subtasks.length}] ${subtask.label}\n${'='.repeat(80)}\n\n`,
-      'utf-8'
-    );
-
-    // Update subtask to in_progress
-    task.subtasks[taskSubtaskIndex].status = 'in_progress';
-    await taskPersistence.saveTask(task);
-
-    // Execute subtask
-    const prompt = `Execute the following subtask as part of the implementation plan:
-
-**Subtask:** ${subtask.label}
-**Details:** ${subtask.content}
-
-Please implement this subtask following best practices.`;
-
-    // Create completion handler for this subtask
-    const onSubtaskComplete = async (result: {
-      success: boolean;
-      output: string;
-      error?: string;
-    }) => {
-      await fs.appendFile(
-        logsPath,
-        `\n[Subtask ${i + 1} Completed] Success: ${result.success}\n`,
-        'utf-8'
-      );
-
-      if (!result.success) {
-        await fs.appendFile(logsPath, `[Error] ${result.error}\n`, 'utf-8');
-
-        const currentTask = await taskPersistence.loadTask(taskId);
-        if (currentTask) {
-          const idx = currentTask.subtasks.findIndex((s) => s.id === subtask.id);
-          if (idx !== -1) {
-            currentTask.subtasks[idx].status = 'pending'; // Reset to pending on error
-          }
-          currentTask.status = 'blocked';
-          await taskPersistence.saveTask(currentTask);
-        }
-        return;
-      }
-
-      await fs.appendFile(logsPath, `[Output]\n${result.output}\n`, 'utf-8');
-
-      // Mark subtask as completed
-      const currentTask = await taskPersistence.loadTask(taskId);
-      if (currentTask) {
-        const idx = currentTask.subtasks.findIndex((s) => s.id === subtask.id);
-        if (idx !== -1) {
-          currentTask.subtasks[idx].status = 'completed';
-        }
-
-        // Check if all DEV subtasks are completed
-        const allDevCompleted = currentTask.subtasks
-          .filter((s) => s.type === 'dev')
-          .every((s) => s.status === 'completed');
-
-        if (allDevCompleted && currentTask.phase === 'in_progress') {
-          currentTask.phase = 'ai_review'; // Move to AI review phase
-          currentTask.assignedAgent = undefined; // Clear agent
-          currentTask.updatedAt = Date.now(); // Start 15s grace period for "Auto-starting QA" (prevents brief "Retry AI Review" flash)
-          await fs.appendFile(
-            logsPath,
-            `\n${'='.repeat(80)}\n[ALL DEV SUBTASKS COMPLETED - Moving to AI Review]\n${'='.repeat(80)}\n`,
-            'utf-8'
-          );
-
-          // Clean planning artifacts before AI review (ensure not in final output)
-          await cleanPlanningArtifactsFromWorktree(currentTask.worktreePath || projectDir).catch(
-            () => {}
-          );
-
-          // Automatically start AI review
-          await fs.appendFile(logsPath, `\n[AUTO] Initiating AI Review Phase...\n`, 'utf-8');
-          startAIReviewAutomatically(taskPersistence, projectDir, currentTask.id, logsPath);
-        }
-
-        await taskPersistence.saveTask(currentTask);
-      }
-    };
-
-    // Start agent for this subtask
-    const { threadId: subtaskThreadId } = await startAgentForTask({
-      task,
-      prompt,
-      workingDir: task.worktreePath || projectDir,
-      projectDir,
-      onComplete: onSubtaskComplete,
-    });
-
-    await fs.appendFile(
-      logsPath,
-      `[Agent Started for Subtask] Thread ID: ${subtaskThreadId}\n`,
-      'utf-8'
-    );
-
-    // Store the thread ID in task for potential cancellation
-    const taskWithThread = await taskPersistence.loadTask(taskId);
-    if (taskWithThread) {
-      taskWithThread.assignedAgent = subtaskThreadId;
-      await taskPersistence.saveTask(taskWithThread);
-    }
-
-    // Wait for this subtask to complete before moving to next
-    await waitForSubtaskCompletion(taskPersistence, taskId, subtask.id);
-  }
-}
-
-/**
- * Wait for a subtask to complete
- */
-async function waitForSubtaskCompletion(
-  taskPersistence: TaskPersistence,
-  taskId: string,
-  subtaskId: string
-): Promise<void> {
-  return new Promise((resolve) => {
-    let elapsed = 0;
-    const configured = Number(process.env.CODE_AUTOMATA_SUBTASK_WAIT_MS || '');
-    const maxWait = Number.isFinite(configured) && configured > 0 ? configured : 30 * 60 * 1000; // 30 min default
-
-    const interval = setInterval(async () => {
-      elapsed += 1000;
-
-      // Timeout after max wait
-      if (elapsed >= maxWait) {
-        clearInterval(interval);
-        console.error(`[waitForSubtaskCompletion] Timeout waiting for subtask ${subtaskId}`);
-        resolve();
-        return;
-      }
-
-      const task = await taskPersistence.loadTask(taskId);
-      if (!task) {
-        clearInterval(interval);
-        resolve();
-        return;
-      }
-
-      // Check if task is blocked or completed
-      if (task.status === 'blocked' || task.status === 'completed') {
-        clearInterval(interval);
-        resolve();
-        return;
-      }
-
-      // Check if subtask still exists
-      const subtask = task.subtasks.find((s) => s.id === subtaskId);
-      if (!subtask) {
-        // Subtask was deleted
-        clearInterval(interval);
-        resolve();
-        return;
-      }
-
-      // Check if subtask is completed
-      if (subtask.status === 'completed') {
-        clearInterval(interval);
-        resolve();
-      }
-    }, 1000); // Check every 1s
-  });
-}
-
-/**
- * Automatically start AI review phase after dev subtasks complete
- * Triggers the review process via background job without waiting
- */
-function startAIReviewAutomatically(
-  taskPersistence: TaskPersistence,
-  projectDir: string,
-  taskId: string,
-  devLogsPath: string
-): void {
-  // Fire and forget - don't await
-  // This allows the dev phase to finish while review starts in background
-  setTimeout(async () => {
-    try {
-      await fs.appendFile(devLogsPath, `[AUTO] Triggering AI Review Phase...\n`, 'utf-8');
-
-      const task = await taskPersistence.loadTask(taskId);
-      if (!task || task.phase !== 'ai_review') {
-        await fs.appendFile(
-          devLogsPath,
-          `[AUTO] Cannot start review - task not in ai_review phase\n`,
-          'utf-8'
-        );
-        return;
-      }
-
-      // Create review logs path
-      const reviewLogsPath = path.join(
-        projectDir,
-        '.code-automata',
-        'tasks',
-        taskId,
-        'review-logs.txt'
-      );
-      const logsDir = path.dirname(reviewLogsPath);
-      await fs.mkdir(logsDir, { recursive: true });
-
-      await fs.writeFile(
-        reviewLogsPath,
-        `AI Review auto-started for task: ${task.title}\n` +
-          `Task ID: ${taskId}\n` +
-          `Started at: ${new Date().toISOString()}\n` +
-          `${'='.repeat(80)}\n\n`,
-        'utf-8'
-      );
-
-      await fs.appendFile(
-        reviewLogsPath,
-        `[Starting Sequential QA Verification]\n${'='.repeat(80)}\n\n`,
-        'utf-8'
-      );
-
-      // Execute QA subtasks
-      const qaSubtasks = task.subtasks.filter((s) => s.type === 'qa');
-      await executeQASubtasksSequentially(
-        taskPersistence,
-        projectDir,
-        taskId,
-        qaSubtasks,
-        reviewLogsPath
-      );
-
-      await fs.appendFile(devLogsPath, `[AUTO] AI Review Phase initiated\n`, 'utf-8');
-    } catch (error) {
-      await fs.appendFile(
-        devLogsPath,
-        `[AUTO] Error initiating AI review: ${error instanceof Error ? error.message : 'Unknown'}\n`,
-        'utf-8'
-      );
-    }
-  }, 1000); // Give 1 second for phase transition to be saved
-}
-
-/**
- * Execute QA subtasks sequentially (auto-triggered after dev completion)
- */
-async function executeQASubtasksSequentially(
-  taskPersistence: TaskPersistence,
-  projectDir: string,
-  taskId: string,
-  qaSubtasks: Subtask[],
-  logsPath: string
-) {
-  for (let count = 0; count < qaSubtasks.length; count++) {
-    const subtask = qaSubtasks[count];
-
-    // Load fresh task data to check current status
-    const task = await taskPersistence.loadTask(taskId);
-    if (!task) return;
-
-    const taskSubtaskIndex = task.subtasks.findIndex((s) => s.id === subtask.id);
-    if (taskSubtaskIndex === -1) {
-      await fs.appendFile(
-        logsPath,
-        `\n${'='.repeat(80)}\n[QA Subtask ${count + 1}/${qaSubtasks.length}] ${subtask.label} - SKIPPED (deleted)\n${'='.repeat(80)}\n\n`,
-        'utf-8'
-      );
-      continue;
-    }
-
-    // Safety: QA phase should only execute QA subtasks
-    if (task.subtasks[taskSubtaskIndex].type !== 'qa') {
-      await fs.appendFile(
-        logsPath,
-        `\n${'='.repeat(80)}\n[QA Subtask ${count + 1}/${qaSubtasks.length}] ${subtask.label} - SKIPPED (not qa)\n${'='.repeat(80)}\n\n`,
-        'utf-8'
-      );
-      continue;
-    }
-
-    // Check if this subtask was already completed (e.g., skipped by user)
-    if (task.subtasks[taskSubtaskIndex].status === 'completed') {
-      await fs.appendFile(
-        logsPath,
-        `\n${'='.repeat(80)}\n[QA Subtask ${count + 1}/${qaSubtasks.length}] ${subtask.label} - SKIPPED (already completed)\n${'='.repeat(80)}\n\n`,
-        'utf-8'
-      );
-      continue;
-    }
-
-    await fs.appendFile(
-      logsPath,
-      `\n${'='.repeat(80)}\n[QA Subtask ${count + 1}/${qaSubtasks.length}] ${subtask.label}\n${'='.repeat(80)}\n\n`,
-      'utf-8'
-    );
-
-    // Update subtask to in_progress
-    task.subtasks[taskSubtaskIndex].status = 'in_progress';
-    await taskPersistence.saveTask(task);
-
-    // Execute subtask (manual QA subtasks get constrained prompt: 1 doc in manual-qa-required/)
-    const prompt = buildQASubtaskPrompt(subtask);
-
-    // Create completion handler for this subtask
-    const onSubtaskComplete = async (result: {
-      success: boolean;
-      output: string;
-      error?: string;
-    }) => {
-      await fs.appendFile(
-        logsPath,
-        `\n[QA Subtask ${count + 1} Completed] Success: ${result.success}\n`,
-        'utf-8'
-      );
-
-      if (!result.success) {
-        await fs.appendFile(logsPath, `[Error] ${result.error}\n`, 'utf-8');
-
-        const currentTask = await taskPersistence.loadTask(taskId);
-        if (currentTask) {
-          const idx = currentTask.subtasks.findIndex((s) => s.id === subtask.id);
-          if (idx !== -1) {
-            currentTask.subtasks[idx].status = 'pending';
-          }
-          currentTask.status = 'blocked';
-          await taskPersistence.saveTask(currentTask);
-        }
-        return;
-      }
-
-      await fs.appendFile(logsPath, `[Output]\n${result.output}\n`, 'utf-8');
-
-      // Mark subtask as completed
-      const currentTask = await taskPersistence.loadTask(taskId);
-      if (currentTask) {
-        const idx = currentTask.subtasks.findIndex((s) => s.id === subtask.id);
-        if (idx !== -1) {
-          currentTask.subtasks[idx].status = 'completed';
-        }
-
-        // Check if all QA subtasks are completed
-        const allQACompleted = currentTask.subtasks
-          .filter((s) => s.type === 'qa')
-          .every((s) => s.status === 'completed');
-
-        if (allQACompleted && currentTask.phase === 'ai_review') {
-          currentTask.phase = 'human_review';
-          currentTask.status = 'completed';
-          currentTask.assignedAgent = undefined;
-          await fs.appendFile(
-            logsPath,
-            `\n${'='.repeat(80)}\n[ALL QA SUBTASKS COMPLETED - Moving to Human Review]\n${'='.repeat(80)}\n`,
-            'utf-8'
-          );
-          // Clean planning artifacts before human review (ensure not in final output)
-          await cleanPlanningArtifactsFromWorktree(currentTask.worktreePath || projectDir).catch(
-            () => {}
-          );
-        }
-
-        await taskPersistence.saveTask(currentTask);
-      }
-    };
-
-    // Start agent for this QA subtask
-    const { threadId: subtaskThreadId } = await startAgentForTask({
-      task,
-      prompt,
-      workingDir: task.worktreePath || projectDir,
-      projectDir,
-      onComplete: onSubtaskComplete,
-    });
-
-    await fs.appendFile(
-      logsPath,
-      `[Agent Started for QA Subtask] Thread ID: ${subtaskThreadId}\n`,
-      'utf-8'
-    );
-
-    // Store the thread ID in task for potential cancellation
-    const taskWithThread = await taskPersistence.loadTask(taskId);
-    if (taskWithThread) {
-      taskWithThread.assignedAgent = subtaskThreadId;
-      await taskPersistence.saveTask(taskWithThread);
-    }
-
-    // Wait for this subtask to complete before moving to next
-    await waitForQASubtaskCompletion(taskPersistence, taskId, subtask.id);
-  }
-}
-
-/**
- * Wait for QA subtask to complete
- */
-async function waitForQASubtaskCompletion(
-  taskPersistence: TaskPersistence,
-  taskId: string,
-  subtaskId: string
-): Promise<void> {
-  return new Promise((resolve) => {
-    let elapsed = 0;
-    const configured = Number(process.env.CODE_AUTOMATA_SUBTASK_WAIT_MS || '');
-    const maxWait = Number.isFinite(configured) && configured > 0 ? configured : 30 * 60 * 1000; // 30 min default
-
-    const interval = setInterval(async () => {
-      elapsed += 1000;
-
-      if (elapsed >= maxWait) {
-        clearInterval(interval);
-        console.error(`[waitForQASubtaskCompletion] Timeout waiting for QA subtask ${subtaskId}`);
-        resolve();
-        return;
-      }
-
-      const task = await taskPersistence.loadTask(taskId);
-      if (!task) {
-        clearInterval(interval);
-        resolve();
-        return;
-      }
-
-      if (task.status === 'blocked' || task.status === 'completed') {
-        clearInterval(interval);
-        resolve();
-        return;
-      }
-
-      const subtask = task.subtasks.find((s) => s.id === subtaskId);
-      if (!subtask) {
-        clearInterval(interval);
-        resolve();
-        return;
-      }
-
-      if (subtask.status === 'completed') {
-        clearInterval(interval);
-        resolve();
-      }
-    }, 1000);
-  });
-}
+// Note: Dev and QA subtask execution is now handled by the orchestrator (run-dev-qa-loop.ts)

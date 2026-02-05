@@ -14,8 +14,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Task, Subtask } from '@/lib/tasks/schema';
-import { CheckCircle2, Circle, Loader2, Trash2, SkipForward, GripVertical } from 'lucide-react';
+import { Task, Subtask, isTaskStuck } from '@/lib/tasks/schema';
+import {
+  CheckCircle2,
+  Circle,
+  Loader2,
+  Trash2,
+  SkipForward,
+  GripVertical,
+  RotateCcw,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useTaskStore } from '@/store/task-store';
 import { apiFetch, buildStreamUrl } from '@/lib/api-client';
@@ -201,6 +209,8 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isSkipping, setIsSkipping] = useState<string | null>(null);
   const [isSkippingCurrent, setIsSkippingCurrent] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
+  const [showResumeButton, setShowResumeButton] = useState(isTaskStuck(task));
   const [subtasks, setSubtasks] = useState<Subtask[]>(task.subtasks);
   const [agentLogs, setAgentLogs] = useState<AgentLog[]>([]);
   const [logStatus, setLogStatus] = useState<
@@ -440,6 +450,34 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
     }
   };
 
+  const handleResume = async () => {
+    setIsResuming(true);
+
+    try {
+      const response = await apiFetch('/api/agents/resume-task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to resume task');
+        setIsResuming(false);
+      } else {
+        toast.success('Resuming...', {
+          description: 'Task orchestrator is resuming from the last completed subtask',
+        });
+        // Hide the resume button after successful resume
+        setShowResumeButton(false);
+        await loadTasks();
+      }
+    } catch (_error) {
+      toast.error('Failed to resume task');
+      setIsResuming(false);
+    }
+  };
+
   const getSubtaskIcon = (subtask: Subtask) => {
     if (subtask.status === 'completed') {
       return <CheckCircle2 className="w-5 h-5" style={{ color: 'var(--color-success)' }} />;
@@ -537,6 +575,27 @@ export function TaskDetailModal({ open, onOpenChange, task }: TaskDetailModalPro
           <DialogTitle>{task.title || task.id}</DialogTitle>
           <DialogDescription>{task.description}</DialogDescription>
         </DialogHeader>
+
+        {/* Resume Button - Show for stuck tasks */}
+        {showResumeButton && isTaskStuck(task) && (
+          <div className="mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResume}
+              disabled={isResuming}
+              className="w-full text-xs"
+              style={{
+                background: 'var(--color-warning)',
+                color: '#ffffff',
+                borderColor: 'var(--color-warning)',
+              }}
+            >
+              <RotateCcw className="w-4 h-4 mr-2" strokeWidth={2.5} />
+              {isResuming ? 'Resuming...' : 'Resume Task'}
+            </Button>
+          </div>
+        )}
 
         {/* Tabs */}
         <div

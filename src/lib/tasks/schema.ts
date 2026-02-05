@@ -71,6 +71,16 @@ export interface Task {
   worktreePath?: string;
   branchName?: string; // code-automata/{task-name}
 
+  // QA Feedback Loop
+  qaFailureFeedback?: string; // Failure details from automated checks to pass to rework dev
+  reworkCount?: number; // Number of rework iterations (for capping the loop)
+  lastQAResult?: {
+    // Result of last QA + automated checks run
+    overall: 'pass' | 'fail';
+    summary?: string;
+    details?: string;
+  };
+
   // Integrations
   githubIssue?: number;
   gitlabIssue?: number;
@@ -147,4 +157,50 @@ export function getPreviousPhase(currentPhase: WorkflowPhase): WorkflowPhase | n
     return null; // Already at first phase
   }
   return WORKFLOW_PHASES[currentIndex - 1];
+}
+
+/**
+ * Helper to check if a task is stuck (needs resume)
+ * A task is stuck if it's in in_progress or ai_review phase but has no assigned agent
+ *
+ * Note: This is a synchronous check that only looks at the task object.
+ * For checking if an agent thread is actually active, use isTaskStuckWithActiveCheck()
+ */
+export function isTaskStuck(task: Task): boolean {
+  // Don't show resume if orchestrator is already starting/resuming
+  if (task.assignedAgent === 'starting' || task.assignedAgent === 'resuming') {
+    return false;
+  }
+
+  return (task.phase === 'in_progress' || task.phase === 'ai_review') && !task.assignedAgent;
+}
+
+/**
+ * Helper to check if a task is stuck, including checking for stale agent threads
+ * A task is stuck if:
+ * - It's in in_progress or ai_review phase
+ * - AND either has no assignedAgent OR the assignedAgent is stale (not in active registry)
+ *
+ * This requires the isThreadActive function from the agent registry
+ */
+export function isTaskStuckWithAgentCheck(
+  task: Task,
+  isThreadActive: (threadId: string) => boolean
+): boolean {
+  if (task.phase !== 'in_progress' && task.phase !== 'ai_review') {
+    return false;
+  }
+
+  // No agent assigned - definitely stuck
+  if (!task.assignedAgent) {
+    return true;
+  }
+
+  // Has agent but it's not actually running - stale thread, also stuck
+  if (!isThreadActive(task.assignedAgent)) {
+    return true;
+  }
+
+  // Has agent and it's active - not stuck
+  return false;
 }

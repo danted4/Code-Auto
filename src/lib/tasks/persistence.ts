@@ -54,6 +54,16 @@ export class TaskPersistence {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return null; // File doesn't exist
       }
+
+      // Handle JSON parsing errors
+      if (error instanceof SyntaxError) {
+        console.error(`[TaskPersistence] JSON parsing error for task ${taskId}:`, error.message);
+        console.error(`[TaskPersistence] File path: ${filePath}`);
+        // Return null for corrupted files instead of throwing
+        // This allows the system to continue functioning with other tasks
+        return null;
+      }
+
       throw error;
     }
   }
@@ -74,8 +84,16 @@ export class TaskPersistence {
         })
       );
 
-      // Filter out nulls and sort by creation date
-      return tasks.filter((t): t is Task => t !== null).sort((a, b) => b.createdAt - a.createdAt);
+      // Filter out nulls (missing or corrupted files) and sort by creation date
+      const validTasks = tasks.filter((t): t is Task => t !== null);
+
+      // Log if any tasks were skipped due to corruption
+      const skippedCount = tasks.length - validTasks.length;
+      if (skippedCount > 0) {
+        console.warn(`[TaskPersistence] Skipped ${skippedCount} corrupted task file(s)`);
+      }
+
+      return validTasks.sort((a, b) => b.createdAt - a.createdAt);
     } catch (_error) {
       return [];
     }

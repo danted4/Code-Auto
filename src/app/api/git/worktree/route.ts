@@ -62,6 +62,8 @@ export async function POST(req: NextRequest) {
     if (action === 'delete') {
       const taskPersistence = getTaskPersistence(projectDir);
       const task = await taskPersistence.loadTask(taskId);
+
+      // Stop agent if task exists and has an assigned agent
       if (task?.assignedAgent) {
         try {
           await stopAgentByThreadId(task.assignedAgent);
@@ -69,6 +71,8 @@ export async function POST(req: NextRequest) {
           console.warn(`[Worktree API] Failed to stop agent for ${taskId}:`, e);
         }
       }
+
+      // Delete worktree (even if task file is corrupted)
       await manager.deleteWorktree(
         taskId,
         force || false,
@@ -76,7 +80,10 @@ export async function POST(req: NextRequest) {
         alsoDeleteFromRemote,
         worktreePath
       );
+
+      // Delete task file (handles corruption gracefully)
       await taskPersistence.deleteTask(taskId);
+
       return NextResponse.json({
         success: true,
         message: `Worktree and task deleted for ${taskId}`,
@@ -86,8 +93,11 @@ export async function POST(req: NextRequest) {
     if (action === 'cleanup-all') {
       const worktrees = await manager.listWorktrees();
       const taskPersistence = getTaskPersistence(projectDir);
+
       for (const wt of worktrees) {
         const task = await taskPersistence.loadTask(wt.taskId);
+
+        // Stop agent if task exists and has an assigned agent
         if (task?.assignedAgent) {
           try {
             await stopAgentByThreadId(task.assignedAgent);
@@ -95,6 +105,8 @@ export async function POST(req: NextRequest) {
             console.warn(`[Worktree API] Failed to stop agent for ${wt.taskId}:`, e);
           }
         }
+
+        // Delete worktree (even if task file is corrupted)
         await manager.deleteWorktree(
           wt.taskId,
           force ?? true,
@@ -102,8 +114,11 @@ export async function POST(req: NextRequest) {
           alsoDeleteFromRemote ?? false,
           wt.path
         );
+
+        // Delete task file (handles corruption gracefully)
         await taskPersistence.deleteTask(wt.taskId);
       }
+
       return NextResponse.json({
         success: true,
         message: `All ${worktrees.length} worktree(s) and tasks cleaned up`,
@@ -149,6 +164,8 @@ export async function POST(req: NextRequest) {
 
       for (const wt of toRemove) {
         const task = await taskPersistence.loadTask(wt.taskId);
+
+        // Stop agent if task exists and has an assigned agent
         if (task?.assignedAgent) {
           try {
             await stopAgentByThreadId(task.assignedAgent);
@@ -156,6 +173,8 @@ export async function POST(req: NextRequest) {
             console.warn(`[Worktree API] Failed to stop agent for ${wt.taskId}:`, e);
           }
         }
+
+        // Delete worktree (even if task file is corrupted)
         await manager.deleteWorktree(
           wt.taskId,
           force ?? true,
@@ -163,6 +182,8 @@ export async function POST(req: NextRequest) {
           alsoDeleteFromRemote ?? false,
           wt.path
         );
+
+        // Delete task file if it exists (handles corruption gracefully)
         if (taskIds.has(wt.taskId)) {
           await taskPersistence.deleteTask(wt.taskId);
         }

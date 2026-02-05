@@ -8,11 +8,11 @@
 
 import { useDraggable } from '@dnd-kit/core';
 import { useState } from 'react';
-import { Task } from '@/lib/tasks/schema';
+import { Task, isTaskStuck } from '@/lib/tasks/schema';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Play, PauseCircle, GitBranch, Trash2 } from 'lucide-react';
+import { Play, PauseCircle, GitBranch, Trash2, RotateCcw } from 'lucide-react';
 import { QAStepperModal } from '@/components/tasks/qa-stepper-modal';
 import { PlanReviewModal } from '@/components/tasks/plan-review-modal';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
@@ -32,6 +32,8 @@ export function TaskCard({ task, onEditBlockedTask }: TaskCardProps) {
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [isStartingReview, setIsStartingReview] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
+  const [showResumeButton, setShowResumeButton] = useState(isTaskStuck(task));
   const [showQAModal, setShowQAModal] = useState(false);
   const [showPlanReviewModal, setShowPlanReviewModal] = useState(false);
   const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
@@ -61,30 +63,30 @@ export function TaskCard({ task, onEditBlockedTask }: TaskCardProps) {
     return colors[status] || colors.pending;
   };
 
-  const handleStartAgent = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent drag when clicking button
-    setIsStarting(true);
+  const handleResumeTask = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsResuming(true);
+    toast.info('Resuming orchestrator...');
+
     try {
-      const response = await apiFetch('/api/agents/start', {
+      const response = await apiFetch('/api/agents/resume-task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          taskId: task.id,
-          prompt: `Work on task: ${task.title}\n\nDescription: ${task.description}`,
-        }),
+        body: JSON.stringify({ taskId: task.id }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || 'Failed to start agent');
+        toast.error(error.error || 'Failed to resume task');
       } else {
-        toast.success('Agent started successfully');
+        toast.success('Orchestrator resumed successfully');
+        setShowResumeButton(false);
         await loadTasks();
       }
     } catch (_error) {
-      toast.error('Failed to start agent');
+      toast.error('Failed to resume task');
     } finally {
-      setIsStarting(false);
+      setIsResuming(false);
     }
   };
 
@@ -93,22 +95,45 @@ export function TaskCard({ task, onEditBlockedTask }: TaskCardProps) {
     if (!task.assignedAgent) return;
 
     setIsStopping(true);
+    toast.info('Pausing orchestrator...');
+
     try {
-      const response = await apiFetch('/api/agents/stop', {
+      // Try to stop the current agent (it might already be stopped, which is fine)
+      const stopResponse = await apiFetch('/api/agents/stop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ threadId: task.assignedAgent }),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to stop agent');
-      } else {
-        toast.success('Agent stopped successfully');
-        await loadTasks();
+      // Agent not found is OK - it might have already finished or crashed
+      if (!stopResponse.ok) {
+        const error = await stopResponse.json();
+        if (!error.error?.includes('not found')) {
+          console.warn('[Pause] Stop agent warning:', error.error);
+        }
+        // Continue anyway to clean up the task state
       }
+
+      // Clear assignedAgent and reset in_progress subtasks
+      // This makes the task appear "stuck" so Resume button shows up
+      const updateResponse = await apiFetch('/api/tasks/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId: task.id,
+          updates: { assignedAgent: null },
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        toast.error('Failed to update task state');
+        return;
+      }
+
+      toast.success('Orchestrator paused - click Resume to continue');
+      await loadTasks();
     } catch (_error) {
-      toast.error('Failed to stop agent');
+      toast.error('Failed to pause orchestrator');
     } finally {
       setIsStopping(false);
     }
@@ -197,6 +222,35 @@ export function TaskCard({ task, onEditBlockedTask }: TaskCardProps) {
       toast.error('Failed to start AI review');
     } finally {
       setIsStartingReview(false);
+    }
+  };
+
+  const handleResume = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsResuming(true);
+
+    try {
+      const response = await apiFetch('/api/agents/resume-task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to resume task');
+        setIsResuming(false);
+      } else {
+        toast.success('Resuming...', {
+          description: 'Task orchestrator is resuming from the last completed subtask',
+        });
+        // Hide the resume button after successful resume
+        setShowResumeButton(false);
+        await loadTasks();
+      }
+    } catch (_error) {
+      toast.error('Failed to resume task');
+      setIsResuming(false);
     }
   };
 
@@ -589,6 +643,30 @@ export function TaskCard({ task, onEditBlockedTask }: TaskCardProps) {
                   {isStopping ? 'Pausing...' : 'Pause'}
                 </Button>
               </div>
+            ) : showResumeButton && isTaskStuck(task) ? (
+              // Task is stuck - show Resume button
+              <Button
+                data-testid="resume-button"
+                size="sm"
+                variant="outline"
+                onClick={handleResume}
+                disabled={isResuming}
+                className="w-full text-xs"
+                style={{
+                  background: 'var(--color-warning)',
+                  color: '#ffffff',
+                  borderColor: 'var(--color-warning)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '0.9';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+              >
+                <RotateCcw className="w-4 h-4" strokeWidth={2.5} />
+                {isResuming ? 'Resuming...' : 'Resume'}
+              </Button>
             ) : Date.now() - task.updatedAt > 15_000 ? (
               // QA didn't start within 15s (manual drag, agent stopped, or auto-trigger failed)
               <Button
@@ -612,6 +690,30 @@ export function TaskCard({ task, onEditBlockedTask }: TaskCardProps) {
               >
                 <Play className="w-4 h-4" strokeWidth={2.5} />
                 {isStartingReview ? 'Starting...' : 'Retry AI Review'}
+              </Button>
+            ) : showResumeButton && isTaskStuck(task) ? (
+              // Task is stuck - show Resume button
+              <Button
+                data-testid="resume-button"
+                size="sm"
+                variant="outline"
+                onClick={handleResume}
+                disabled={isResuming}
+                className="w-full text-xs"
+                style={{
+                  background: 'var(--color-warning)',
+                  color: '#ffffff',
+                  borderColor: 'var(--color-warning)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '0.9';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+              >
+                <RotateCcw className="w-4 h-4" strokeWidth={2.5} />
+                {isResuming ? 'Resuming...' : 'Resume'}
               </Button>
             ) : (
               // QA auto-starts when dev completes. Show Auto-starting for up to 15s.
@@ -683,30 +785,31 @@ export function TaskCard({ task, onEditBlockedTask }: TaskCardProps) {
                   {isStopping ? 'Pausing...' : 'Pause'}
                 </Button>
               </div>
-            ) : (
+            ) : isTaskStuck(task) ? (
+              /* Stuck task - show Resume button to restart orchestrator */
               <Button
-                data-testid="start-agent-button"
+                data-testid="resume-orchestrator-button"
                 size="sm"
                 variant="outline"
-                onClick={handleStartAgent}
-                disabled={isStarting}
+                onClick={handleResumeTask}
+                disabled={isResuming}
                 className="w-full text-xs"
                 style={{
-                  background: 'var(--color-surface-hover)',
-                  color: 'var(--color-text-primary)',
-                  borderColor: 'var(--color-border)',
+                  background: 'var(--color-warning)',
+                  color: '#ffffff',
+                  borderColor: 'var(--color-warning)',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--color-background)';
+                  e.currentTarget.style.background = 'var(--color-warning-hover)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'var(--color-surface-hover)';
+                  e.currentTarget.style.background = 'var(--color-warning)';
                 }}
               >
-                <Play className="w-4 h-4" strokeWidth={2.5} />
-                {isStarting ? 'Starting...' : 'Start Agent'}
+                <RotateCcw className="w-4 h-4" strokeWidth={2.5} />
+                {isResuming ? 'Resuming...' : 'Resume'}
               </Button>
-            )}
+            ) : null}
           </>
         )}
       </CardContent>

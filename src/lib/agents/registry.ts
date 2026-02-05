@@ -142,3 +142,12 @@ export async function stopAgentByThreadId(threadId: string): Promise<{ taskId: s
   await entry.manager.stopAgent(threadId);
   return { taskId: entry.taskId };
 }
+
+/**
+ * Check if a thread ID is actually running (exists in the registry)
+ * Used to detect stale agent threads after app restart
+ */
+export function isThreadActive(threadId: string | undefined): boolean {
+  if (!threadId) return false;
+  return threads.has(threadId);
+}

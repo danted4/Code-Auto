@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTaskPersistence } from '@/lib/tasks/persistence';
 import { getProjectDir } from '@/lib/project-dir';
+import { releaseOrchestratorLock } from '@/lib/agents/orchestrator-lock';
 import type { WorkflowPhase } from '@/lib/tasks/schema';
 
 const FORBIDDEN_TRANSITIONS: Array<{ from: WorkflowPhase; to: WorkflowPhase }> = [
@@ -32,7 +33,7 @@ export async function PATCH(req: NextRequest) {
     const projectDir = await getProjectDir(req);
     const taskPersistence = getTaskPersistence(projectDir);
     const body = await req.json();
-    const { taskId, ...updates } = body;
+    const { taskId, updates } = body;
 
     if (!taskId) {
       return NextResponse.json({ error: 'Task ID required' }, { status: 400 });
@@ -43,10 +44,13 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
+    // Support both { taskId, ...updates } and { taskId, updates: {...} } formats
+    const actualUpdates = updates || body;
+
     if (
-      typeof updates.phase === 'string' &&
-      updates.phase !== task.phase &&
-      !isPhaseTransitionAllowed(task.phase, updates.phase as WorkflowPhase)
+      typeof actualUpdates.phase === 'string' &&
+      actualUpdates.phase !== task.phase &&
+      !isPhaseTransitionAllowed(task.phase, actualUpdates.phase as WorkflowPhase)
     ) {
       return NextResponse.json(
         {
@@ -57,10 +61,31 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
+    // Handle pausing orchestrator (when assignedAgent is explicitly cleared)
+    if ('assignedAgent' in actualUpdates && actualUpdates.assignedAgent === null) {
+      console.log(`[Task ${taskId}] Pausing orchestrator - resetting in_progress subtasks`);
+
+      // Reset any in_progress subtasks to pending
+      let resetCount = 0;
+      if (task.subtasks) {
+        for (const subtask of task.subtasks) {
+          if (subtask.status === 'in_progress') {
+            subtask.status = 'pending';
+            resetCount++;
+          }
+        }
+      }
+
+      // Release orchestrator lock
+      releaseOrchestratorLock(taskId);
+
+      console.log(`[Task ${taskId}] Reset ${resetCount} in_progress subtask(s) to pending`);
+    }
+
     // Update task
     const updatedTask = {
       ...task,
-      ...updates,
+      ...actualUpdates,
       updatedAt: Date.now(),
     };
 

@@ -85,7 +85,17 @@ For each subtask, provide:
 5. Cap at 15 subtasks maximum
 6. Include at least 2 QA subtasks ("type": "qa") that ONLY verify/test (e.g. run build/tests, validate docs/links/diagrams)
 7. Put verification steps (build/test/lint/validate/verify) under QA, not dev
-8. For QA subtasks that require manual human verification (e.g. UI testing, visual review), include "manual" in the label or content (e.g. "Manual QA: verify login flow")`;
+8. For QA subtasks that require manual human verification (e.g. UI testing, visual review), include "manual" in the label or content (e.g. "Manual QA: verify login flow")
+
+**IMPORTANT - QA Subtask Alignment:**
+- Each QA subtask should correspond to specific dev work from the plan
+- Include file paths or feature areas in QA subtask content to match dev subtasks (e.g. "Verify API endpoint implementation in src/app/api/tasks/route.ts")
+- QA subtasks should reference what dev subtasks accomplished (e.g. "Validate the authentication middleware added in previous step")
+- Make QA subtasks specific to the implementation details from the plan, not generic
+- QA subtasks should verify 3 aspects:
+  1. Code quality: Check for syntax errors, runtime issues, and logical problems
+  2. Plan harmony: Ensure implementation matches the approved plan
+  3. Functionality: Test that features work as intended`;
 
 export const SUBTASK_GENERATION_SUFFIX = `
 
@@ -101,9 +111,9 @@ Return your subtasks in the following JSON format:
     },
     {
       "id": "subtask-qa-1",
-      "content": "Run the build and verify there are no errors; if there are, report them clearly without changing code",
-      "label": "Verify build",
-      "activeForm": "Verifying build",
+      "content": "Verify the API endpoint implementation: (1) Review src/app/api/example/route.ts for syntax errors and runtime issues, (2) Ensure it matches the plan specifications, (3) Run build and check for errors",
+      "label": "Verify API endpoint",
+      "activeForm": "Verifying API endpoint",
       "type": "qa"
     }
   ]

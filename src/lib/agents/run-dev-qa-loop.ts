@@ -5,8 +5,8 @@
  * This orchestrator manages the entire dev+QA cycle with a rework cap.
  */
 
-import { getTaskPersistence, type TaskPersistence } from '@/lib/tasks/persistence';
-import { Task, Subtask } from '@/lib/tasks/schema';
+import { type TaskPersistence } from '@/lib/tasks/persistence';
+import { Subtask } from '@/lib/tasks/schema';
 import { startAgentForTask } from '@/lib/agents/registry';
 import { buildQASubtaskPrompt } from '@/lib/agents/qa-subtask-prompt';
 import {
@@ -72,11 +72,10 @@ export async function runDevQALoop(
     await taskPersistence.saveTask(task);
   }
 
-  // Clear the 'resuming' or 'starting' flag if set (from resume/start endpoints)
-  if (task.assignedAgent === 'resuming' || task.assignedAgent === 'starting') {
-    task.assignedAgent = undefined;
-    await taskPersistence.saveTask(task);
-  }
+  // Keep 'resuming' or 'starting' until the first agent sets assignedAgent to its threadId.
+  // Clearing it here created a gap where the UI would see assignedAgent=undefined and show
+  // the Resume button again (isTaskStuck=true) while the orchestrator was actually running.
+  // The first subtask's startAgentForTask callback will overwrite with the real thread ID.
 
   await fs.appendFile(
     devLogsPath,

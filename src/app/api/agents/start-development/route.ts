@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getTaskPersistence, type TaskPersistence } from '@/lib/tasks/persistence';
+import { getTaskPersistence } from '@/lib/tasks/persistence';
 import { Subtask } from '@/lib/tasks/schema';
 import { startAgentForTask } from '@/lib/agents/registry';
 import { getProjectDir } from '@/lib/project-dir';
@@ -19,7 +19,6 @@ import {
 } from '@/lib/validation/subtask-validator';
 import { cleanPlanningArtifactsFromWorktree } from '@/lib/worktree/cleanup';
 import { getSubtaskGenerationPrompt } from '@/lib/prompts/loader';
-import { buildQASubtaskPrompt } from '@/lib/agents/qa-subtask-prompt';
 import { runDevQALoop } from '@/lib/agents/run-dev-qa-loop';
 import { acquireOrchestratorLock, releaseOrchestratorLock } from '@/lib/agents/orchestrator-lock';
 import fs from 'fs/promises';
@@ -40,10 +39,11 @@ export async function POST(req: NextRequest) {
     if (!taskId) {
       return NextResponse.json({ error: 'taskId required' }, { status: 400 });
     }
+    const id = taskId;
 
     // CRITICAL: Acquire in-memory lock FIRST before any file operations
     // This prevents race conditions that file-based checks can't handle
-    if (!acquireOrchestratorLock(taskId, 'starting')) {
+    if (!acquireOrchestratorLock(id, 'starting')) {
       return NextResponse.json(
         { error: 'Orchestrator is already starting/resuming for this task' },
         { status: 409 }
@@ -51,15 +51,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Load task
-    const task = await taskPersistence.loadTask(taskId);
+    const task = await taskPersistence.loadTask(id);
     if (!task) {
-      releaseOrchestratorLock(taskId);
+      releaseOrchestratorLock(id);
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
     // Check if task has approved plan
     if (!task.planApproved || !task.planContent) {
-      releaseOrchestratorLock(taskId);
+      releaseOrchestratorLock(id);
       return NextResponse.json(
         { error: 'Task must have an approved plan before starting development' },
         { status: 400 }
@@ -67,13 +67,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Ensure development logs directory exists
-    const logsPath = path.join(
-      projectDir,
-      '.code-automata',
-      'tasks',
-      taskId,
-      'development-logs.txt'
-    );
+    const logsPath = path.join(projectDir, '.code-automata', 'tasks', id, 'development-logs.txt');
     const logsDir = path.dirname(logsPath);
     await fs.mkdir(logsDir, { recursive: true });
 
@@ -81,7 +75,7 @@ export async function POST(req: NextRequest) {
     await fs.writeFile(
       logsPath,
       `Subtask generation started for task: ${task.title}\n` +
-        `Task ID: ${taskId}\n` +
+        `Task ID: ${id}\n` +
         `Started at: ${new Date().toISOString()}\n` +
         `(Task remains in planning until subtasks are generated successfully)\n` +
         `${'='.repeat(80)}\n\n`,
@@ -104,7 +98,7 @@ export async function POST(req: NextRequest) {
         if (!result.success) {
           await fs.appendFile(logsPath, `[Error] ${result.error}\n`, 'utf-8');
 
-          const currentTask = await taskPersistence.loadTask(taskId);
+          const currentTask = await taskPersistence.loadTask(id);
           if (currentTask) {
             currentTask.status = 'blocked';
             currentTask.assignedAgent = undefined;
@@ -135,7 +129,7 @@ export async function POST(req: NextRequest) {
           await fs.appendFile(logsPath, `[Validated ${subtasks.length} subtasks]\n`, 'utf-8');
 
           // Save subtasks to task - NOW move to in_progress (subtasks generated successfully)
-          const currentTask = await taskPersistence.loadTask(taskId);
+          const currentTask = await taskPersistence.loadTask(id);
           if (!currentTask) return;
 
           // Process subtasks from CLI.
@@ -178,7 +172,7 @@ export async function POST(req: NextRequest) {
           );
 
           // CRITICAL: Reload task to check for race conditions
-          const latestTask = await taskPersistence.loadTask(taskId);
+          const latestTask = await taskPersistence.loadTask(id);
           if (!latestTask) {
             await fs.appendFile(
               logsPath,
@@ -208,14 +202,14 @@ export async function POST(req: NextRequest) {
           );
 
           // Run the orchestrator (fire and forget - it will manage the entire loop and release the lock)
-          runDevQALoop(taskPersistence, projectDir, taskId).catch((error) => {
+          runDevQALoop(taskPersistence, projectDir, id).catch((error) => {
             fs.appendFile(
               logsPath,
               `\n[Orchestrator Error] ${error instanceof Error ? error.message : 'Unknown error'}\n`,
               'utf-8'
             );
             // Clear the flag on error
-            taskPersistence.loadTask(taskId).then((t) => {
+            taskPersistence.loadTask(id).then((t) => {
               if (t && (t.assignedAgent === 'starting' || t.assignedAgent === 'resuming')) {
                 t.assignedAgent = undefined;
                 t.status = 'blocked';
@@ -223,7 +217,7 @@ export async function POST(req: NextRequest) {
               }
             });
             // Release lock on error
-            releaseOrchestratorLock(taskId);
+            releaseOrchestratorLock(id);
           });
         } catch (parseError) {
           const errMsg = parseError instanceof Error ? parseError.message : 'Unknown error';
@@ -270,7 +264,7 @@ Rules:
 - Do NOT create subtasks.json or similar in your working directory - they pollute the worktree.
 - Your final message must be ONLY the JSON object`;
 
-            const currentTask = await taskPersistence.loadTask(taskId);
+            const currentTask = await taskPersistence.loadTask(id);
             if (!currentTask) return;
 
             const { threadId: fixThreadId } = await startAgentForTask({
@@ -292,7 +286,7 @@ Rules:
             );
           } else {
             // Max retries reached - block the task (stays in planning)
-            const currentTask = await taskPersistence.loadTask(taskId);
+            const currentTask = await taskPersistence.loadTask(id);
             if (currentTask) {
               currentTask.status = 'blocked';
               currentTask.assignedAgent = undefined;
@@ -304,7 +298,7 @@ Rules:
               'utf-8'
             );
             // Release lock since task is blocked
-            releaseOrchestratorLock(taskId);
+            releaseOrchestratorLock(id);
           }
         }
       };

@@ -25,10 +25,11 @@ export async function POST(req: NextRequest) {
     if (!taskId) {
       return NextResponse.json({ error: 'taskId required' }, { status: 400 });
     }
+    const id = taskId;
 
     // CRITICAL: Acquire in-memory lock FIRST before any file operations
     // This prevents race conditions that file-based checks can't handle
-    if (!acquireOrchestratorLock(taskId, 'resuming')) {
+    if (!acquireOrchestratorLock(id, 'resuming')) {
       return NextResponse.json(
         { error: 'Orchestrator is already starting/resuming for this task' },
         { status: 409 }
@@ -36,15 +37,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Load task
-    const task = await taskPersistence.loadTask(taskId);
+    const task = await taskPersistence.loadTask(id);
     if (!task) {
-      releaseOrchestratorLock(taskId);
+      releaseOrchestratorLock(id);
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
     // Check if task is in a resumable state
     if (task.phase !== 'in_progress' && task.phase !== 'ai_review') {
-      releaseOrchestratorLock(taskId);
+      releaseOrchestratorLock(id);
       return NextResponse.json(
         { error: 'Task is not in a resumable state (must be in_progress or ai_review)' },
         { status: 400 }
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     // Check if orchestrator is already running (has an assigned agent)
     if (task.assignedAgent) {
-      releaseOrchestratorLock(taskId);
+      releaseOrchestratorLock(id);
       return NextResponse.json(
         { error: 'Task orchestrator is already running - cannot resume' },
         { status: 409 }
@@ -72,13 +73,13 @@ export async function POST(req: NextRequest) {
 
     // CRITICAL: Reload task to check for race conditions
     // Multiple resume requests can arrive simultaneously, so we need to check again
-    const latestTask = await taskPersistence.loadTask(taskId);
+    const latestTask = await taskPersistence.loadTask(id);
     if (!latestTask) {
-      releaseOrchestratorLock(taskId);
+      releaseOrchestratorLock(id);
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
     if (latestTask.assignedAgent && latestTask.assignedAgent !== 'resuming') {
-      releaseOrchestratorLock(taskId);
+      releaseOrchestratorLock(id);
       return NextResponse.json(
         { error: 'Another orchestrator started while processing this request' },
         { status: 409 }
@@ -95,10 +96,10 @@ export async function POST(req: NextRequest) {
 
     // Resume the orchestrator
     // Fire and forget - orchestrator will manage the entire loop and release the lock
-    runDevQALoop(taskPersistence, projectDir, taskId).catch((error) => {
+    runDevQALoop(taskPersistence, projectDir, id).catch((error) => {
       console.error('[Resume Task] Orchestrator error:', error);
       // Clear the flag on error
-      taskPersistence.loadTask(taskId).then((t) => {
+      taskPersistence.loadTask(id).then((t) => {
         if (t && t.assignedAgent === 'resuming') {
           t.assignedAgent = undefined;
           t.status = 'blocked';
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
         }
       });
       // Release lock on error
-      releaseOrchestratorLock(taskId);
+      releaseOrchestratorLock(id);
     });
 
     return NextResponse.json({

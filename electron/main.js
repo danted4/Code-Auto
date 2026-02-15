@@ -28,7 +28,7 @@ const PORT_RANGE = 10; // try 3000..3009 if default is busy
 let mainWindow = null;
 let nextServer = null;
 let nextServerProcess = null;
-let serverPort = DEFAULT_PORT;
+let _serverPort = DEFAULT_PORT;
 let appUrl = null; // Reuse same URL when reopening window (keeps localStorage)
 
 /**
@@ -375,7 +375,7 @@ async function startNextServerInBackground() {
     );
     return;
   }
-  serverPort = port;
+  _serverPort = port;
   const url = `http://localhost:${port}`;
   appUrl = url;
   process.env.NEXT_PUBLIC_APP_URL = url;

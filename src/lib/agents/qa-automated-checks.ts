@@ -68,10 +68,11 @@ async function runCommand(
     });
     const output = `${stdout}\n${stderr}`.trim();
     return { passed: true, output };
-  } catch (error: any) {
-    const output = error.stdout
-      ? `${error.stdout}\n${error.stderr || ''}`.trim()
-      : error.message || 'Unknown error';
+  } catch (error: unknown) {
+    const err = error as { stdout?: string; stderr?: string; message?: string };
+    const output = err.stdout
+      ? `${err.stdout}\n${err.stderr || ''}`.trim()
+      : err.message || 'Unknown error';
     return { passed: false, output };
   }
 }

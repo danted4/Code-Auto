@@ -25,10 +25,22 @@ export function clearStaleAgent(task: Task): boolean {
     return false; // Orchestrator is running, don't interfere
   }
 
-  // Don't clear if the task is in a temporary "resuming" state
-  // This is a temporary placeholder value while orchestrator is starting
-  if (task.assignedAgent === 'resuming') {
-    return false; // Orchestrator is resuming, don't clear
+  // 'resuming'/'starting' are placeholders while orchestrator is starting.
+  // If the lock is NOT held (e.g. app quit and restarted), the orchestrator died - clear so user can resume.
+  if (task.assignedAgent === 'resuming' || task.assignedAgent === 'starting') {
+    // Lock not held = orchestrator is gone (app restarted). Clear the stale placeholder.
+    task.assignedAgent = undefined;
+    let resetCount = 0;
+    for (const subtask of task.subtasks) {
+      if (subtask.status === 'in_progress') {
+        subtask.status = 'pending';
+        resetCount++;
+      }
+    }
+    console.log(
+      `[Cleanup] Cleared stale resuming/starting placeholder for task ${task.id}, reset ${resetCount} in_progress subtask(s)`
+    );
+    return true;
   }
 
   // Check if the thread is actually active
